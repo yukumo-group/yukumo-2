@@ -49,7 +49,7 @@ func runInteractiveEdit(cmd *cobra.Command, svc *svcconfig.Service, args []strin
 		if err != nil {
 			return err
 		}
-		entry, err := lookupField(args[0])
+		entry, err := setting.Lookup(fields, args[0])
 		if err != nil {
 			return err
 		}
@@ -64,18 +64,18 @@ func runInteractiveEdit(cmd *cobra.Command, svc *svcconfig.Service, args []strin
 		focusKey = args[0]
 	}
 
-	err := setting.BrowseKeys(fieldKeys(), func() map[string]prompt.LeafMeta {
+	err := setting.BrowseKeys(setting.Keys(fields), func() map[string]prompt.LeafMeta {
 		cfg, err := svc.Get()
 		if err != nil {
 			return map[string]prompt.LeafMeta{}
 		}
-		return fieldMetas(cfg)
+		return setting.Metas(fields, cfg)
 	}, func(key string) error {
 		cfg, err := svc.Get()
 		if err != nil {
 			return err
 		}
-		entry, err := lookupField(key)
+		entry, err := setting.Lookup(fields, key)
 		if err != nil {
 			return err
 		}
@@ -98,7 +98,7 @@ func applyEdit(
 	key, raw string,
 	normalize bool,
 ) error {
-	entry, err := lookupField(key)
+	entry, err := setting.Lookup(fields, key)
 	if err != nil {
 		return err
 	}
@@ -117,15 +117,4 @@ func applyEdit(
 	}
 	_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", key, entry.Get(cfg))
 	return err
-}
-
-func fieldMetas(cfg domain.Config) map[string]prompt.LeafMeta {
-	out := make(map[string]prompt.LeafMeta, len(fields))
-	for _, f := range fields {
-		out[f.Field.Key] = prompt.LeafMeta{
-			Value:       f.Get(cfg),
-			Description: f.Field.Description,
-		}
-	}
-	return out
 }

@@ -50,7 +50,8 @@ func browseCommands(start *cobra.Command) error {
 			continue
 		}
 		if err := runCommand(chosen); err != nil {
-			return err
+			fmt.Fprintln(chosen.ErrOrStderr(), err)
+			continue
 		}
 	}
 }

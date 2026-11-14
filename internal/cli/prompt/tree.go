@@ -19,18 +19,14 @@ type LeafMeta struct {
 type treeNode struct {
 	name     string
 	children map[string]*treeNode
+	order    []string
 	leafKey  string
 }
 
 func (n *treeNode) isLeaf() bool { return n.leafKey != "" }
 
 func (n *treeNode) childNames() []string {
-	names := make([]string, 0, len(n.children))
-	for name := range n.children {
-		names = append(names, name)
-	}
-	slices.Sort(names)
-	return names
+	return n.order
 }
 
 func buildKeyTree(keys []string) *treeNode {
@@ -43,6 +39,7 @@ func buildKeyTree(keys []string) *treeNode {
 			if !ok {
 				child = &treeNode{name: part, children: make(map[string]*treeNode)}
 				cur.children[part] = child
+				cur.order = append(cur.order, part)
 			}
 			cur = child
 			if i == len(parts)-1 {

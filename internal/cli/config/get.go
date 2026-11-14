@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 
+	"yukumo-script/internal/cli/setting"
 	svcconfig "yukumo-script/internal/service/config"
 
 	"github.com/spf13/cobra"
@@ -19,7 +20,7 @@ func newGetCmd(svc *svcconfig.Service, opts Options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			entry, err := lookupField(args[0])
+			entry, err := setting.Lookup(fields, args[0])
 			if err != nil {
 				return err
 			}

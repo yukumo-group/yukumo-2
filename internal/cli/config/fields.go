@@ -1,20 +1,13 @@
 package config
 
 import (
-	"fmt"
 	"strconv"
 
 	"yukumo-script/internal/cli/setting"
 	"yukumo-script/internal/domain"
 )
 
-type fieldEntry struct {
-	Field setting.Field
-	Get   func(domain.Config) string
-	Set   func(*domain.Config, string) error
-}
-
-var fields = []fieldEntry{
+var fields = []setting.Entry[domain.Config]{
 	{
 		Field: setting.Field{
 			Key:         "paths.character_path",
@@ -98,21 +91,4 @@ var fields = []fieldEntry{
 			return nil
 		},
 	},
-}
-
-func fieldKeys() []string {
-	keys := make([]string, len(fields))
-	for i, f := range fields {
-		keys[i] = f.Field.Key
-	}
-	return keys
-}
-
-func lookupField(key string) (fieldEntry, error) {
-	for _, f := range fields {
-		if f.Field.Key == key {
-			return f, nil
-		}
-	}
-	return fieldEntry{}, fmt.Errorf("unknown key %q (want %v)", key, fieldKeys())
 }
