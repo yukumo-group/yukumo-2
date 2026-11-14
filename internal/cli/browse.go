@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"strings"
 
 	"yukumo-script/internal/cli/prompt"
 
@@ -11,6 +10,7 @@ import (
 
 func browseCommands(start *cobra.Command) error {
 	stack := []*cobra.Command{start}
+	prompt.Reset(menuParts(stack)...)
 	for {
 		cur := stack[len(stack)-1]
 		children := menuCommands(cur)
@@ -32,7 +32,8 @@ func browseCommands(start *cobra.Command) error {
 			labels = append(labels, label)
 		}
 
-		idx, err := prompt.Select(menuTitle(stack), "↑↓ move · enter", labels, 0)
+		prompt.Reset(menuParts(stack)...)
+		idx, err := prompt.Select("", "↑↓ move · enter", labels, 0)
 		if err != nil {
 			return err
 		}
@@ -49,10 +50,11 @@ func browseCommands(start *cobra.Command) error {
 			stack = append(stack, chosen)
 			continue
 		}
+		prompt.Reset(append(menuParts(stack), chosen.Name())...)
 		if err := runCommand(chosen); err != nil {
 			fmt.Fprintln(chosen.ErrOrStderr(), err)
-			continue
 		}
+		prompt.Reset(menuParts(stack)...)
 	}
 }
 
@@ -70,12 +72,12 @@ func menuCommands(cmd *cobra.Command) []*cobra.Command {
 	return out
 }
 
-func menuTitle(stack []*cobra.Command) string {
+func menuParts(stack []*cobra.Command) []string {
 	parts := make([]string, 0, len(stack))
 	for _, c := range stack {
 		parts = append(parts, c.Name())
 	}
-	return strings.Join(parts, " › ")
+	return parts
 }
 
 func runCommand(cmd *cobra.Command) error {

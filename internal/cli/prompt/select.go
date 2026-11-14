@@ -14,7 +14,7 @@ const (
 	LabelCancel = "←  Cancel"
 )
 
-func Select(title, desc string, labels []string, defaultIdx int) (int, error) {
+func Select(segment, desc string, labels []string, defaultIdx int) (int, error) {
 	if len(labels) == 0 {
 		return 0, fmt.Errorf("no options")
 	}
@@ -27,7 +27,7 @@ func Select(title, desc string, labels []string, defaultIdx int) (int, error) {
 		idx = 0
 	}
 	sel := huh.NewSelect[int]().
-		Title(title).
+		Title(Title(segment)).
 		Options(options...).
 		Value(&idx)
 	if desc != "" {

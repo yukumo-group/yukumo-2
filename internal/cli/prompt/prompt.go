@@ -2,21 +2,21 @@ package prompt
 
 import "github.com/charmbracelet/huh"
 
-func String(title string, value *string) error {
+func String(segment string, value *string) error {
 	return run(huh.NewInput().
-		Title(title).
+		Title(Title(segment)).
 		Value(value))
 }
 
-func EnsureString(title string, value *string) error {
+func EnsureString(segment string, value *string) error {
 	if value == nil || *value != "" {
 		return nil
 	}
-	return String(title, value)
+	return String(segment, value)
 }
 
-func Confirm(title string, value *bool) error {
+func Confirm(segment string, value *bool) error {
 	return run(huh.NewConfirm().
-		Title(title).
+		Title(Title(segment)).
 		Value(value))
 }

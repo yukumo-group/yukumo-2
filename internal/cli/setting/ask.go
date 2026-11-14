@@ -23,22 +23,23 @@ func BrowseKeys(
 }
 
 func Ask(f Field, current string, notify io.Writer) (string, error) {
+	seg := askSegment(f)
 	switch f.Kind {
 	case KindString:
 		v := current
-		if err := prompt.String(f.Title, &v); err != nil {
+		if err := prompt.String(seg, &v); err != nil {
 			return "", err
 		}
 		return v, nil
 	case KindDir:
 		v := current
-		if err := prompt.Dir(f.Title, &v); err != nil {
+		if err := prompt.Dir(seg, &v); err != nil {
 			return "", err
 		}
 		return v, nil
 	case KindFile:
 		v := current
-		if err := prompt.File(f.Title, &v); err != nil {
+		if err := prompt.File(seg, &v); err != nil {
 			return "", err
 		}
 		return v, nil
@@ -47,7 +48,7 @@ func Ask(f Field, current string, notify io.Writer) (string, error) {
 		if err != nil {
 			v = f.Min
 		}
-		if err := prompt.RangedInt(f.Title, &v, f.Min, f.Max, notify); err != nil {
+		if err := prompt.RangedInt(seg, &v, f.Min, f.Max, notify); err != nil {
 			return "", err
 		}
 		return strconv.Itoa(v), nil
@@ -60,6 +61,13 @@ func Ask(f Field, current string, notify io.Writer) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported field kind %d", f.Kind)
 	}
+}
+
+func askSegment(f Field) string {
+	if prompt.Crumb() != "" {
+		return ""
+	}
+	return f.Title
 }
 
 func Normalize(f Field, raw string, notify io.Writer) (string, error) {

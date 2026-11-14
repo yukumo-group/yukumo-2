@@ -28,7 +28,7 @@ func Bool(title string, value *bool) error {
 		return fmt.Errorf("bool value is nil")
 	}
 	return run(huh.NewSelect[bool]().
-		Title(title).
+		Title(Title(title)).
 		Options(
 			huh.NewOption("true", true),
 			huh.NewOption("false", false),

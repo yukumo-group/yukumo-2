@@ -34,7 +34,7 @@ func RangedInt(title string, value *int, min, max int, notify io.Writer) error {
 	}
 	raw := strconv.Itoa(*value)
 	if err := run(huh.NewInput().
-		Title(title).
+		Title(Title(title)).
 		Description(fmt.Sprintf("[%d, %d]", min, max)).
 		Value(&raw).
 		Validate(func(s string) error {

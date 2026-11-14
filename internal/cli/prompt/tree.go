@@ -87,75 +87,86 @@ func BrowseKeys(
 	startPrefix string,
 	focusKey string,
 ) error {
-	root := buildKeyTree(keys)
-	stack := stackAt(root, startPrefix)
-	focus := leafFocus(stack[len(stack)-1], focusKey)
+	return With(title, func() error {
+		root := buildKeyTree(keys)
+		stack := stackAt(root, startPrefix)
+		focus := leafFocus(stack[len(stack)-1], focusKey)
+		baseLen := len(crumbs)
+		syncSuffix(baseLen, treeParts(stack))
 
-	for {
-		cur := stack[len(stack)-1]
-		vals := values()
-		if vals == nil {
-			vals = map[string]LeafMeta{}
-		}
-		names, labels := renderLevel(cur, vals)
-
-		idx, err := Select(title, treePath(stack), labels, focus)
-		if err != nil {
-			return err
-		}
-		if idx == 0 {
-			if len(stack) == 1 {
-				return ErrAborted
+		for {
+			cur := stack[len(stack)-1]
+			vals := values()
+			if vals == nil {
+				vals = map[string]LeafMeta{}
 			}
-			stack = stack[:len(stack)-1]
-			focus = 0
-			continue
-		}
+			names, labels := renderLevel(cur, vals)
+			syncSuffix(baseLen, treeParts(stack))
 
-		chosen := cur.children[names[idx-1]]
-		if !chosen.isLeaf() {
-			stack = append(stack, chosen)
-			focus = 0
-			continue
+			idx, err := Select("", treeHints(stack), labels, focus)
+			if err != nil {
+				return err
+			}
+			if idx == 0 {
+				if len(stack) == 1 {
+					return ErrAborted
+				}
+				stack = stack[:len(stack)-1]
+				focus = 0
+				continue
+			}
+
+			chosen := cur.children[names[idx-1]]
+			if !chosen.isLeaf() {
+				stack = append(stack, chosen)
+				focus = 0
+				continue
+			}
+			if err := With(chosen.name, func() error {
+				return onLeaf(chosen.leafKey)
+			}); err != nil {
+				return err
+			}
+			focus = idx
 		}
-		if err := onLeaf(chosen.leafKey); err != nil {
-			return err
-		}
-		focus = idx
-	}
+	})
 }
 
 func TreeKey(title string, keys []string, values map[string]LeafMeta, out *string) error {
 	if out == nil {
 		return fmt.Errorf("key value is nil")
 	}
-	root := buildKeyTree(keys)
-	stack := []*treeNode{root}
+	return With(title, func() error {
+		root := buildKeyTree(keys)
+		stack := []*treeNode{root}
+		baseLen := len(crumbs)
 
-	for {
-		cur := stack[len(stack)-1]
-		names, labels := renderLevel(cur, values)
+		for {
+			cur := stack[len(stack)-1]
+			names, labels := renderLevel(cur, values)
+			syncSuffix(baseLen, treeParts(stack))
 
-		idx, err := Select(title, treePath(stack), labels, 0)
-		if err != nil {
-			return err
-		}
-		if idx == 0 {
-			if len(stack) == 1 {
-				return ErrAborted
+			idx, err := Select("", treeHints(stack), labels, 0)
+			if err != nil {
+				return err
 			}
-			stack = stack[:len(stack)-1]
-			continue
-		}
+			if idx == 0 {
+				if len(stack) == 1 {
+					return ErrAborted
+				}
+				stack = stack[:len(stack)-1]
+				continue
+			}
 
-		chosen := cur.children[names[idx-1]]
-		if !chosen.isLeaf() {
-			stack = append(stack, chosen)
-			continue
+			chosen := cur.children[names[idx-1]]
+			if !chosen.isLeaf() {
+				stack = append(stack, chosen)
+				continue
+			}
+			*out = chosen.leafKey
+			return nil
 		}
-		*out = chosen.leafKey
-		return nil
-	}
+	})
 }
 
 func EnsureTreeKey(title string, keys []string, values map[string]LeafMeta, out *string) error {
@@ -209,13 +220,20 @@ func stackAt(root *treeNode, prefix string) []*treeNode {
 	return stack
 }
 
-func treePath(stack []*treeNode) string {
+func treeParts(stack []*treeNode) []string {
 	if len(stack) <= 1 {
-		return "↑↓ move · enter · back to leave"
+		return nil
 	}
 	parts := make([]string, 0, len(stack)-1)
 	for _, n := range stack[1:] {
 		parts = append(parts, n.name)
 	}
-	return strings.Join(parts, ".") + "  ·  ↑↓ move · enter"
+	return parts
+}
+
+func treeHints(stack []*treeNode) string {
+	if len(stack) <= 1 {
+		return "↑↓ move · enter · back to leave"
+	}
+	return "↑↓ move · enter"
 }

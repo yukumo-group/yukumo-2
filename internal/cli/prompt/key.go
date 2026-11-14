@@ -12,7 +12,7 @@ func Key(title string, keys []string, value *string) error {
 		return fmt.Errorf("key value is nil")
 	}
 	return run(huh.NewSelect[string]().
-		Title(title).
+		Title(Title(title)).
 		Options(huh.NewOptions(keys...)...).
 		Value(value))
 }
