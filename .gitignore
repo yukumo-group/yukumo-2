@@ -1,0 +1,7 @@
+.claude/
+.cursor/
+.idea/
+yukumo-script
+*.exe
+*.test
+*.out
