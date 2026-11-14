@@ -1,13 +1,13 @@
 package voice
 
 import (
-	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
-func runGet(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charName string, args []string) error {
+func runGet(cmd *cobra.Command, svc *svcvoice.Service, opts Options, charName string, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
@@ -20,7 +20,7 @@ func runGet(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charNam
 	if name == "" {
 		return cmd.Usage()
 	}
-	v, err := svc.GetVoice(charName, name)
+	v, err := svc.Get(charName, name)
 	if err != nil {
 		return err
 	}

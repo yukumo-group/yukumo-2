@@ -7,12 +7,12 @@ import (
 
 	"yukumo-script/internal/cli/prompt"
 	"yukumo-script/internal/domain"
-	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
 )
 
-func runAdd(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charName string, args []string) error {
+func runAdd(cmd *cobra.Command, svc *svcvoice.Service, opts Options, charName string, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
@@ -61,7 +61,7 @@ func runAdd(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charNam
 	}
 	v.Params = []domain.SynthParam{p}
 
-	if err := svc.AddVoice(context.Background(), charName, v); err != nil {
+	if err := svc.Add(context.Background(), charName, v); err != nil {
 		return err
 	}
 	_, err := fmt.Fprintf(cmd.OutOrStdout(), "added voice %q\n", v.Name)

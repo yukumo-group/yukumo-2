@@ -10,6 +10,8 @@ const (
 	LabelBack   = "←  Back"
 	LabelExit   = "←  Exit"
 	LabelParent = "←  Parent directory"
+	LabelSave   = "✓  Save"
+	LabelCancel = "←  Cancel"
 )
 
 func Select(title, desc string, labels []string, defaultIdx int) (int, error) {

@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"yukumo-script/internal/cli/prompt"
-	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
 )
 
-func runDelete(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charName string, args []string) error {
+func runDelete(cmd *cobra.Command, svc *svcvoice.Service, opts Options, charName string, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
@@ -35,7 +35,7 @@ func runDelete(cmd *cobra.Command, svc *svccharacter.Service, opts Options, char
 			return nil
 		}
 	}
-	if err := svc.DeleteVoice(charName, name); err != nil {
+	if err := svc.Delete(charName, name); err != nil {
 		return err
 	}
 	_, err := fmt.Fprintf(cmd.OutOrStdout(), "deleted voice %q\n", name)

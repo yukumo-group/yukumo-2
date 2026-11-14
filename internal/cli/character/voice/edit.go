@@ -8,12 +8,12 @@ import (
 
 	"yukumo-script/internal/cli/prompt"
 	"yukumo-script/internal/domain"
-	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
 )
 
-func runEdit(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charName string, args []string) error {
+func runEdit(cmd *cobra.Command, svc *svcvoice.Service, opts Options, charName string, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
@@ -28,7 +28,6 @@ func runEdit(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charNa
 	}
 
 	if !opts.Interactive && len(args) >= 4 {
-		// voice edit <voice> <version|name|paramField> ...
 		return runOneShotVoiceEdit(cmd, svc, charName, name, args[1:])
 	}
 	if opts.Interactive {
@@ -40,8 +39,8 @@ func runEdit(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charNa
 	return fmt.Errorf("usage: character <name> voice edit <voice> <field> <value>")
 }
 
-func runOneShotVoiceEdit(cmd *cobra.Command, svc *svccharacter.Service, charName, voiceName string, args []string) error {
-	v, err := svc.GetVoice(charName, voiceName)
+func runOneShotVoiceEdit(cmd *cobra.Command, svc *svcvoice.Service, charName, voiceName string, args []string) error {
+	v, err := svc.Get(charName, voiceName)
 	if err != nil {
 		return err
 	}
@@ -53,7 +52,7 @@ func runOneShotVoiceEdit(cmd *cobra.Command, svc *svccharacter.Service, charName
 	case "name":
 		v.Name = raw
 	case "param", "version":
-		return fmt.Errorf("use: edit <voice> param <version> <field> <value>")
+		return fmt.Errorf("use: edit <voice> <version> <field> <value>")
 	default:
 		if len(args) >= 3 && (field == "1" || field == "2" || field == "10") {
 			ver, _ := strconv.Atoi(field)
@@ -61,7 +60,7 @@ func runOneShotVoiceEdit(cmd *cobra.Command, svc *svccharacter.Service, charName
 		}
 		return fmt.Errorf("unknown field %q (want name, or <version> <field> <value>)", field)
 	}
-	if err := svc.UpdateVoice(context.Background(), charName, voiceName, v); err != nil {
+	if err := svc.Update(context.Background(), charName, voiceName, v); err != nil {
 		return err
 	}
 	_, err = fmt.Fprintf(cmd.OutOrStdout(), "name: %s\n", v.Name)
@@ -70,7 +69,7 @@ func runOneShotVoiceEdit(cmd *cobra.Command, svc *svccharacter.Service, charName
 
 func editParamOneShot(
 	cmd *cobra.Command,
-	svc *svccharacter.Service,
+	svc *svcvoice.Service,
 	charName string,
 	v *domain.Voice,
 	version int,
@@ -83,20 +82,20 @@ func editParamOneShot(
 		idx = len(v.Params) - 1
 		p = &v.Params[idx]
 	}
-	if err := applyParamField(svc, p, field, raw, cmd.ErrOrStderr()); err != nil {
+	if err := applyParamField(p, field, raw, cmd.ErrOrStderr()); err != nil {
 		return err
 	}
-	if err := svc.UpdateVoice(context.Background(), charName, v.Name, *v); err != nil {
+	if err := svc.Update(context.Background(), charName, v.Name, *v); err != nil {
 		return err
 	}
 	_, err := fmt.Fprintf(cmd.OutOrStdout(), "v%d.%s updated\n", version, field)
 	return err
 }
 
-func runInteractiveVoiceEdit(cmd *cobra.Command, svc *svccharacter.Service, charName, voiceName string) error {
+func runInteractiveVoiceEdit(cmd *cobra.Command, svc *svcvoice.Service, charName, voiceName string) error {
 	current := voiceName
 	for {
-		v, err := svc.GetVoice(charName, current)
+		v, err := svc.Get(charName, current)
 		if err != nil {
 			return err
 		}
@@ -105,7 +104,9 @@ func runInteractiveVoiceEdit(cmd *cobra.Command, svc *svccharacter.Service, char
 			_, idx := paramByVersion(&v, ver)
 			status := "(absent)"
 			if idx >= 0 {
-				status = fmt.Sprintf("preset=%d speed=%d", v.Params[idx].Preset, v.Params[idx].Speed)
+				status = fmt.Sprintf("%s · speed %d",
+					presetDisplay(svc, v.Params[idx].Version, v.Params[idx].Preset),
+					v.Params[idx].Speed)
 			}
 			labels = append(labels, fmt.Sprintf("param v%d\n  %s", ver, status))
 		}
@@ -126,7 +127,7 @@ func runInteractiveVoiceEdit(cmd *cobra.Command, svc *svccharacter.Service, char
 			}
 			old := current
 			v.Name = name
-			if err := svc.UpdateVoice(context.Background(), charName, old, v); err != nil {
+			if err := svc.Update(context.Background(), charName, old, v); err != nil {
 				return err
 			}
 			current = v.Name
@@ -135,20 +136,10 @@ func runInteractiveVoiceEdit(cmd *cobra.Command, svc *svccharacter.Service, char
 		}
 		version := []int{domain.Version1, domain.Version2, domain.Version10}[idx-2]
 		p, pidx := paramByVersion(&v, version)
+		var draft domain.SynthParam
 		if pidx < 0 {
-			create := true
-			if err := prompt.Confirm(fmt.Sprintf("Add version %d param?", version), &create); err != nil {
-				return err
-			}
-			if !create {
-				continue
-			}
-			v.Params = append(v.Params, domain.DefaultSynthParam(version))
-			if err := svc.UpdateVoice(context.Background(), charName, current, v); err != nil {
-				return err
-			}
-			v, _ = svc.GetVoice(charName, current)
-			p, pidx = paramByVersion(&v, version)
+			draft = domain.DefaultSynthParam(version)
+			p = &draft
 		}
 		if err := editParamInteractive(cmd, svc, p); err != nil {
 			if errors.Is(err, prompt.ErrAborted) {
@@ -156,8 +147,12 @@ func runInteractiveVoiceEdit(cmd *cobra.Command, svc *svccharacter.Service, char
 			}
 			return err
 		}
-		v.Params[pidx] = *p
-		if err := svc.UpdateVoice(context.Background(), charName, current, v); err != nil {
+		if pidx < 0 {
+			v.Params = append(v.Params, *p)
+		} else {
+			v.Params[pidx] = *p
+		}
+		if err := svc.Update(context.Background(), charName, current, v); err != nil {
 			return err
 		}
 	}

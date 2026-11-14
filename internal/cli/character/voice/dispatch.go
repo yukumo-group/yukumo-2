@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
 )
@@ -14,9 +14,9 @@ type Options struct {
 }
 
 // Dispatch handles: character <name> voice <verb> ...
-func Dispatch(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charName string, args []string) error {
+func Dispatch(cmd *cobra.Command, svc *svcvoice.Service, opts Options, charName string, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("voice subcommand required (list|get|add|edit|delete)")
+		return fmt.Errorf("voice subcommand required (list|get|add|edit|delete|duplicate)")
 	}
 	verb, rest := args[0], args[1:]
 	switch strings.ToLower(verb) {
@@ -30,6 +30,8 @@ func Dispatch(cmd *cobra.Command, svc *svccharacter.Service, opts Options, charN
 		return runEdit(cmd, svc, opts, charName, rest)
 	case "delete":
 		return runDelete(cmd, svc, opts, charName, rest)
+	case "duplicate":
+		return runDuplicate(cmd, svc, opts, charName, rest)
 	default:
 		return fmt.Errorf("unknown voice command %q", verb)
 	}

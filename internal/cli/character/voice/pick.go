@@ -5,21 +5,21 @@ import (
 
 	"yukumo-script/internal/cli/prompt"
 	"yukumo-script/internal/domain"
-	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
 var dimMeta = lipgloss.NewStyle().Faint(true)
 
-func ensureVoiceName(svc *svccharacter.Service, charName string, name *string) error {
+func ensureVoiceName(svc *svcvoice.Service, charName string, name *string) error {
 	if name == nil {
 		return fmt.Errorf("voice name is nil")
 	}
 	if *name != "" {
 		return nil
 	}
-	voices, err := svc.ListVoices(charName)
+	voices, err := svc.List(charName)
 	if err != nil {
 		return err
 	}

@@ -9,11 +9,12 @@ import (
 	"yukumo-script/internal/cli/setting"
 	"yukumo-script/internal/domain"
 	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
 )
 
-func newEditCmd(svc *svccharacter.Service, opts Options) *cobra.Command {
+func newEditCmd(chars *svccharacter.Service, voices *svcvoice.Service, opts Options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "edit [name] [field] [value]",
 		Short: "Update a character field",
@@ -25,9 +26,9 @@ func newEditCmd(svc *svccharacter.Service, opts Options) *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if opts.Interactive && len(args) < 3 {
-				return runInteractiveEdit(cmd, svc, args)
+				return runInteractiveEdit(cmd, chars, voices, args)
 			}
-			return runOneShotEdit(cmd, svc, args)
+			return runOneShotEdit(cmd, chars, args)
 		},
 	}
 }
@@ -43,17 +44,17 @@ func runOneShotEdit(cmd *cobra.Command, svc *svccharacter.Service, args []string
 	return applyEdit(cmd, svc, args[0], &c, args[1], args[2], true)
 }
 
-func runInteractiveEdit(cmd *cobra.Command, svc *svccharacter.Service, args []string) error {
+func runInteractiveEdit(cmd *cobra.Command, chars *svccharacter.Service, voices *svcvoice.Service, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
 	}
-	if err := ensureName(svc, &name); err != nil {
+	if err := ensureName(chars, &name); err != nil {
 		return err
 	}
 
 	if len(args) >= 2 {
-		c, err := svc.Get(name)
+		c, err := chars.Get(name)
 		if err != nil {
 			return err
 		}
@@ -65,7 +66,7 @@ func runInteractiveEdit(cmd *cobra.Command, svc *svccharacter.Service, args []st
 		if err != nil {
 			return err
 		}
-		if err := applyEdit(cmd, svc, name, &c, args[1], value, false); err != nil {
+		if err := applyEdit(cmd, chars, name, &c, args[1], value, false); err != nil {
 			return err
 		}
 		name = c.Name
@@ -73,7 +74,7 @@ func runInteractiveEdit(cmd *cobra.Command, svc *svccharacter.Service, args []st
 
 	currentName := name
 	for {
-		c, err := svc.Get(currentName)
+		c, err := chars.Get(currentName)
 		if err != nil {
 			return err
 		}
@@ -96,7 +97,7 @@ func runInteractiveEdit(cmd *cobra.Command, svc *svccharacter.Service, args []st
 			return nil
 		}
 		if idx == len(labels)-1 {
-			if err := voice.RunMenu(cmd, svc, currentName); err != nil {
+			if err := voice.RunMenu(cmd, voices, currentName); err != nil {
 				return err
 			}
 			continue
@@ -113,7 +114,7 @@ func runInteractiveEdit(cmd *cobra.Command, svc *svccharacter.Service, args []st
 			}
 			return err
 		}
-		if err := applyEdit(cmd, svc, currentName, &c, key, value, false); err != nil {
+		if err := applyEdit(cmd, chars, currentName, &c, key, value, false); err != nil {
 			return err
 		}
 		currentName = c.Name

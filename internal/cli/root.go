@@ -11,6 +11,7 @@ import (
 	"yukumo-script/internal/cli/prompt"
 	"yukumo-script/internal/runtime/aq"
 	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 	svcconfig "yukumo-script/internal/service/config"
 	"yukumo-script/internal/store"
 
@@ -47,19 +48,19 @@ func newRoot() (*cobra.Command, error) {
 	interactive := cfg.CLI.Interactive()
 	cfgOpts := cliconfig.Options{Interactive: interactive}
 	charOpts := clicharacter.Options{Interactive: interactive}
-	charSvc := svccharacter.New(cfgSvc, aqRT)
+	charSvc := svccharacter.New(cfgSvc)
+	voiceSvc := svcvoice.New(charSvc, aqRT)
 	root := &cobra.Command{
 		Use:           "yukumo-script",
 		Short:         "Yukumo script and voice tooling",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		PersistentPreRun: func(*cobra.Command, []string) {},
 	}
 	root.PersistentPostRun = func(*cobra.Command, []string) {
 		_ = aqRT.Close(context.Background())
 	}
 	root.AddCommand(cliconfig.NewCmd(cfgSvc, cfgOpts))
-	root.AddCommand(clicharacter.NewCmd(charSvc, charOpts))
+	root.AddCommand(clicharacter.NewCmd(charSvc, voiceSvc, charOpts))
 	if interactive {
 		enableInteractiveBrowse(root)
 	}

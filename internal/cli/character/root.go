@@ -5,6 +5,7 @@ import (
 
 	"yukumo-script/internal/cli/character/voice"
 	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
 )
@@ -13,39 +14,34 @@ type Options struct {
 	Interactive bool
 }
 
-func NewCmd(svc *svccharacter.Service, opts Options) *cobra.Command {
+func NewCmd(chars *svccharacter.Service, voices *svcvoice.Service, opts Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "character",
 		Short: "Manage characters",
 		Long: `Manage characters and their voices.
 
-Voice commands (non-interactive):
-  character <name> voice list
-  character <name> voice get <voice>
-  character <name> voice add <voice> [version]
-  character <name> voice edit <voice> ...
-  character <name> voice delete <voice>`,
+  character <name> voice list|get|add|edit|delete|duplicate ...`,
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) >= 2 && args[1] == "voice" {
-				return voice.Dispatch(cmd, svc, voice.Options{Interactive: opts.Interactive}, args[0], args[2:])
+				return voice.Dispatch(cmd, voices, voice.Options{Interactive: opts.Interactive}, args[0], args[2:])
 			}
 			if len(args) == 0 {
 				return cmd.Help()
 			}
-			return fmt.Errorf("unknown character args %v (try list|add|edit|delete or <name> voice ...)", args)
+			return fmt.Errorf("unknown character args %v", args)
 		},
 	}
-	get := newGetCmd(svc, opts)
+	get := newGetCmd(chars, opts)
 	if opts.Interactive {
 		get.Hidden = true
 	}
 	cmd.AddCommand(
-		newListCmd(svc),
+		newListCmd(chars),
 		get,
-		newAddCmd(svc, opts),
-		newEditCmd(svc, opts),
-		newDeleteCmd(svc, opts),
+		newAddCmd(chars, opts),
+		newEditCmd(chars, voices, opts),
+		newDeleteCmd(chars, opts),
 	)
 	return cmd
 }

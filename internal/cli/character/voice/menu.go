@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"yukumo-script/internal/cli/prompt"
-	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
 )
 
 // RunMenu is the huh entry under character › edit › voices.
-func RunMenu(cmd *cobra.Command, svc *svccharacter.Service, charName string) error {
+func RunMenu(cmd *cobra.Command, svc *svcvoice.Service, charName string) error {
 	opts := Options{Interactive: true}
 	for {
 		labels := []string{
@@ -19,6 +19,7 @@ func RunMenu(cmd *cobra.Command, svc *svccharacter.Service, charName string) err
 			"list  —  Print voices",
 			"add  —  Create a voice",
 			"edit  —  Update a voice",
+			"duplicate  —  Copy a voice",
 			"delete  —  Remove a voice",
 		}
 		idx, err := prompt.Select("Voices", charName, labels, 0)
@@ -39,6 +40,8 @@ func RunMenu(cmd *cobra.Command, svc *svccharacter.Service, charName string) err
 		case 3:
 			runErr = runEdit(cmd, svc, opts, charName, nil)
 		case 4:
+			runErr = runDuplicate(cmd, svc, opts, charName, nil)
+		case 5:
 			runErr = runDelete(cmd, svc, opts, charName, nil)
 		}
 		if runErr != nil {

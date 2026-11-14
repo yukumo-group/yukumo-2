@@ -1,17 +1,17 @@
 package voice
 
 import (
-	svccharacter "yukumo-script/internal/service/character"
+	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
-func runList(cmd *cobra.Command, svc *svccharacter.Service, charName string, args []string) error {
+func runList(cmd *cobra.Command, svc *svcvoice.Service, charName string, args []string) error {
 	if len(args) != 0 {
 		return cmd.Usage()
 	}
-	voices, err := svc.ListVoices(charName)
+	voices, err := svc.List(charName)
 	if err != nil {
 		return err
 	}
