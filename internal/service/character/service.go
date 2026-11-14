@@ -1,7 +1,6 @@
 package character
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -10,26 +9,18 @@ import (
 	"yukumo-script/internal/store"
 )
 
-type PresetCatalog interface {
-	HasPreset(ctx context.Context, version, preset int32) (bool, error)
-	PresetNames(ctx context.Context, version int32) ([]string, error)
-}
-
 type Service struct {
-	config  *svcconfig.Service
-	store   store.Store // optional override for tests
-	presets PresetCatalog
+	config *svcconfig.Service
+	store  store.Store // optional override for tests
 }
 
-func New(cfg *svcconfig.Service, presets PresetCatalog) *Service {
-	return &Service{config: cfg, presets: presets}
+func New(cfg *svcconfig.Service) *Service {
+	return &Service{config: cfg}
 }
 
-func NewWithStore(s store.Store, presets PresetCatalog) *Service {
-	return &Service{store: s, presets: presets}
+func NewWithStore(s store.Store) *Service {
+	return &Service{store: s}
 }
-
-func (s *Service) Presets() PresetCatalog { return s.presets }
 
 func (s *Service) backend() (store.Store, error) {
 	if s.store != nil {

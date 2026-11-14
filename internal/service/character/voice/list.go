@@ -1,4 +1,4 @@
-package character
+package voice
 
 import (
 	"fmt"
@@ -7,20 +7,20 @@ import (
 	"yukumo-script/internal/domain"
 )
 
-func (s *Service) ListVoices(charName string) ([]domain.Voice, error) {
-	c, err := s.Get(charName)
+func (s *Service) List(charName string) ([]domain.Voice, error) {
+	c, err := s.chars.Get(charName)
 	if err != nil {
 		return nil, err
 	}
 	return c.Voices, nil
 }
 
-func (s *Service) GetVoice(charName, voiceName string) (domain.Voice, error) {
+func (s *Service) Get(charName, voiceName string) (domain.Voice, error) {
 	voiceName = strings.TrimSpace(voiceName)
 	if voiceName == "" {
 		return domain.Voice{}, fmt.Errorf("%w: voice name is required", domain.ErrInvalid)
 	}
-	c, err := s.Get(charName)
+	c, err := s.chars.Get(charName)
 	if err != nil {
 		return domain.Voice{}, err
 	}
@@ -32,7 +32,7 @@ func (s *Service) GetVoice(charName, voiceName string) (domain.Voice, error) {
 	return domain.Voice{}, fmt.Errorf("%w: voice %q", domain.ErrNotFound, voiceName)
 }
 
-func voiceIndex(voices []domain.Voice, name string) int {
+func indexOf(voices []domain.Voice, name string) int {
 	for i, v := range voices {
 		if v.Name == name {
 			return i

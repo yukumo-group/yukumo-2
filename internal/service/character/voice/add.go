@@ -1,4 +1,4 @@
-package character
+package voice
 
 import (
 	"context"
@@ -8,22 +8,22 @@ import (
 	"yukumo-script/internal/domain"
 )
 
-func (s *Service) AddVoice(ctx context.Context, charName string, v domain.Voice) error {
+func (s *Service) Add(ctx context.Context, charName string, v domain.Voice) error {
 	v.Name = strings.TrimSpace(v.Name)
 	if v.Name == "" {
 		return fmt.Errorf("%w: voice name is required", domain.ErrInvalid)
 	}
-	if err := s.validateVoice(ctx, v); err != nil {
+	if err := s.validate(ctx, v); err != nil {
 		return err
 	}
-	c, err := s.Get(charName)
+	c, err := s.chars.Get(charName)
 	if err != nil {
 		return err
 	}
-	if voiceIndex(c.Voices, v.Name) >= 0 {
+	if indexOf(c.Voices, v.Name) >= 0 {
 		return fmt.Errorf("%w: voice %q", domain.ErrExists, v.Name)
 	}
 	v.Normalize()
 	c.Voices = append(c.Voices, v)
-	return s.Update(charName, c)
+	return s.chars.Update(charName, c)
 }

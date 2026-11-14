@@ -1,7 +1,6 @@
 package character_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -10,18 +9,9 @@ import (
 	"yukumo-script/internal/store"
 )
 
-type allowAllPresets struct{}
-
-func (allowAllPresets) HasPreset(context.Context, int32, int32) (bool, error) {
-	return true, nil
-}
-func (allowAllPresets) PresetNames(context.Context, int32) ([]string, error) {
-	return []string{"p0"}, nil
-}
-
 func TestCRUD(t *testing.T) {
 	mem := store.NewMemory()
-	svc := svccharacter.NewWithStore(mem, allowAllPresets{})
+	svc := svccharacter.NewWithStore(mem)
 
 	if err := svc.Add(domain.Character{Name: "Alice", Description: "hero"}); err != nil {
 		t.Fatal(err)
@@ -92,57 +82,8 @@ func TestCRUD(t *testing.T) {
 	}
 }
 
-func TestVoiceCRUD(t *testing.T) {
-	svc := svccharacter.NewWithStore(store.NewMemory(), allowAllPresets{})
-	if err := svc.Add(domain.Character{Name: "Alice"}); err != nil {
-		t.Fatal(err)
-	}
-	ctx := context.Background()
-	v := domain.Voice{
-		Name: "default",
-		Params: []domain.SynthParam{
-			{Version: domain.Version1, Preset: 0, Speed: 100, Volume: 999, PhontData: []byte("x")},
-		},
-	}
-	if err := svc.AddVoice(ctx, "Alice", v); err != nil {
-		t.Fatal(err)
-	}
-	got, err := svc.GetVoice("Alice", "default")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got.Params) != 1 || got.Params[0].Volume != 0 || got.Params[0].PhontData != nil {
-		t.Fatalf("normalize v1 = %+v", got.Params[0])
-	}
-
-	got.Params = append(got.Params, domain.SynthParam{
-		Version: domain.Version10, Preset: 1, Speed: 100, Volume: 100, Pitch: 100, Accent: 100, Lmd: 100, Fsc: 100,
-		PhontData: []byte("nope"),
-	})
-	if err := svc.UpdateVoice(ctx, "Alice", "default", got); err != nil {
-		t.Fatal(err)
-	}
-	got, err = svc.GetVoice("Alice", "default")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got.Params) != 2 || got.Params[1].PhontData != nil {
-		t.Fatalf("normalize v10 = %+v", got.Params[1])
-	}
-
-	if err := svc.AddVoice(ctx, "Alice", domain.Voice{Name: "default"}); !errors.Is(err, domain.ErrExists) {
-		t.Fatalf("dup voice: %v", err)
-	}
-	if err := svc.DeleteVoice("Alice", "default"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := svc.GetVoice("Alice", "default"); !errors.Is(err, domain.ErrNotFound) {
-		t.Fatalf("deleted voice: %v", err)
-	}
-}
-
 func TestAddRequiresName(t *testing.T) {
-	svc := svccharacter.NewWithStore(store.NewMemory(), allowAllPresets{})
+	svc := svccharacter.NewWithStore(store.NewMemory())
 	if err := svc.Add(domain.Character{}); !errors.Is(err, domain.ErrInvalid) {
 		t.Fatalf("err=%v", err)
 	}

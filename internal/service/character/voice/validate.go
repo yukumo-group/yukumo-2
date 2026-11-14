@@ -1,4 +1,4 @@
-package character
+package voice
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"yukumo-script/internal/domain"
 )
 
-func (s *Service) validateVoice(ctx context.Context, v domain.Voice) error {
+func (s *Service) validate(ctx context.Context, v domain.Voice) error {
 	if len(v.Params) > 3 {
 		return fmt.Errorf("%w: at most 3 params (versions 1/2/10)", domain.ErrInvalid)
 	}

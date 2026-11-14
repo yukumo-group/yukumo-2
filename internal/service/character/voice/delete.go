@@ -1,4 +1,4 @@
-package character
+package voice
 
 import (
 	"fmt"
@@ -7,19 +7,19 @@ import (
 	"yukumo-script/internal/domain"
 )
 
-func (s *Service) DeleteVoice(charName, voiceName string) error {
+func (s *Service) Delete(charName, voiceName string) error {
 	voiceName = strings.TrimSpace(voiceName)
 	if voiceName == "" {
 		return fmt.Errorf("%w: voice name is required", domain.ErrInvalid)
 	}
-	c, err := s.Get(charName)
+	c, err := s.chars.Get(charName)
 	if err != nil {
 		return err
 	}
-	idx := voiceIndex(c.Voices, voiceName)
+	idx := indexOf(c.Voices, voiceName)
 	if idx < 0 {
 		return fmt.Errorf("%w: voice %q", domain.ErrNotFound, voiceName)
 	}
 	c.Voices = append(c.Voices[:idx], c.Voices[idx+1:]...)
-	return s.Update(charName, c)
+	return s.chars.Update(charName, c)
 }
