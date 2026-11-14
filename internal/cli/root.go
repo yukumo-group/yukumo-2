@@ -1,12 +1,16 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	clicharacter "yukumo-script/internal/cli/character"
 	cliconfig "yukumo-script/internal/cli/config"
 	"yukumo-script/internal/cli/prompt"
+	"yukumo-script/internal/runtime/aq"
+	svccharacter "yukumo-script/internal/service/character"
 	svcconfig "yukumo-script/internal/service/config"
 	"yukumo-script/internal/store"
 
@@ -35,15 +39,27 @@ func newRoot() (*cobra.Command, error) {
 	}
 	prompt.SetAccessible(cfg.CLI.Accessibility())
 
+	aqRT, err := aq.New(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
 	interactive := cfg.CLI.Interactive()
-	opts := cliconfig.Options{Interactive: interactive}
+	cfgOpts := cliconfig.Options{Interactive: interactive}
+	charOpts := clicharacter.Options{Interactive: interactive}
+	charSvc := svccharacter.New(cfgSvc, aqRT)
 	root := &cobra.Command{
 		Use:           "yukumo-script",
 		Short:         "Yukumo script and voice tooling",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRun: func(*cobra.Command, []string) {},
 	}
-	root.AddCommand(cliconfig.NewCmd(cfgSvc, opts))
+	root.PersistentPostRun = func(*cobra.Command, []string) {
+		_ = aqRT.Close(context.Background())
+	}
+	root.AddCommand(cliconfig.NewCmd(cfgSvc, cfgOpts))
+	root.AddCommand(clicharacter.NewCmd(charSvc, charOpts))
 	if interactive {
 		enableInteractiveBrowse(root)
 	}
