@@ -64,12 +64,12 @@ func runInteractiveEdit(cmd *cobra.Command, svc *svcconfig.Service, args []strin
 		focusKey = args[0]
 	}
 
-	err := setting.BrowseKeys(fieldKeys(), func() map[string]string {
+	err := setting.BrowseKeys(fieldKeys(), func() map[string]prompt.LeafMeta {
 		cfg, err := svc.Get()
 		if err != nil {
-			return map[string]string{}
+			return map[string]prompt.LeafMeta{}
 		}
-		return fieldValues(cfg)
+		return fieldMetas(cfg)
 	}, func(key string) error {
 		cfg, err := svc.Get()
 		if err != nil {
@@ -119,10 +119,13 @@ func applyEdit(
 	return err
 }
 
-func fieldValues(cfg domain.Config) map[string]string {
-	out := make(map[string]string, len(fields))
+func fieldMetas(cfg domain.Config) map[string]prompt.LeafMeta {
+	out := make(map[string]prompt.LeafMeta, len(fields))
 	for _, f := range fields {
-		out[f.Field.Key] = f.Get(cfg)
+		out[f.Field.Key] = prompt.LeafMeta{
+			Value:       f.Get(cfg),
+			Description: f.Field.Description,
+		}
 	}
 	return out
 }

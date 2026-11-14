@@ -11,6 +11,11 @@ import (
 
 var ErrAborted = errors.New("aborted")
 
+type LeafMeta struct {
+	Value       string
+	Description string
+}
+
 type treeNode struct {
 	name     string
 	children map[string]*treeNode
@@ -50,14 +55,19 @@ func buildKeyTree(keys []string) *treeNode {
 
 var dimValue = lipgloss.NewStyle().Faint(true)
 
-func leafLabel(name, value string) string {
+func leafLabel(name string, meta LeafMeta) string {
+	value := meta.Value
 	if value == "" {
 		value = "(empty)"
 	}
-	return name + "\n  " + dimValue.Render(value)
+	line := dimValue.Render(value)
+	if meta.Description != "" {
+		line += dimValue.Render("  —  " + meta.Description)
+	}
+	return name + "\n  " + line
 }
 
-func renderLevel(cur *treeNode, vals map[string]string) (names []string, labels []string) {
+func renderLevel(cur *treeNode, vals map[string]LeafMeta) (names []string, labels []string) {
 	names = cur.childNames()
 	labels = make([]string, 0, len(names)+1)
 	labels = append(labels, LabelBack)
@@ -72,13 +82,10 @@ func renderLevel(cur *treeNode, vals map[string]string) (names []string, labels 
 	return names, labels
 }
 
-// BrowseKeys keeps the folder stack across leaf edits.
-// After onLeaf, the UI stays on the current group level.
-// Root ← Back returns ErrAborted.
 func BrowseKeys(
 	title string,
 	keys []string,
-	values func() map[string]string,
+	values func() map[string]LeafMeta,
 	onLeaf func(key string) error,
 	startPrefix string,
 	focusKey string,
@@ -91,7 +98,7 @@ func BrowseKeys(
 		cur := stack[len(stack)-1]
 		vals := values()
 		if vals == nil {
-			vals = map[string]string{}
+			vals = map[string]LeafMeta{}
 		}
 		names, labels := renderLevel(cur, vals)
 
@@ -121,8 +128,7 @@ func BrowseKeys(
 	}
 }
 
-// TreeKey picks a single leaf key then returns.
-func TreeKey(title string, keys []string, values map[string]string, out *string) error {
+func TreeKey(title string, keys []string, values map[string]LeafMeta, out *string) error {
 	if out == nil {
 		return fmt.Errorf("key value is nil")
 	}
@@ -155,7 +161,7 @@ func TreeKey(title string, keys []string, values map[string]string, out *string)
 	}
 }
 
-func EnsureTreeKey(title string, keys []string, values map[string]string, out *string) error {
+func EnsureTreeKey(title string, keys []string, values map[string]LeafMeta, out *string) error {
 	if out == nil {
 		return fmt.Errorf("key value is nil")
 	}

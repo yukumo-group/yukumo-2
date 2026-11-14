@@ -11,9 +11,10 @@ const (
 )
 
 type Field struct {
-	Key   string
-	Title string
-	Kind  Kind
-	Min   int
-	Max   int
+	Key         string
+	Title       string
+	Description string
+	Kind        Kind
+	Min         int
+	Max         int
 }

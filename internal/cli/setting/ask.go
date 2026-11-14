@@ -8,13 +8,13 @@ import (
 	"yukumo-script/internal/cli/prompt"
 )
 
-func AskKey(keys []string, values map[string]string, key *string) error {
+func AskKey(keys []string, values map[string]prompt.LeafMeta, key *string) error {
 	return prompt.EnsureTreeKey("Field", keys, values, key)
 }
 
 func BrowseKeys(
 	keys []string,
-	values func() map[string]string,
+	values func() map[string]prompt.LeafMeta,
 	onLeaf func(key string) error,
 	startPrefix string,
 	focusKey string,
