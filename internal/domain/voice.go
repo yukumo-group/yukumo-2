@@ -28,6 +28,16 @@ type SynthParam struct {
 	Fsc       int    `yaml:"fsc,omitempty"`
 }
 
+// AQ10 base (基本素片) labels — index matches AquesTalk10 F1E/F2E/M1E.
+var BaseNames = []string{"F1E", "F2E", "M1E"}
+
+func BaseName(base int) string {
+	if base >= 0 && base < len(BaseNames) {
+		return BaseNames[base]
+	}
+	return ""
+}
+
 func DefaultSynthParam(version int) SynthParam {
 	p := SynthParam{Version: version, Speed: 100}
 	switch version {
