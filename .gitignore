@@ -5,3 +5,4 @@ yukumo-script
 *.exe
 *.test
 *.out
+vendor/
