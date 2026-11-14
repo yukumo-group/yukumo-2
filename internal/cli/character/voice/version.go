@@ -20,7 +20,7 @@ func SelectVersion(out *int) error {
 			break
 		}
 	}
-	idx, err := prompt.Select("Engine version", "↑↓ move · enter", labels, focus)
+	idx, err := prompt.Select("version", "↑↓ move · enter", labels, focus)
 	if err != nil {
 		return err
 	}

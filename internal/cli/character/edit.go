@@ -62,63 +62,74 @@ func runInteractiveEdit(cmd *cobra.Command, chars *svccharacter.Service, voices 
 		if err != nil {
 			return err
 		}
-		value, err := setting.Ask(entry.Field, entry.Get(c), cmd.ErrOrStderr())
+		err = prompt.With(name, func() error {
+			return prompt.With(args[1], func() error {
+				value, err := setting.Ask(entry.Field, entry.Get(c), cmd.ErrOrStderr())
+				if err != nil {
+					return err
+				}
+				return applyEdit(cmd, chars, name, &c, args[1], value, false)
+			})
+		})
 		if err != nil {
-			return err
-		}
-		if err := applyEdit(cmd, chars, name, &c, args[1], value, false); err != nil {
 			return err
 		}
 		name = c.Name
 	}
 
-	currentName := name
-	for {
-		c, err := chars.Get(currentName)
-		if err != nil {
-			return err
-		}
-		metas := setting.Metas(fields, c)
-		labels := []string{prompt.LabelBack}
-		keys := setting.Keys(fields)
-		for _, key := range keys {
-			labels = append(labels, leafLabel(key, metas[key]))
-		}
-		labels = append(labels, "voices/\n  Edit voice profiles")
-
-		idx, err := prompt.Select("Edit character", currentName, labels, 0)
-		if err != nil {
-			if errors.Is(err, prompt.ErrAborted) {
-				return nil
-			}
-			return err
-		}
-		if idx == 0 {
-			return nil
-		}
-		if idx == len(labels)-1 {
-			if err := voice.RunMenu(cmd, voices, currentName); err != nil {
+	return prompt.With(name, func() error {
+		currentName := name
+		for {
+			c, err := chars.Get(currentName)
+			if err != nil {
 				return err
 			}
-			continue
-		}
-		key := keys[idx-1]
-		entry, err := setting.Lookup(fields, key)
-		if err != nil {
-			return err
-		}
-		value, err := setting.Ask(entry.Field, entry.Get(c), cmd.ErrOrStderr())
-		if err != nil {
-			if errors.Is(err, prompt.ErrAborted) {
+			prompt.Replace(currentName)
+			metas := setting.Metas(fields, c)
+			labels := []string{prompt.LabelBack}
+			keys := setting.Keys(fields)
+			for _, key := range keys {
+				labels = append(labels, leafLabel(key, metas[key]))
+			}
+			labels = append(labels, "voices/\n  Edit voice profiles")
+
+			idx, err := prompt.Select("", "↑↓ move · enter", labels, 0)
+			if err != nil {
+				if errors.Is(err, prompt.ErrAborted) {
+					return nil
+				}
+				return err
+			}
+			if idx == 0 {
+				return nil
+			}
+			if idx == len(labels)-1 {
+				if err := voice.RunMenu(cmd, voices, currentName); err != nil {
+					return err
+				}
 				continue
 			}
-			return err
+			key := keys[idx-1]
+			entry, err := setting.Lookup(fields, key)
+			if err != nil {
+				return err
+			}
+			err = prompt.With(key, func() error {
+				value, err := setting.Ask(entry.Field, entry.Get(c), cmd.ErrOrStderr())
+				if err != nil {
+					return err
+				}
+				return applyEdit(cmd, chars, currentName, &c, key, value, false)
+			})
+			if err != nil {
+				if errors.Is(err, prompt.ErrAborted) {
+					continue
+				}
+				return err
+			}
+			currentName = c.Name
 		}
-		if err := applyEdit(cmd, chars, currentName, &c, key, value, false); err != nil {
-			return err
-		}
-		currentName = c.Name
-	}
+	})
 }
 
 func leafLabel(name string, meta prompt.LeafMeta) string {

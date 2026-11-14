@@ -30,7 +30,7 @@ func ensureName(svc *svccharacter.Service, name *string) error {
 	for i, c := range chars {
 		labels[i] = characterLabel(c)
 	}
-	idx, err := prompt.Select("Character", "↑↓ move · enter", labels, 0)
+	idx, err := prompt.Select("character", "↑↓ move · enter", labels, 0)
 	if err != nil {
 		return err
 	}

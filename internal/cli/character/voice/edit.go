@@ -93,69 +93,81 @@ func editParamOneShot(
 }
 
 func runInteractiveVoiceEdit(cmd *cobra.Command, svc *svcvoice.Service, charName, voiceName string) error {
-	current := voiceName
-	for {
-		v, err := svc.Get(charName, current)
-		if err != nil {
-			return err
-		}
-		labels := []string{prompt.LabelBack, "name\n  " + v.Name}
-		for _, ver := range []int{domain.Version1, domain.Version2, domain.Version10} {
-			_, idx := paramByVersion(&v, ver)
-			status := "(absent)"
-			if idx >= 0 {
-				status = fmt.Sprintf("%s · speed %d",
-					presetDisplay(svc, v.Params[idx].Version, v.Params[idx].Preset),
-					v.Params[idx].Speed)
+	return prompt.With(voiceName, func() error {
+		current := voiceName
+		for {
+			v, err := svc.Get(charName, current)
+			if err != nil {
+				return err
 			}
-			labels = append(labels, fmt.Sprintf("param v%d\n  %s", ver, status))
-		}
-		idx, err := prompt.Select("Edit voice", current, labels, 0)
-		if err != nil {
-			return err
-		}
-		if idx == 0 {
-			return nil
-		}
-		if idx == 1 {
-			name := v.Name
-			if err := prompt.String("Voice name", &name); err != nil {
+			prompt.Replace(current)
+			labels := []string{prompt.LabelBack, "name\n  " + v.Name}
+			for _, ver := range []int{domain.Version1, domain.Version2, domain.Version10} {
+				_, idx := paramByVersion(&v, ver)
+				status := "(absent)"
+				if idx >= 0 {
+					status = fmt.Sprintf("%s · speed %d",
+						presetDisplay(svc, v.Params[idx].Version, v.Params[idx].Preset),
+						v.Params[idx].Speed)
+				}
+				labels = append(labels, fmt.Sprintf("param v%d\n  %s", ver, status))
+			}
+			idx, err := prompt.Select("", "↑↓ move · enter", labels, 0)
+			if err != nil {
+				return err
+			}
+			if idx == 0 {
+				return nil
+			}
+			if idx == 1 {
+				err := prompt.With("name", func() error {
+					name := v.Name
+					if err := prompt.String("", &name); err != nil {
+						return err
+					}
+					old := current
+					v.Name = name
+					if err := svc.Update(context.Background(), charName, old, v); err != nil {
+						return err
+					}
+					current = v.Name
+					fmt.Fprintf(cmd.OutOrStdout(), "name: %s\n", v.Name)
+					return nil
+				})
+				if err != nil {
+					if errors.Is(err, prompt.ErrAborted) {
+						continue
+					}
+					return err
+				}
+				continue
+			}
+			version := []int{domain.Version1, domain.Version2, domain.Version10}[idx-2]
+			p, pidx := paramByVersion(&v, version)
+			var draft domain.SynthParam
+			if pidx < 0 {
+				draft = domain.DefaultSynthParam(version)
+				p = &draft
+			}
+			err = prompt.With(fmt.Sprintf("param v%d", version), func() error {
+				return editParamInteractive(cmd, svc, p)
+			})
+			if err != nil {
 				if errors.Is(err, prompt.ErrAborted) {
 					continue
 				}
 				return err
 			}
-			old := current
-			v.Name = name
-			if err := svc.Update(context.Background(), charName, old, v); err != nil {
+			if pidx < 0 {
+				v.Params = append(v.Params, *p)
+			} else {
+				v.Params[pidx] = *p
+			}
+			if err := svc.Update(context.Background(), charName, current, v); err != nil {
 				return err
 			}
-			current = v.Name
-			fmt.Fprintf(cmd.OutOrStdout(), "name: %s\n", v.Name)
-			continue
 		}
-		version := []int{domain.Version1, domain.Version2, domain.Version10}[idx-2]
-		p, pidx := paramByVersion(&v, version)
-		var draft domain.SynthParam
-		if pidx < 0 {
-			draft = domain.DefaultSynthParam(version)
-			p = &draft
-		}
-		if err := editParamInteractive(cmd, svc, p); err != nil {
-			if errors.Is(err, prompt.ErrAborted) {
-				continue
-			}
-			return err
-		}
-		if pidx < 0 {
-			v.Params = append(v.Params, *p)
-		} else {
-			v.Params[pidx] = *p
-		}
-		if err := svc.Update(context.Background(), charName, current, v); err != nil {
-			return err
-		}
-	}
+	})
 }
 
 func paramByVersion(v *domain.Voice, version int) (*domain.SynthParam, int) {

@@ -30,7 +30,7 @@ func ensureVoiceName(svc *svcvoice.Service, charName string, name *string) error
 	for i, v := range voices {
 		labels[i] = voiceLabel(v)
 	}
-	idx, err := prompt.Select("Voice", "↑↓ move · enter", labels, 0)
+	idx, err := prompt.Select("voice", "↑↓ move · enter", labels, 0)
 	if err != nil {
 		return err
 	}

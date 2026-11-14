@@ -52,7 +52,10 @@ func runAdd(cmd *cobra.Command, svc *svcvoice.Service, opts Options, charName st
 
 	p := domain.DefaultSynthParam(version)
 	if opts.Interactive {
-		if err := editParamInteractive(cmd, svc, &p); err != nil {
+		err := prompt.With(fmt.Sprintf("param v%d", version), func() error {
+			return editParamInteractive(cmd, svc, &p)
+		})
+		if err != nil {
 			if errors.Is(err, prompt.ErrAborted) {
 				return nil
 			}
