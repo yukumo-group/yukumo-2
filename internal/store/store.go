@@ -16,8 +16,18 @@ type ExistenceChecker interface {
 	Exists(name string) (bool, error)
 }
 
+type Lister interface {
+	List(dir string) ([]string, error)
+}
+
+type Deleter interface {
+	Delete(name string) error
+}
+
 type Store interface {
 	Reader
 	Writer
 	ExistenceChecker
+	Lister
+	Deleter
 }

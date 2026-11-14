@@ -1,6 +1,10 @@
 package store
 
-import "sync"
+import (
+	"path"
+	"strings"
+	"sync"
+)
 
 type Memory struct {
 	mu   sync.RWMutex
@@ -37,4 +41,39 @@ func (m *Memory) Exists(name string) (bool, error) {
 	defer m.mu.RUnlock()
 	_, ok := m.data[name]
 	return ok, nil
+}
+
+func (m *Memory) List(dir string) ([]string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	prefix := strings.Trim(path.Clean("/"+dir), "/")
+	if prefix == "." {
+		prefix = ""
+	}
+	var out []string
+	for name := range m.data {
+		if prefix == "" {
+			if !strings.Contains(name, "/") {
+				out = append(out, name)
+			}
+			continue
+		}
+		if strings.HasPrefix(name, prefix+"/") {
+			rest := name[len(prefix)+1:]
+			if !strings.Contains(rest, "/") {
+				out = append(out, rest)
+			}
+		}
+	}
+	return out, nil
+}
+
+func (m *Memory) Delete(name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.data[name]; !ok {
+		return ErrNotFound
+	}
+	delete(m.data, name)
+	return nil
 }
