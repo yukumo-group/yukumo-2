@@ -4,60 +4,97 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
+
+	"yukumo-script/internal/domain"
 )
 
-// FormatOutputName expands tokens in format (default c-v-ymd).
-// Braced tokens: {c} {v} {ymd} {ymdhms}. Compact form also supports c, v, ymd, ymdhms.
+var bracedToken = regexp.MustCompile(`\{([^{}]+)\}`)
+
+// FormatOutputName expands braced tokens only (no compact c-v-ymd form).
+//
+// Named: {character} / {c}, {voice} / {v}
+// Time runs (letter length = zero-padded width):
+//
+//	y… year, M… month, d… day, h|H… hour (24h), m… minute, s… second
+//
+// {ms} = milliseconds (default 3 digits; longer runs of "ms"+"s" not used — use {ms}).
 func FormatOutputName(format, character, voice string) string {
 	format = strings.TrimSpace(format)
 	if format == "" {
-		format = "c-v-ymd"
+		format = domain.DefaultOutputFormat
 	}
 	now := time.Now()
-	repl := map[string]string{
-		"c":      sanitizeName(character),
-		"v":      sanitizeName(voice),
-		"ymd":    now.Format("20060102"),
-		"ymdhms": now.Format("20060102150405"),
-	}
-	if strings.Contains(format, "{") {
-		name := format
-		for _, key := range []string{"ymdhms", "ymd", "c", "v"} {
-			name = strings.ReplaceAll(name, "{"+key+"}", repl[key])
+	name := bracedToken.ReplaceAllStringFunc(format, func(tok string) string {
+		inner := tok[1 : len(tok)-1]
+		switch inner {
+		case "character", "c":
+			return sanitizeName(character)
+		case "voice", "v":
+			return sanitizeName(voice)
+		case "ms":
+			return fmt.Sprintf("%03d", now.Nanosecond()/1e6)
 		}
-		if name == "" {
-			return "synth"
+		if n, ok := runLen(inner, 'y'); ok {
+			return formatYear(now.Year(), n)
 		}
-		return name
-	}
-	var b strings.Builder
-	for i := 0; i < len(format); {
-		switch {
-		case strings.HasPrefix(format[i:], "ymdhms"):
-			b.WriteString(repl["ymdhms"])
-			i += 6
-		case strings.HasPrefix(format[i:], "ymd"):
-			b.WriteString(repl["ymd"])
-			i += 3
-		case format[i] == 'c':
-			b.WriteString(repl["c"])
-			i++
-		case format[i] == 'v':
-			b.WriteString(repl["v"])
-			i++
-		default:
-			b.WriteByte(format[i])
-			i++
+		if n, ok := runLen(inner, 'M'); ok {
+			return padInt(int(now.Month()), n)
 		}
-	}
-	name := b.String()
+		if n, ok := runLen(inner, 'd'); ok {
+			return padInt(now.Day(), n)
+		}
+		if n, ok := runLen(inner, 'h'); ok {
+			return padInt(now.Hour(), n)
+		}
+		if n, ok := runLen(inner, 'H'); ok {
+			return padInt(now.Hour(), n)
+		}
+		if n, ok := runLen(inner, 'm'); ok {
+			return padInt(now.Minute(), n)
+		}
+		if n, ok := runLen(inner, 's'); ok {
+			return padInt(now.Second(), n)
+		}
+		return tok
+	})
 	if name == "" {
-		name = "synth"
+		return "synth"
 	}
 	return name
+}
+
+func runLen(s string, r byte) (int, bool) {
+	if s == "" {
+		return 0, false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] != r {
+			return 0, false
+		}
+	}
+	return len(s), true
+}
+
+func formatYear(year, width int) string {
+	if width <= 0 {
+		width = 4
+	}
+	s := fmt.Sprintf("%0*d", width, year)
+	if len(s) > width {
+		return s[len(s)-width:]
+	}
+	return s
+}
+
+func padInt(v, width int) string {
+	if width <= 0 {
+		width = 1
+	}
+	return fmt.Sprintf("%0*d", width, v)
 }
 
 func sanitizeName(s string) string {

@@ -13,7 +13,9 @@ type Config struct {
 	Synth      SynthConfig     `yaml:"synth"`
 }
 
-const DefaultOutputFormat = "c-v-ymd"
+// DefaultOutputFormat uses braced tokens only.
+// Month is {MM}, minute is {mm}; h/m/s/y/d/M run length = zero-padded width.
+const DefaultOutputFormat = "{character}:{voice}_{yyyy}-{MM}-{dd}:{hh}-{mm}-{ss}_{ms}"
 
 // SynthConfig holds synthesis output preferences.
 type SynthConfig struct {

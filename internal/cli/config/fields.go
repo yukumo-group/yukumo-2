@@ -57,7 +57,7 @@ var fields = []setting.Entry[domain.Config]{
 		Field: setting.Field{
 			Key:         "synth.output_format",
 			Title:       "Synth output filename format",
-			Description: "Token pattern for output names (c=character, v=voice, ymd=date)",
+			Description: "Braced tokens e.g. {character}:{voice}_{yyyy}-{MM}-{dd}:{hh}-{mm}-{ss}_{ms}",
 			Kind:        setting.KindString,
 		},
 		Get: func(c domain.Config) string { return c.Synth.OutputFormat },

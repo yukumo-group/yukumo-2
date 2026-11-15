@@ -42,7 +42,7 @@ func TestReuseCacheCopiesNewFile(t *testing.T) {
 	if _, err := cfgSvc.Edit(func(c *domain.Config) {
 		c.Paths.CharacterPath = charsDir
 		c.Paths.OutputPath = outDir
-		c.Synth.OutputFormat = "c-v"
+		c.Synth.OutputFormat = "{character}-{voice}"
 		c.Synth.SetAlwaysWrite(true)
 		c.Synth.SetReuseCache(true)
 	}); err != nil {

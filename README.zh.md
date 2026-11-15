@@ -143,7 +143,7 @@ Param 字段：`preset`, `speed`；v2 +`phont_data`（选文件嵌入）；v10 +
 | `paths.character_path` | `{UserConfigDir}/yukumo-script/characters` | 角色 YAML 目录 |
 | `paths.output_path` | `{TempDir}/yukumo-script` | 合成输出目录 |
 | `characters.init_default_voice` | `false` | `character add` 时是否自动加 `default` 音色（v1）；与手动 `voice add` **二选一**，勿重复同名 |
-| `synth.output_format` | `c-v-ymd` | 输出文件名模板 |
+| `synth.output_format` | `{character}:{voice}_{yyyy}-{MM}-{dd}:{hh}-{mm}-{ss}_{ms}` | 输出文件名模板（仅花括号） |
 | `synth.always_write` | `true` | 是否总是写文件（见合成输出） |
 | `synth.reuse_cache` | `true` | 按任务哈希复用 `index.yaml` 中的已有 WAV |
 | `cli.default_interactive` | `true` | 缺参时进入 huh；根命令挂载 browse |
@@ -151,10 +151,11 @@ Param 字段：`preset`, `speed`；v2 +`phont_data`（选文件嵌入）；v10 +
 
 布尔缺省用指针区分「未设置」与显式 `false`。
 
-**输出文件名模板**
+**输出文件名模板**（仅 `{…}`，无紧凑串）
 
-- 紧凑：`c` 角色、`v` 音色、`ymd` / `ymdhms` 日期时间，其余字面量。默认 `c-v-ymd` → `remilia-default-20261114.wav`。
-- 花括号：`{c}` `{v}` `{ymd}` `{ymdhms}`。
+- 命名：`{character}`/`{c}`，`{voice}`/`{v}`
+- 时间：同字母重复长度 = 零填充宽度。`y` 年、`M` 月、`d` 日、`h`/`H` 时（24h）、`m` 分、`s` 秒；`{ms}` 毫秒（三位）
+- 默认 → 如 `remilia:default_2026-11-15:13-04-05_123.wav`（`{MM}`=月，`{mm}`=分）
 - 冲突时自动加序号：`name.wav` → `name-1.wav` …
 
 **合成输出策略**

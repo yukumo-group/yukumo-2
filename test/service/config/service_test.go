@@ -40,7 +40,7 @@ func TestGetDefaultAndEdit(t *testing.T) {
 		c.Characters.InitDefaultVoice = true
 		c.CLI.SetInteractive(false)
 		c.CLI.SetAccessibility(true)
-		c.Synth.OutputFormat = "c-v"
+		c.Synth.OutputFormat = "{character}-{voice}"
 		c.Synth.SetAlwaysWrite(false)
 	})
 	if err != nil {
@@ -49,7 +49,7 @@ func TestGetDefaultAndEdit(t *testing.T) {
 	if cfg.CLI.Interactive() || !cfg.CLI.Accessibility() {
 		t.Fatalf("cli after edit: %+v", cfg.CLI)
 	}
-	if cfg.Synth.OutputFormat != "c-v" || cfg.Synth.WriteAlways() {
+	if cfg.Synth.OutputFormat != "{character}-{voice}" || cfg.Synth.WriteAlways() {
 		t.Fatalf("synth after edit: %+v", cfg.Synth)
 	}
 	for _, p := range []string{chars, out} {
@@ -69,7 +69,7 @@ func TestGetDefaultAndEdit(t *testing.T) {
 		t.Fatalf("persisted cli = interactive=%v accessibility=%v",
 			got.CLI.Interactive(), got.CLI.Accessibility())
 	}
-	if got.Synth.OutputFormat != "c-v" || got.Synth.WriteAlways() {
+	if got.Synth.OutputFormat != "{character}-{voice}" || got.Synth.WriteAlways() {
 		t.Fatalf("persisted synth = %+v", got.Synth)
 	}
 }

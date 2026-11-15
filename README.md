@@ -143,7 +143,7 @@ Startup `MkdirAll` on `character_path` / `output_path`; failure (including permi
 | `paths.character_path` | `{UserConfigDir}/yukumo-script/characters` | Character YAML directory |
 | `paths.output_path` | `{TempDir}/yukumo-script` | Synth output directory |
 | `characters.init_default_voice` | `false` | Auto-add `default` voice (v1) on `character add`; **either** this **or** manual `voice add`, not both for the same name |
-| `synth.output_format` | `c-v-ymd` | Output basename pattern |
+| `synth.output_format` | `{character}:{voice}_{yyyy}-{MM}-{dd}:{hh}-{mm}-{ss}_{ms}` | Output basename (braced tokens only) |
 | `synth.always_write` | `true` | Always write files (see write policy) |
 | `synth.reuse_cache` | `true` | Reuse WAVs listed in `index.yaml` by task hash |
 | `cli.default_interactive` | `true` | huh when args incomplete; root browse |
@@ -151,10 +151,11 @@ Startup `MkdirAll` on `character_path` / `output_path`; failure (including permi
 
 Bool defaults use pointers so missing YAML ≠ explicit `false`.
 
-**Filename pattern**
+**Filename pattern** (braced `{…}` only; no compact form)
 
-- Compact: `c` character, `v` voice, `ymd` / `ymdhms` datetime, other runes literal. Default `c-v-ymd` → `remilia-default-20261114.wav`.
-- Braced: `{c}` `{v}` `{ymd}` `{ymdhms}`.
+- Names: `{character}`/`{c}`, `{voice}`/`{v}`
+- Time: repeated letter length = zero-padded width. `y` year, `M` month, `d` day, `h`/`H` hour (24h), `m` minute, `s` second; `{ms}` milliseconds (3 digits)
+- Default → e.g. `remilia:default_2026-11-15:13-04-05_123.wav` (`{MM}`=month, `{mm}`=minute)
 - On collision: `name.wav` → `name-1.wav` …
 
 **Write policy**
