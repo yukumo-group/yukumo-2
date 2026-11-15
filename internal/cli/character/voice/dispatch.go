@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"yukumo-script/internal/cli/prompt"
 	svcvoice "yukumo-script/internal/service/character/voice"
 
 	"github.com/spf13/cobra"
@@ -16,7 +17,12 @@ type Options struct {
 // Dispatch handles: character <name> voice <verb> ...
 func Dispatch(cmd *cobra.Command, svc *svcvoice.Service, opts Options, charName string, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("voice subcommand required (list|get|add|edit|delete|duplicate)")
+		if !opts.Interactive {
+			return fmt.Errorf("voice subcommand required (list|get|add|edit|delete|duplicate)")
+		}
+		return prompt.With(charName, func() error {
+			return RunMenu(cmd, svc, charName)
+		})
 	}
 	verb, rest := args[0], args[1:]
 	switch strings.ToLower(verb) {
