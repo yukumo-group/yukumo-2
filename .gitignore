@@ -6,3 +6,6 @@ yukumo-script
 *.test
 *.out
 vendor/
+
+*.yaml
+*.yml
