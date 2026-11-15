@@ -55,6 +55,38 @@ var fields = []setting.Entry[domain.Config]{
 	},
 	{
 		Field: setting.Field{
+			Key:         "synth.output_format",
+			Title:       "Synth output filename format",
+			Description: "Token pattern for output names (c=character, v=voice, ymd=date)",
+			Kind:        setting.KindString,
+		},
+		Get: func(c domain.Config) string { return c.Synth.OutputFormat },
+		Set: func(c *domain.Config, v string) error {
+			c.Synth.OutputFormat = v
+			return nil
+		},
+	},
+	{
+		Field: setting.Field{
+			Key:         "synth.always_write",
+			Title:       "Always write synth output",
+			Description: "Write WAV even when only previewing",
+			Kind:        setting.KindBool,
+		},
+		Get: func(c domain.Config) string {
+			return strconv.FormatBool(c.Synth.WriteAlways())
+		},
+		Set: func(c *domain.Config, v string) error {
+			b, err := strconv.ParseBool(v)
+			if err != nil {
+				return err
+			}
+			c.Synth.SetAlwaysWrite(b)
+			return nil
+		},
+	},
+	{
+		Field: setting.Field{
 			Key:         "cli.default_interactive",
 			Title:       "Default interactive CLI",
 			Description: "Enter huh menus when command args are incomplete",

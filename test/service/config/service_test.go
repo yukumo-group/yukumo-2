@@ -27,6 +27,9 @@ func TestGetDefaultAndEdit(t *testing.T) {
 		t.Fatalf("unexpected cli defaults: interactive=%v accessibility=%v",
 			cfg.CLI.Interactive(), cfg.CLI.Accessibility())
 	}
+	if cfg.Synth.OutputFormat != domain.DefaultOutputFormat || !cfg.Synth.WriteAlways() {
+		t.Fatalf("unexpected synth defaults: %+v", cfg.Synth)
+	}
 
 	dir := t.TempDir()
 	chars := filepath.Join(dir, "characters")
@@ -37,12 +40,17 @@ func TestGetDefaultAndEdit(t *testing.T) {
 		c.Characters.InitDefaultVoice = true
 		c.CLI.SetInteractive(false)
 		c.CLI.SetAccessibility(true)
+		c.Synth.OutputFormat = "c-v"
+		c.Synth.SetAlwaysWrite(false)
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.CLI.Interactive() || !cfg.CLI.Accessibility() {
 		t.Fatalf("cli after edit: %+v", cfg.CLI)
+	}
+	if cfg.Synth.OutputFormat != "c-v" || cfg.Synth.WriteAlways() {
+		t.Fatalf("synth after edit: %+v", cfg.Synth)
 	}
 	for _, p := range []string{chars, out} {
 		if st, err := os.Stat(p); err != nil || !st.IsDir() {
@@ -60,6 +68,9 @@ func TestGetDefaultAndEdit(t *testing.T) {
 	if got.CLI.Interactive() || !got.CLI.Accessibility() {
 		t.Fatalf("persisted cli = interactive=%v accessibility=%v",
 			got.CLI.Interactive(), got.CLI.Accessibility())
+	}
+	if got.Synth.OutputFormat != "c-v" || got.Synth.WriteAlways() {
+		t.Fatalf("persisted synth = %+v", got.Synth)
 	}
 }
 

@@ -10,6 +10,27 @@ type Config struct {
 	Characters CharacterConfig `yaml:"characters"`
 	Paths      PathConfig      `yaml:"paths"`
 	CLI        CLIConfig       `yaml:"cli"`
+	Synth      SynthConfig     `yaml:"synth"`
+}
+
+const DefaultOutputFormat = "c-v-ymd"
+
+// SynthConfig holds synthesis output preferences.
+type SynthConfig struct {
+	OutputFormat string `yaml:"output_format"`
+	// Pointer distinguishes unset from explicit false so missing keys keep defaults.
+	AlwaysWrite *bool `yaml:"always_write"`
+}
+
+func (c SynthConfig) WriteAlways() bool {
+	if c.AlwaysWrite == nil {
+		return true
+	}
+	return *c.AlwaysWrite
+}
+
+func (c *SynthConfig) SetAlwaysWrite(v bool) {
+	c.AlwaysWrite = &v
 }
 
 // Pointers distinguish "unset" from explicit false so missing keys keep defaults.
@@ -50,6 +71,10 @@ func DefaultConfig() Config {
 		CLI: CLIConfig{
 			DefaultInteractive: &on,
 			WithAccessibility:  &off,
+		},
+		Synth: SynthConfig{
+			OutputFormat: DefaultOutputFormat,
+			AlwaysWrite:  &on,
 		},
 	}
 }

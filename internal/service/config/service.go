@@ -62,6 +62,13 @@ func applyPathDefaults(cfg *domain.Config) {
 	if strings.TrimSpace(cfg.Paths.OutputPath) == "" {
 		cfg.Paths.OutputPath = domain.DefaultOutputPath()
 	}
+	if strings.TrimSpace(cfg.Synth.OutputFormat) == "" {
+		cfg.Synth.OutputFormat = domain.DefaultOutputFormat
+	}
+	if cfg.Synth.AlwaysWrite == nil {
+		on := true
+		cfg.Synth.AlwaysWrite = &on
+	}
 }
 
 func ensurePaths(cfg domain.Config) {
