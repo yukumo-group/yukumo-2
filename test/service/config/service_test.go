@@ -27,7 +27,7 @@ func TestGetDefaultAndEdit(t *testing.T) {
 		t.Fatalf("unexpected cli defaults: interactive=%v accessibility=%v",
 			cfg.CLI.Interactive(), cfg.CLI.Accessibility())
 	}
-	if cfg.Synth.OutputFormat != domain.DefaultOutputFormat || !cfg.Synth.WriteAlways() {
+	if cfg.Synth.OutputFormat != domain.DefaultOutputFormat || !cfg.Synth.WriteAlways() || !cfg.Synth.CacheReuse() {
 		t.Fatalf("unexpected synth defaults: %+v", cfg.Synth)
 	}
 

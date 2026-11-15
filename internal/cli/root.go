@@ -51,6 +51,9 @@ func newRoot() (*cobra.Command, error) {
 	charSvc := svccharacter.New(cfgSvc)
 	voiceSvc := svcvoice.New(charSvc, aqPool)
 	synthSvc := svcsynth.New(cfgSvc, voiceSvc, aqPool)
+	if err := synthSvc.CleanIndex(); err != nil {
+		return nil, fmt.Errorf("clean synth index: %w", err)
+	}
 	synthOpts := clisynth.Options{Interactive: interactive}
 	root := &cobra.Command{
 		Use:           "yukumo-script",

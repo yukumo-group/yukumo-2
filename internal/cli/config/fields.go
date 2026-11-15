@@ -87,6 +87,25 @@ var fields = []setting.Entry[domain.Config]{
 	},
 	{
 		Field: setting.Field{
+			Key:         "synth.reuse_cache",
+			Title:       "Reuse synth cache",
+			Description: "Skip synthesis when index hash matches an existing WAV",
+			Kind:        setting.KindBool,
+		},
+		Get: func(c domain.Config) string {
+			return strconv.FormatBool(c.Synth.CacheReuse())
+		},
+		Set: func(c *domain.Config, v string) error {
+			b, err := strconv.ParseBool(v)
+			if err != nil {
+				return err
+			}
+			c.Synth.SetReuseCache(b)
+			return nil
+		},
+	},
+	{
+		Field: setting.Field{
 			Key:         "cli.default_interactive",
 			Title:       "Default interactive CLI",
 			Description: "Enter huh menus when command args are incomplete",

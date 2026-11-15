@@ -18,8 +18,9 @@ const DefaultOutputFormat = "c-v-ymd"
 // SynthConfig holds synthesis output preferences.
 type SynthConfig struct {
 	OutputFormat string `yaml:"output_format"`
-	// Pointer distinguishes unset from explicit false so missing keys keep defaults.
+	// Pointers distinguish unset from explicit false so missing keys keep defaults.
 	AlwaysWrite *bool `yaml:"always_write"`
+	ReuseCache  *bool `yaml:"reuse_cache"`
 }
 
 func (c SynthConfig) WriteAlways() bool {
@@ -31,6 +32,17 @@ func (c SynthConfig) WriteAlways() bool {
 
 func (c *SynthConfig) SetAlwaysWrite(v bool) {
 	c.AlwaysWrite = &v
+}
+
+func (c SynthConfig) CacheReuse() bool {
+	if c.ReuseCache == nil {
+		return true
+	}
+	return *c.ReuseCache
+}
+
+func (c *SynthConfig) SetReuseCache(v bool) {
+	c.ReuseCache = &v
 }
 
 // Pointers distinguish "unset" from explicit false so missing keys keep defaults.
@@ -75,6 +87,7 @@ func DefaultConfig() Config {
 		Synth: SynthConfig{
 			OutputFormat: DefaultOutputFormat,
 			AlwaysWrite:  &on,
+			ReuseCache:   &on,
 		},
 	}
 }

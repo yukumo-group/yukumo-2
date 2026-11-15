@@ -69,6 +69,10 @@ func applyPathDefaults(cfg *domain.Config) {
 		on := true
 		cfg.Synth.AlwaysWrite = &on
 	}
+	if cfg.Synth.ReuseCache == nil {
+		on := true
+		cfg.Synth.ReuseCache = &on
+	}
 }
 
 func ensurePaths(cfg domain.Config) {
