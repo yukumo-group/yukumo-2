@@ -77,10 +77,7 @@ func (r *Runtime) Synthesize(ctx context.Context, text string, p Param) ([]byte,
 	}
 	code := api.DecodeI32(results[0])
 	if code != 0 {
-		msg := lookupError(ctx, errMsg, mem, p.Version, code)
-		if msg == "" {
-			return nil, fmt.Errorf("aq_synthesize failed: code %d", code)
-		}
+		msg := synthesizeErrorMessage(ctx, errMsg, mem, p.Version, code)
 		return nil, fmt.Errorf("aq_synthesize failed: %s (code %d)", msg, code)
 	}
 
@@ -140,7 +137,29 @@ func mallocZero(ctx context.Context, malloc api.Function, mem api.Memory, n uint
 	return ptr, nil
 }
 
-func lookupError(ctx context.Context, errMsg api.Function, mem api.Memory, version int32, code int32) string {
+// Host-side codes from aq_wasm.h (returned before an engine runs).
+const (
+	aqErrArg     int32 = -1 // AQ_ERR_ARG
+	aqErrVersion int32 = -2 // AQ_ERR_VERSION
+	aqErrOpen    int32 = -3 // AQ_ERR_OPEN
+)
+
+func synthesizeErrorMessage(ctx context.Context, errMsg api.Function, mem api.Memory, version, code int32) string {
+	switch code {
+	case aqErrArg:
+		return "AQ_ERR_ARG"
+	case aqErrVersion:
+		return "AQ_ERR_VERSION"
+	case aqErrOpen:
+		return "AQ_ERR_OPEN"
+	}
+	if s := lookupEngineError(ctx, errMsg, mem, version, code); s != "" {
+		return s
+	}
+	return "unknown error"
+}
+
+func lookupEngineError(ctx context.Context, errMsg api.Function, mem api.Memory, version, code int32) string {
 	if errMsg == nil {
 		return ""
 	}
