@@ -61,7 +61,7 @@ func TestSynthesizeVoiceWritesFile(t *testing.T) {
 	svc := synth.New(cfgSvc, voices, pool)
 
 	res, err := svc.Synthesize(ctx, synth.Request{
-		VoiceRef: "remilia.default",
+		VoiceRef: "remilia:default",
 		Text:     "こんにちは",
 	})
 	if err != nil {
@@ -106,7 +106,7 @@ func TestSynthesizePreviewSkipWrite(t *testing.T) {
 	svc := synth.New(cfgSvc, voices, pool)
 
 	res, err := svc.Synthesize(ctx, synth.Request{
-		VoiceRef: "remilia.default",
+		VoiceRef: "remilia:default",
 		Text:     "あ",
 		Preview:  true,
 	})

@@ -21,7 +21,7 @@ func ensureVoiceRef(chars *svccharacter.Service, voices *svcvoice.Service, inter
 		return nil
 	}
 	if !interactive {
-		return fmt.Errorf("voice is required (-v character.voice)")
+		return fmt.Errorf("voice is required (-v character:voice)")
 	}
 	list, err := chars.List()
 	if err != nil {
@@ -55,7 +55,7 @@ func ensureVoiceRef(chars *svccharacter.Service, voices *svcvoice.Service, inter
 	if err != nil {
 		return err
 	}
-	*ref = charName + "." + vs[vidx].Name
+	*ref = charName + ":" + vs[vidx].Name
 	return nil
 }
 

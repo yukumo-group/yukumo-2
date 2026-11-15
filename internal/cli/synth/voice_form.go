@@ -39,7 +39,7 @@ func newVoiceCmd(
 		Short: "Synthesize from a character voice",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !opts.Interactive {
-				return fmt.Errorf("interactive only; use: synth -v character.voice TEXT")
+				return fmt.Errorf("interactive only; use: synth -v character:voice TEXT")
 			}
 			return runInteractiveVoice(cmd, synthSvc, chars, voices)
 		},
@@ -158,7 +158,7 @@ func editVoiceRef(chars *svccharacter.Service, voices *svcvoice.Service, ref *st
 	if len(keys) == 0 {
 		return fmt.Errorf("no character voices")
 	}
-	return prompt.TreeKey("pick", keys, metas, ref)
+	return prompt.TreeKeySep("pick", ":", keys, metas, ref)
 }
 
 func voiceTree(chars *svccharacter.Service, voices *svcvoice.Service) ([]string, map[string]prompt.LeafMeta, error) {
@@ -174,7 +174,7 @@ func voiceTree(chars *svccharacter.Service, voices *svcvoice.Service) ([]string,
 			return nil, nil, err
 		}
 		for _, v := range vs {
-			key := c.Name + "." + v.Name
+			key := c.Name + ":" + v.Name
 			keys = append(keys, key)
 			metas[key] = prompt.LeafMeta{
 				Value:       fmt.Sprintf("%d param(s)", len(v.Params)),
@@ -258,7 +258,7 @@ func fieldLabel(name, value string) string {
 
 func voiceRefDisplay(ref string) string {
 	if ref == "" {
-		return "(pick character.voice)"
+		return "(pick character:voice)"
 	}
 	return ref
 }

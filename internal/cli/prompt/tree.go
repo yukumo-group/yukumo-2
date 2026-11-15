@@ -29,11 +29,14 @@ func (n *treeNode) childNames() []string {
 	return n.order
 }
 
-func buildKeyTree(keys []string) *treeNode {
+func buildKeyTree(keys []string, sep string) *treeNode {
+	if sep == "" {
+		sep = "."
+	}
 	root := &treeNode{children: make(map[string]*treeNode)}
 	for _, key := range keys {
 		cur := root
-		parts := strings.Split(key, ".")
+		parts := strings.Split(key, sep)
 		for i, part := range parts {
 			child, ok := cur.children[part]
 			if !ok {
@@ -88,8 +91,8 @@ func BrowseKeys(
 	focusKey string,
 ) error {
 	return With(title, func() error {
-		root := buildKeyTree(keys)
-		stack := stackAt(root, startPrefix)
+		root := buildKeyTree(keys, ".")
+		stack := stackAt(root, startPrefix, ".")
 		focus := leafFocus(stack[len(stack)-1], focusKey)
 		baseLen := len(crumbs)
 		syncSuffix(baseLen, treeParts(stack))
@@ -133,11 +136,16 @@ func BrowseKeys(
 }
 
 func TreeKey(title string, keys []string, values map[string]LeafMeta, out *string) error {
+	return TreeKeySep(title, ".", keys, values, out)
+}
+
+// TreeKeySep is TreeKey with a custom hierarchy separator (e.g. ":" for character:voice).
+func TreeKeySep(title, sep string, keys []string, values map[string]LeafMeta, out *string) error {
 	if out == nil {
 		return fmt.Errorf("key value is nil")
 	}
 	return With(title, func() error {
-		root := buildKeyTree(keys)
+		root := buildKeyTree(keys, sep)
 		stack := []*treeNode{root}
 		baseLen := len(crumbs)
 
@@ -203,13 +211,16 @@ func leafFocus(cur *treeNode, key string) int {
 	return 0
 }
 
-func stackAt(root *treeNode, prefix string) []*treeNode {
+func stackAt(root *treeNode, prefix, sep string) []*treeNode {
 	stack := []*treeNode{root}
 	if prefix == "" {
 		return stack
 	}
+	if sep == "" {
+		sep = "."
+	}
 	cur := root
-	for _, part := range strings.Split(prefix, ".") {
+	for _, part := range strings.Split(prefix, sep) {
 		child, ok := cur.children[part]
 		if !ok || child.isLeaf() {
 			break

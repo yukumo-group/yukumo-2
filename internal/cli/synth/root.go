@@ -27,8 +27,11 @@ func NewCmd(
 		Short: "Synthesize speech from a character voice",
 		Long: `Synthesize speech.
 
-  synth -v character.voice [-V 1|2|10] [-s factor] [-o path] [-p] TEXT
-  synth custom   (stub; not implemented yet)`,
+  synth -v character:voice [-V 1|2|10] [-s factor] [-o path] [-p] [--reuse-cache] TEXT
+  synth -P /path/character.yaml:voice ... TEXT
+  synth custom   (stub; not implemented yet)
+
+-v / --voice and -P / --voice-path are mutually exclusive.`,
 		Args:                  cobra.ArbitraryArgs,
 		DisableFlagsInUseLine: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -36,11 +39,13 @@ func NewCmd(
 		},
 	}
 
-	cmd.Flags().StringP("voice", "v", "", "Voice ref character.voice")
+	cmd.Flags().StringP("voice", "v", "", "Voice ref character:voice")
+	cmd.Flags().StringP("voice-path", "P", "", "Character YAML override path.yaml:voice")
 	cmd.Flags().IntP("version", "V", 0, "Engine version 1|2|10 (default: first available)")
 	cmd.Flags().Float64P("speed", "s", 1, "Speed factor multiplied with voice speed")
 	cmd.Flags().StringP("output", "o", "", "Output WAV path")
 	cmd.Flags().BoolP("preview", "p", false, "Play synthesized audio")
+	cmd.Flags().Bool("reuse-cache", true, "Reuse cached WAV when task hash matches (overrides synth.reuse_cache)")
 
 	cmd.AddCommand(newVoiceCmd(synthSvc, chars, voices, opts))
 	cmd.AddCommand(newCustomCmd())
@@ -66,10 +71,15 @@ func runSynth(
 	args []string,
 ) error {
 	voiceRef, _ := cmd.Flags().GetString("voice")
+	voicePath, _ := cmd.Flags().GetString("voice-path")
 	version, _ := cmd.Flags().GetInt("version")
 	speed, _ := cmd.Flags().GetFloat64("speed")
 	output, _ := cmd.Flags().GetString("output")
 	preview, _ := cmd.Flags().GetBool("preview")
+
+	if strings.TrimSpace(voiceRef) != "" && strings.TrimSpace(voicePath) != "" {
+		return fmt.Errorf("--voice/-v and --voice-path/-P are mutually exclusive")
+	}
 
 	text := strings.TrimSpace(strings.Join(args, " "))
 	if err := prompt.EnsureString("text", &text); err != nil {
@@ -78,17 +88,26 @@ func runSynth(
 	if text == "" {
 		return fmt.Errorf("text is required")
 	}
-	if err := ensureVoiceRef(chars, voices, opts.Interactive, &voiceRef); err != nil {
-		return err
+	if strings.TrimSpace(voicePath) == "" {
+		if err := ensureVoiceRef(chars, voices, opts.Interactive, &voiceRef); err != nil {
+			return err
+		}
 	}
 
-	_, err := runRequest(cmd, synthSvc, svcsynth.Request{
-		VoiceRef:    voiceRef,
-		Text:        text,
-		Version:     version,
-		SpeedFactor: speed,
-		Output:      output,
-		Preview:     preview,
-	}, false)
+	req := svcsynth.Request{
+		VoiceRef:      voiceRef,
+		VoicePathSpec: voicePath,
+		Text:          text,
+		Version:       version,
+		SpeedFactor:   speed,
+		Output:        output,
+		Preview:       preview,
+	}
+	if cmd.Flags().Changed("reuse-cache") {
+		v, _ := cmd.Flags().GetBool("reuse-cache")
+		req.ReuseCache = &v
+	}
+
+	_, err := runRequest(cmd, synthSvc, req, false)
 	return err
 }
