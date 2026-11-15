@@ -25,7 +25,7 @@ func Execute() error {
 	if err != nil {
 		return err
 	}
-	return root.Execute()
+	return root.ExecuteContext(context.Background())
 }
 
 func newRoot() (*cobra.Command, error) {

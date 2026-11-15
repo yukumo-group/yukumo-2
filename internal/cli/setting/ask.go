@@ -57,7 +57,8 @@ func Ask(f Field, current string, notify io.Writer) (string, error) {
 		if err != nil {
 			v = false
 		}
-		return strconv.FormatBool(!v), nil
+		prompt.ToggleBool(&v)
+		return strconv.FormatBool(v), nil
 	default:
 		return "", fmt.Errorf("unsupported field kind %d", f.Kind)
 	}

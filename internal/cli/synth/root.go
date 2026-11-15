@@ -2,7 +2,6 @@ package synth
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"yukumo-script/internal/cli/prompt"
@@ -79,12 +78,11 @@ func runSynth(
 	if text == "" {
 		return fmt.Errorf("text is required")
 	}
-
 	if err := ensureVoiceRef(chars, voices, opts.Interactive, &voiceRef); err != nil {
 		return err
 	}
 
-	res, err := synthSvc.Synthesize(cmd.Context(), svcsynth.Request{
+	_, err := runRequest(cmd, synthSvc, svcsynth.Request{
 		VoiceRef:    voiceRef,
 		Text:        text,
 		Version:     version,
@@ -92,35 +90,5 @@ func runSynth(
 		Output:      output,
 		Preview:     preview,
 	})
-	if err != nil {
-		return err
-	}
-
-	if res.Wrote {
-		fmt.Fprintln(cmd.OutOrStdout(), res.Path)
-	}
-
-	if preview {
-		path := res.Path
-		var tmp string
-		if path == "" {
-			f, err := os.CreateTemp("", "yukumo-synth-*.wav")
-			if err != nil {
-				return err
-			}
-			tmp = f.Name()
-			if _, err := f.Write(res.WAV); err != nil {
-				_ = f.Close()
-				_ = os.Remove(tmp)
-				return err
-			}
-			_ = f.Close()
-			path = tmp
-			defer os.Remove(tmp)
-		}
-		if err := playWAV(path); err != nil {
-			return err
-		}
-	}
-	return nil
+	return err
 }

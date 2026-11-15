@@ -3,7 +3,6 @@ package synth
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -105,7 +104,7 @@ func runInteractiveVoice(
 				}
 				focus = 4
 			case 5:
-				_ = prompt.Bool("preview", &d.preview)
+				prompt.ToggleBool(&d.preview)
 				focus = 5
 			case 6:
 				if err := prompt.String("text", &d.text); err != nil {
@@ -132,7 +131,7 @@ func doSynthesize(cmd *cobra.Command, synthSvc *svcsynth.Service, d *voiceDraft)
 	if strings.TrimSpace(d.text) == "" {
 		return fmt.Errorf("text is required")
 	}
-	res, err := synthSvc.Synthesize(cmd.Context(), svcsynth.Request{
+	res, err := runRequest(cmd, synthSvc, svcsynth.Request{
 		VoiceRef:    d.voiceRef,
 		Text:        d.text,
 		Version:     d.version,
@@ -145,31 +144,8 @@ func doSynthesize(cmd *cobra.Command, synthSvc *svcsynth.Service, d *voiceDraft)
 	}
 	if res.Wrote {
 		d.status = res.Path
-		fmt.Fprintln(cmd.OutOrStdout(), res.Path)
 	} else {
 		d.status = "ok (not written)"
-	}
-	if d.preview {
-		path := res.Path
-		var tmp string
-		if path == "" {
-			f, err := os.CreateTemp("", "yukumo-synth-*.wav")
-			if err != nil {
-				return err
-			}
-			tmp = f.Name()
-			if _, err := f.Write(res.WAV); err != nil {
-				_ = f.Close()
-				_ = os.Remove(tmp)
-				return err
-			}
-			_ = f.Close()
-			path = tmp
-			defer os.Remove(tmp)
-		}
-		if err := playWAV(path); err != nil {
-			return err
-		}
 	}
 	return nil
 }

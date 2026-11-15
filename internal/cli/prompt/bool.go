@@ -35,3 +35,10 @@ func Bool(title string, value *bool) error {
 		).
 		Value(value))
 }
+
+// ToggleBool flips *value in place (settings-style select-to-invert).
+func ToggleBool(value *bool) {
+	if value != nil {
+		*value = !*value
+	}
+}
