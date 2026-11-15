@@ -132,6 +132,7 @@ Param fields: `preset`, `speed`; v2 +`phont_data` (file → embed); v10 +`base`,
 - On hit with `reuse_cache` / `--reuse-cache`: skip synth; **copy** to a new path (`-o` or a new unique formatted name)—never move the source (multithread-safe). Source kept.
 - Hit but file gone: remove index entry and re-synth (no error).
 - No durable write (e.g. preview-only with `always_write=false`): do not update index; may still load WAV from cache for preview.
+- After each synth, duration is printed after the output path (and `(cached)` if any), e.g. `/tmp/a.wav (cached) 12.34ms`.
 
 ## Config (`config.yaml`)
 

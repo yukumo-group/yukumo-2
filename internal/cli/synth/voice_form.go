@@ -137,7 +137,7 @@ func doSynthesize(cmd *cobra.Command, synthSvc *svcsynth.Service, d *voiceDraft)
 		return fmt.Errorf("text is required")
 	}
 	reuse := d.reuseCache
-	res, err := runRequest(cmd, synthSvc, svcsynth.Request{
+	res, elapsed, err := runRequest(cmd, synthSvc, svcsynth.Request{
 		VoiceRef:    d.voiceRef,
 		Text:        d.text,
 		Version:     d.version,
@@ -149,15 +149,16 @@ func doSynthesize(cmd *cobra.Command, synthSvc *svcsynth.Service, d *voiceDraft)
 	if err != nil {
 		return err
 	}
+	ms := formatElapsed(elapsed)
 	switch {
 	case res.Wrote && res.FromCache:
-		d.status = res.Path + " (cached)"
+		d.status = res.Path + " (cached) " + ms
 	case res.Wrote:
-		d.status = res.Path
+		d.status = res.Path + " " + ms
 	case res.FromCache:
-		d.status = "ok (cached, not written)"
+		d.status = "ok (cached, not written) " + ms
 	default:
-		d.status = "ok (not written)"
+		d.status = "ok (not written) " + ms
 	}
 	return nil
 }

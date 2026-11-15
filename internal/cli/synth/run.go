@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	svcsynth "yukumo-script/internal/service/synth"
 
@@ -19,28 +20,46 @@ func cmdContext(cmd *cobra.Command) context.Context {
 	return context.Background()
 }
 
-// runRequest synthesizes, prints the output path when written, and optionally previews.
+// runRequest synthesizes, prints the output path (with timing) when written, and optionally previews.
 // When asyncPreview is true, playback starts in the background so the UI can continue.
-func runRequest(cmd *cobra.Command, svc *svcsynth.Service, req svcsynth.Request, asyncPreview bool) (svcsynth.Result, error) {
+func runRequest(cmd *cobra.Command, svc *svcsynth.Service, req svcsynth.Request, asyncPreview bool) (svcsynth.Result, time.Duration, error) {
+	start := time.Now()
 	res, err := svc.Synthesize(cmdContext(cmd), req)
+	elapsed := time.Since(start)
 	if err != nil {
-		return res, err
+		return res, elapsed, err
 	}
-	if res.Wrote {
-		if res.FromCache {
-			fmt.Fprintf(cmd.OutOrStdout(), "%s (cached)\n", res.Path)
-		} else {
-			fmt.Fprintln(cmd.OutOrStdout(), res.Path)
-		}
-	} else if res.FromCache {
-		fmt.Fprintln(cmd.OutOrStdout(), "(cached)")
+	line := formatResultLine(res, elapsed)
+	if line != "" {
+		fmt.Fprintln(cmd.OutOrStdout(), line)
 	}
 	if req.Preview {
 		if err := previewResult(res, asyncPreview); err != nil {
-			return res, err
+			return res, elapsed, err
 		}
 	}
-	return res, nil
+	return res, elapsed, nil
+}
+
+func formatResultLine(res svcsynth.Result, elapsed time.Duration) string {
+	ms := formatElapsed(elapsed)
+	switch {
+	case res.Wrote && res.FromCache:
+		return fmt.Sprintf("%s (cached) %s", res.Path, ms)
+	case res.Wrote:
+		return fmt.Sprintf("%s %s", res.Path, ms)
+	case res.FromCache:
+		return fmt.Sprintf("(cached) %s", ms)
+	default:
+		return ms
+	}
+}
+
+func formatElapsed(d time.Duration) string {
+	if d < time.Second {
+		return fmt.Sprintf("%.2fms", float64(d)/float64(time.Millisecond))
+	}
+	return fmt.Sprintf("%.2fs", d.Seconds())
 }
 
 func previewResult(res svcsynth.Result, async bool) error {

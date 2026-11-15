@@ -108,6 +108,6 @@ func runSynth(
 		req.ReuseCache = &v
 	}
 
-	_, err := runRequest(cmd, synthSvc, req, false)
+	_, _, err := runRequest(cmd, synthSvc, req, false)
 	return err
 }

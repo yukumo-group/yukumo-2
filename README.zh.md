@@ -132,6 +132,7 @@ Param 字段：`preset`, `speed`；v2 +`phont_data`（选文件嵌入）；v10 +
 - `reuse_cache` / `--reuse-cache` 启用且命中：不重新合成；**复制**到新路径（`-o` 或模板生成的新唯一名），避免多线程挪动同一文件。源文件保留。
 - 命中但文件已丢：从 index 删掉该条目并重合成，不报错。
 - 不落盘（如仅 preview 且 `always_write=false`）时不写 index；若有缓存可只读入 WAV 供预览。
+- 每次合成结束后打印耗时，写在输出路径（及 `(cached)`）后面，例如 `/tmp/a.wav (cached) 12.34ms`。
 
 ## 配置（`config.yaml`）
 
