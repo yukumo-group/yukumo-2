@@ -38,6 +38,7 @@ func newRoot() (*cobra.Command, error) {
 	if err != nil {
 		return nil, err
 	}
+	cfgSvc.EnsurePaths()
 	prompt.SetAccessible(cfg.CLI.Accessibility())
 
 	aqRT, err := aq.New(context.Background())

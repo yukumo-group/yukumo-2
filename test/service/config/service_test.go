@@ -1,6 +1,8 @@
 package config_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"yukumo-script/internal/domain"
@@ -16,7 +18,9 @@ func TestGetDefaultAndEdit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Paths.CharacterPath != "" || cfg.Paths.DataPath != "" || cfg.Characters.InitDefaultVoice {
+	if cfg.Paths.CharacterPath != domain.DefaultCharacterPath() ||
+		cfg.Paths.OutputPath != domain.DefaultOutputPath() ||
+		cfg.Characters.InitDefaultVoice {
 		t.Fatalf("unexpected default: %+v", cfg)
 	}
 	if !cfg.CLI.Interactive() || cfg.CLI.Accessibility() {
@@ -24,9 +28,12 @@ func TestGetDefaultAndEdit(t *testing.T) {
 			cfg.CLI.Interactive(), cfg.CLI.Accessibility())
 	}
 
+	dir := t.TempDir()
+	chars := filepath.Join(dir, "characters")
+	out := filepath.Join(dir, "output")
 	cfg, err = svc.Edit(func(c *domain.Config) {
-		c.Paths.CharacterPath = "/chars"
-		c.Paths.DataPath = "/data"
+		c.Paths.CharacterPath = chars
+		c.Paths.OutputPath = out
 		c.Characters.InitDefaultVoice = true
 		c.CLI.SetInteractive(false)
 		c.CLI.SetAccessibility(true)
@@ -37,16 +44,41 @@ func TestGetDefaultAndEdit(t *testing.T) {
 	if cfg.CLI.Interactive() || !cfg.CLI.Accessibility() {
 		t.Fatalf("cli after edit: %+v", cfg.CLI)
 	}
+	for _, p := range []string{chars, out} {
+		if st, err := os.Stat(p); err != nil || !st.IsDir() {
+			t.Fatalf("expected dir %q created: %v", p, err)
+		}
+	}
 
 	got, err := svc.Get()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Paths.CharacterPath != "/chars" || got.Paths.DataPath != "/data" || !got.Characters.InitDefaultVoice {
+	if got.Paths.CharacterPath != chars || got.Paths.OutputPath != out || !got.Characters.InitDefaultVoice {
 		t.Fatalf("persisted = %+v", got)
 	}
 	if got.CLI.Interactive() || !got.CLI.Accessibility() {
 		t.Fatalf("persisted cli = interactive=%v accessibility=%v",
 			got.CLI.Interactive(), got.CLI.Accessibility())
+	}
+}
+
+func TestEnsurePathsCreatesDirs(t *testing.T) {
+	mem := store.NewMemory()
+	svc := svcconfig.New(mem)
+	dir := t.TempDir()
+	chars := filepath.Join(dir, "characters")
+	out := filepath.Join(dir, "output")
+	if _, err := svc.Edit(func(c *domain.Config) {
+		c.Paths.CharacterPath = chars
+		c.Paths.OutputPath = out
+	}); err != nil {
+		t.Fatal(err)
+	}
+	svc.EnsurePaths()
+	for _, p := range []string{chars, out} {
+		if st, err := os.Stat(p); err != nil || !st.IsDir() {
+			t.Fatalf("expected dir %q: %v", p, err)
+		}
 	}
 }

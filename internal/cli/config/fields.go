@@ -23,14 +23,14 @@ var fields = []setting.Entry[domain.Config]{
 	},
 	{
 		Field: setting.Field{
-			Key:         "paths.data_path",
-			Title:       "Data path",
-			Description: "Directory for app data and caches",
+			Key:         "paths.output_path",
+			Title:       "Output path",
+			Description: "Directory for generated output files",
 			Kind:        setting.KindDir,
 		},
-		Get: func(c domain.Config) string { return c.Paths.DataPath },
+		Get: func(c domain.Config) string { return c.Paths.OutputPath },
 		Set: func(c *domain.Config, v string) error {
-			c.Paths.DataPath = v
+			c.Paths.OutputPath = v
 			return nil
 		},
 	},
