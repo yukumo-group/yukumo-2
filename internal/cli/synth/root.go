@@ -43,6 +43,7 @@ func NewCmd(
 	cmd.Flags().StringP("output", "o", "", "Output WAV path")
 	cmd.Flags().BoolP("preview", "p", false, "Play synthesized audio")
 
+	cmd.AddCommand(newVoiceCmd(synthSvc, chars, voices, opts))
 	cmd.AddCommand(newCustomCmd())
 	return cmd
 }
