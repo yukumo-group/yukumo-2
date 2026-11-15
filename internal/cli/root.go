@@ -9,10 +9,12 @@ import (
 	clicharacter "yukumo-script/internal/cli/character"
 	cliconfig "yukumo-script/internal/cli/config"
 	"yukumo-script/internal/cli/prompt"
+	clisynth "yukumo-script/internal/cli/synth"
 	"yukumo-script/internal/runtime/aq"
 	svccharacter "yukumo-script/internal/service/character"
 	svcvoice "yukumo-script/internal/service/character/voice"
 	svcconfig "yukumo-script/internal/service/config"
+	svcsynth "yukumo-script/internal/service/synth"
 	"yukumo-script/internal/store"
 
 	"github.com/spf13/cobra"
@@ -48,6 +50,8 @@ func newRoot() (*cobra.Command, error) {
 	charOpts := clicharacter.Options{Interactive: interactive}
 	charSvc := svccharacter.New(cfgSvc)
 	voiceSvc := svcvoice.New(charSvc, aqPool)
+	synthSvc := svcsynth.New(cfgSvc, voiceSvc, aqPool)
+	synthOpts := clisynth.Options{Interactive: interactive}
 	root := &cobra.Command{
 		Use:           "yukumo-script",
 		Short:         "Yukumo script and voice tooling",
@@ -59,6 +63,7 @@ func newRoot() (*cobra.Command, error) {
 	}
 	root.AddCommand(cliconfig.NewCmd(cfgSvc, cfgOpts))
 	root.AddCommand(clicharacter.NewCmd(charSvc, voiceSvc, charOpts))
+	root.AddCommand(clisynth.NewCmd(synthSvc, charSvc, voiceSvc, synthOpts))
 	if interactive {
 		enableInteractiveBrowse(root)
 	}
