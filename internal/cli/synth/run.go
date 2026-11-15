@@ -20,7 +20,8 @@ func cmdContext(cmd *cobra.Command) context.Context {
 }
 
 // runRequest synthesizes, prints the output path when written, and optionally previews.
-func runRequest(cmd *cobra.Command, svc *svcsynth.Service, req svcsynth.Request) (svcsynth.Result, error) {
+// When asyncPreview is true, playback starts in the background so the UI can continue.
+func runRequest(cmd *cobra.Command, svc *svcsynth.Service, req svcsynth.Request, asyncPreview bool) (svcsynth.Result, error) {
 	res, err := svc.Synthesize(cmdContext(cmd), req)
 	if err != nil {
 		return res, err
@@ -29,30 +30,41 @@ func runRequest(cmd *cobra.Command, svc *svcsynth.Service, req svcsynth.Request)
 		fmt.Fprintln(cmd.OutOrStdout(), res.Path)
 	}
 	if req.Preview {
-		if err := previewResult(res); err != nil {
+		if err := previewResult(res, asyncPreview); err != nil {
 			return res, err
 		}
 	}
 	return res, nil
 }
 
-func previewResult(res svcsynth.Result) error {
+func previewResult(res svcsynth.Result, async bool) error {
 	path := res.Path
-	if path != "" {
-		return playWAV(path)
+	cleanup := ""
+	if path == "" {
+		f, err := os.CreateTemp("", "yukumo-synth-*.wav")
+		if err != nil {
+			return err
+		}
+		cleanup = f.Name()
+		if _, err := f.Write(res.WAV); err != nil {
+			_ = f.Close()
+			_ = os.Remove(cleanup)
+			return err
+		}
+		if err := f.Close(); err != nil {
+			_ = os.Remove(cleanup)
+			return err
+		}
+		path = cleanup
 	}
-	f, err := os.CreateTemp("", "yukumo-synth-*.wav")
-	if err != nil {
-		return err
+	if async {
+		playWAVAsync(path, cleanup)
+		return nil
 	}
-	tmp := f.Name()
-	defer os.Remove(tmp)
-	if _, err := f.Write(res.WAV); err != nil {
-		_ = f.Close()
-		return err
-	}
-	if err := f.Close(); err != nil {
-		return err
-	}
-	return playWAV(tmp)
+	defer func() {
+		if cleanup != "" {
+			_ = os.Remove(cleanup)
+		}
+	}()
+	return playWAV(path)
 }

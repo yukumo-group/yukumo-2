@@ -89,6 +89,6 @@ func runSynth(
 		SpeedFactor: speed,
 		Output:      output,
 		Preview:     preview,
-	})
+	}, false)
 	return err
 }

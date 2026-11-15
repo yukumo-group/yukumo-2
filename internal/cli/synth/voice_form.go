@@ -138,7 +138,7 @@ func doSynthesize(cmd *cobra.Command, synthSvc *svcsynth.Service, d *voiceDraft)
 		SpeedFactor: d.speedFactor,
 		Output:      d.output,
 		Preview:     d.preview,
-	})
+	}, true)
 	if err != nil {
 		return err
 	}
