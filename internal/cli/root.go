@@ -41,16 +41,13 @@ func newRoot() (*cobra.Command, error) {
 	cfgSvc.EnsurePaths()
 	prompt.SetAccessible(cfg.CLI.Accessibility())
 
-	aqRT, err := aq.New(context.Background())
-	if err != nil {
-		return nil, err
-	}
+	aqPool := aq.NewPool()
 
 	interactive := cfg.CLI.Interactive()
 	cfgOpts := cliconfig.Options{Interactive: interactive}
 	charOpts := clicharacter.Options{Interactive: interactive}
 	charSvc := svccharacter.New(cfgSvc)
-	voiceSvc := svcvoice.New(charSvc, aqRT)
+	voiceSvc := svcvoice.New(charSvc, aqPool)
 	root := &cobra.Command{
 		Use:           "yukumo-script",
 		Short:         "Yukumo script and voice tooling",
@@ -58,7 +55,7 @@ func newRoot() (*cobra.Command, error) {
 		SilenceErrors: true,
 	}
 	root.PersistentPostRun = func(*cobra.Command, []string) {
-		_ = aqRT.Close(context.Background())
+		_ = aqPool.Close(context.Background())
 	}
 	root.AddCommand(cliconfig.NewCmd(cfgSvc, cfgOpts))
 	root.AddCommand(clicharacter.NewCmd(charSvc, voiceSvc, charOpts))
