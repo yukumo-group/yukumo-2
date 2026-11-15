@@ -68,9 +68,10 @@ go run . character add remilia "example"
 # 注意：默认 interactive 下，voice add 会进入 param 编辑；确认默认值退出即可。
 # 纯脚本可先：go run . config edit cli.default_interactive false
 
-go run . synth -v remilia.default "こんにちは"
-go run . synth -v remilia.default -p "こんにちは"          # 预览播放
-go run . synth -v remilia.default -o /tmp/out.wav "テスト" # 指定输出
+go run . synth -v remilia:default "こんにちは"
+go run . synth -v remilia:default -p "こんにちは"          # 预览播放
+go run . synth -v remilia:default -o /tmp/out.wav "テスト" # 指定输出
+go run . synth -P ./remilia.yaml:default "こんにちは"      # 覆盖角色文件路径
 ```
 
 ## CLI 命令
@@ -115,12 +116,22 @@ Param 字段：`preset`, `speed`；v2 +`phont_data`（选文件嵌入）；v10 +
 
 | 命令 / 标志 | 行为 |
 |---|---|
-| `synth -v character.voice [-V 1\|2\|10] [-s factor] [-o path] [-p] TEXT` | 一次性合成；`-s` 默认 `1`；interactive 可补 voice/text |
-| `synth voice` | **仅 interactive**：表单循环（voice 树 / version / speed / output / preview 翻转 / text / synthesize）；合成后留在本页；preview **异步**播放 |
+| `synth -v character:voice … TEXT` | 从配置的 `character_path` 取角色；`-s` 默认 `1` |
+| `synth -P file.yaml:voice … TEXT` | 用指定 Character YAML（**最后一个** `:` 分割路径与音色）；与 `-v` **互斥** |
+| 共用：`[-V 1\|2\|10] [-s factor] [-o path] [-p] [--reuse-cache[=false]]` | 版本 / 语速因子 / 输出 / 预览 / 是否读缓存（flag 覆盖配置，省略则用 `synth.reuse_cache`） |
+| `synth voice` | **仅 interactive**：表单循环；voice 树键为 `character:voice`；preview **异步** |
 | `synth custom` | stub，未实现 |
 
-**版本**：`-V` 省略时按 voice 内 **1→2→10** 取首个存在的 param；皆无则报 `voice … params empty` / `definition invalid`。  
-**引用**：`角色名.音色名`（第一个 `.` 分割）。
+**版本**：`-V` 省略 → voice 内 **1→2→10** 首个 param；皆无则 `params empty` / `definition invalid`。  
+**引用**：`角色:音色`（第一个 `:`）。`-P` 为 `--voice-path` 短选项（cobra 仅支持单字符短旗标；语义上即「voice-path」）。
+
+**缓存（`output_path/index.yaml`）**
+
+- 任务哈希（SHA-256 hex）：文本、有效 speed、完整 `SynthParam`（含 phont）、以及 `-P` 时整份 YAML 字节。
+- index 为简单 map：`hash: basename.wav`。启动时清理指向缺失文件的条目。
+- `reuse_cache` / `--reuse-cache` 启用且命中：不重新合成；**复制**到新路径（`-o` 或模板生成的新唯一名），避免多线程挪动同一文件。源文件保留。
+- 命中但文件已丢：从 index 删掉该条目并重合成，不报错。
+- 不落盘（如仅 preview 且 `always_write=false`）时不写 index；若有缓存可只读入 WAV 供预览。
 
 ## 配置（`config.yaml`）
 
@@ -134,6 +145,7 @@ Param 字段：`preset`, `speed`；v2 +`phont_data`（选文件嵌入）；v10 +
 | `characters.init_default_voice` | `false` | `character add` 时是否自动加 `default` 音色（v1）；与手动 `voice add` **二选一**，勿重复同名 |
 | `synth.output_format` | `c-v-ymd` | 输出文件名模板 |
 | `synth.always_write` | `true` | 是否总是写文件（见合成输出） |
+| `synth.reuse_cache` | `true` | 按任务哈希复用 `index.yaml` 中的已有 WAV |
 | `cli.default_interactive` | `true` | 缺参时进入 huh；根命令挂载 browse |
 | `cli.with_accessibility` | `false` | huh 无障碍模式 |
 

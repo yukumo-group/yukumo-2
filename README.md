@@ -68,9 +68,10 @@ go run . character add remilia "example"
 # Note: with default interactive, voice add opens the param editor; accept defaults to continue.
 # For scripting first: go run . config edit cli.default_interactive false
 
-go run . synth -v remilia.default "こんにちは"
-go run . synth -v remilia.default -p "こんにちは"          # preview
-go run . synth -v remilia.default -o /tmp/out.wav "テスト" # explicit output
+go run . synth -v remilia:default "こんにちは"
+go run . synth -v remilia:default -p "こんにちは"          # preview
+go run . synth -v remilia:default -o /tmp/out.wav "テスト" # explicit output
+go run . synth -P ./remilia.yaml:default "こんにちは"      # override character YAML path
 ```
 
 ## CLI
@@ -115,12 +116,22 @@ Param fields: `preset`, `speed`; v2 +`phont_data` (file → embed); v10 +`base`,
 
 | Command / flags | Behavior |
 |---|---|
-| `synth -v character.voice [-V 1\|2\|10] [-s factor] [-o path] [-p] TEXT` | One-shot; `-s` default `1`; interactive can fill voice/text |
-| `synth voice` | **Interactive only**: form loop (voice tree / version / speed / output / preview toggle / text / synthesize); stays on page after synth; **async** preview |
+| `synth -v character:voice … TEXT` | Load character from configured `character_path`; `-s` default `1` |
+| `synth -P file.yaml:voice … TEXT` | Character YAML override (split on **last** `:`); **mutex** with `-v` |
+| Shared: `[-V 1\|2\|10] [-s factor] [-o path] [-p] [--reuse-cache[=false]]` | Version / speed factor / output / preview / cache (flag overrides config; omit → `synth.reuse_cache`) |
+| `synth voice` | **Interactive only**; voice tree keys are `character:voice`; **async** preview |
 | `synth custom` | Stub, not implemented |
 
-**Version**: omit `-V` → first present param among **1→2→10**; else `params empty` / `definition invalid`.  
-**Ref**: `character.voice` (split on first `.`).
+**Version**: omit `-V` → first param among **1→2→10**; else `params empty` / `definition invalid`.  
+**Ref**: `character:voice` (first `:`). `-P` is the short flag for `--voice-path` (cobra allows one-letter shorts only).
+
+**Cache (`output_path/index.yaml`)**
+
+- Task hash (SHA-256 hex): text, effective speed, full `SynthParam` (incl. phont), and entire YAML bytes when using `-P`.
+- Index is a flat map `hash: basename.wav`. Startup drops entries whose files are missing.
+- On hit with `reuse_cache` / `--reuse-cache`: skip synth; **copy** to a new path (`-o` or a new unique formatted name)—never move the source (multithread-safe). Source kept.
+- Hit but file gone: remove index entry and re-synth (no error).
+- No durable write (e.g. preview-only with `always_write=false`): do not update index; may still load WAV from cache for preview.
 
 ## Config (`config.yaml`)
 
@@ -134,6 +145,7 @@ Startup `MkdirAll` on `character_path` / `output_path`; failure (including permi
 | `characters.init_default_voice` | `false` | Auto-add `default` voice (v1) on `character add`; **either** this **or** manual `voice add`, not both for the same name |
 | `synth.output_format` | `c-v-ymd` | Output basename pattern |
 | `synth.always_write` | `true` | Always write files (see write policy) |
+| `synth.reuse_cache` | `true` | Reuse WAVs listed in `index.yaml` by task hash |
 | `cli.default_interactive` | `true` | huh when args incomplete; root browse |
 | `cli.with_accessibility` | `false` | huh accessibility |
 
