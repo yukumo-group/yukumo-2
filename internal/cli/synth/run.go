@@ -27,7 +27,13 @@ func runRequest(cmd *cobra.Command, svc *svcsynth.Service, req svcsynth.Request,
 		return res, err
 	}
 	if res.Wrote {
-		fmt.Fprintln(cmd.OutOrStdout(), res.Path)
+		if res.FromCache {
+			fmt.Fprintf(cmd.OutOrStdout(), "%s (cached)\n", res.Path)
+		} else {
+			fmt.Fprintln(cmd.OutOrStdout(), res.Path)
+		}
+	} else if res.FromCache {
+		fmt.Fprintln(cmd.OutOrStdout(), "(cached)")
 	}
 	if req.Preview {
 		if err := previewResult(res, asyncPreview); err != nil {

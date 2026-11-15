@@ -24,6 +24,7 @@ type voiceDraft struct {
 	speedFactor float64
 	output      string
 	preview     bool
+	reuseCache  bool
 	text        string
 	status      string
 }
@@ -52,7 +53,7 @@ func runInteractiveVoice(
 	chars *svccharacter.Service,
 	voices *svcvoice.Service,
 ) error {
-	d := voiceDraft{speedFactor: 1}
+	d := voiceDraft{speedFactor: 1, reuseCache: true}
 	return prompt.With("voice", func() error {
 		focus := 0
 		for {
@@ -63,6 +64,7 @@ func runInteractiveVoice(
 				fieldLabel("speed", formatFactor(d.speedFactor)),
 				fieldLabel("output", outputDisplay(d.output)),
 				fieldLabel("preview", strconv.FormatBool(d.preview)),
+				fieldLabel("reuse_cache", strconv.FormatBool(d.reuseCache)),
 				fieldLabel("text", textDisplay(d.text)),
 				"▶  synthesize",
 			}
@@ -107,16 +109,19 @@ func runInteractiveVoice(
 				prompt.ToggleBool(&d.preview)
 				focus = 5
 			case 6:
+				prompt.ToggleBool(&d.reuseCache)
+				focus = 6
+			case 7:
 				if err := prompt.String("text", &d.text); err != nil {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
-				focus = 6
-			case 7:
+				focus = 7
+			case 8:
 				if err := doSynthesize(cmd, synthSvc, &d); err != nil {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
 					d.status = "error"
 				}
-				focus = 7
+				focus = 8
 			default:
 				focus = 0
 			}
@@ -131,6 +136,7 @@ func doSynthesize(cmd *cobra.Command, synthSvc *svcsynth.Service, d *voiceDraft)
 	if strings.TrimSpace(d.text) == "" {
 		return fmt.Errorf("text is required")
 	}
+	reuse := d.reuseCache
 	res, err := runRequest(cmd, synthSvc, svcsynth.Request{
 		VoiceRef:    d.voiceRef,
 		Text:        d.text,
@@ -138,13 +144,19 @@ func doSynthesize(cmd *cobra.Command, synthSvc *svcsynth.Service, d *voiceDraft)
 		SpeedFactor: d.speedFactor,
 		Output:      d.output,
 		Preview:     d.preview,
+		ReuseCache:  &reuse,
 	}, true)
 	if err != nil {
 		return err
 	}
-	if res.Wrote {
+	switch {
+	case res.Wrote && res.FromCache:
+		d.status = res.Path + " (cached)"
+	case res.Wrote:
 		d.status = res.Path
-	} else {
+	case res.FromCache:
+		d.status = "ok (cached, not written)"
+	default:
 		d.status = "ok (not written)"
 	}
 	return nil
