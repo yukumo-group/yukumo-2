@@ -1,8 +1,17 @@
 # Yukumo Script 分层重构计划
 
-- 状态：In progress
+- 状态：Implemented
 - 日期：2026-11-16
 - 分支：`layer-refactor`
+- 实施记录：
+  - `3e95c63` docs(refactor): add layered architecture plan
+  - `abb0d21` refactor(core): move domain, store, and service under core
+  - `58bc5a5` refactor(runtime): extract runtime and core modules
+  - `2bfd99a` refactor(api): add use-case facade and engine port
+  - `680ea1a` fix(api): preserve YAML field names in DTOs
+  - `e4b82c6` refactor(cli): move CLI into its own module behind api
+  - `d35d07e` chore(lint): add justfile, depguard/staticcheck, and CI gates
+- 最终检查：`just ci` 通过；depguard 与 staticcheck 0 issues。
 - 范围：模块边界、依赖方向、API 门面、测试分层、CI 护栏；不改 CLI 输出、交互流程、合成策略、文件格式。
 - Web/WASM：可移植性评估与后续增量设计见 [16. Web/WASM 可移植性 addendum](#sec-16)，不属于当前 Phase 0–6 的实现范围。
 
@@ -397,7 +406,7 @@ run *ARGS:
     go -C cli run ./cmd/yukumo-script {{ARGS}}
 
 install-tools:
-    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 
 test:
     go -C core test ./...
@@ -425,7 +434,7 @@ check-replaces:
 
 - `go -C cli build -o ../yukumo-script ./cmd/yukumo-script` 的输出落在仓库根目录；因为 `GOWORK=off`，它实际验证的是 CLI module 的 `replace` 链是否完整。
 - `go -C cli run ./cmd/yukumo-script` 的进程 cwd 是 `cli/`；runtime 的 WASM loader 会从 `cli/` 向上找到根 `third-party/aq_wasm.wasm`，不需要移动 wasm。
-- `golangci-lint` 需要提前安装（`go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`）；CI 会装，本地可用 `just install-tools`（可选）。
+- `golangci-lint` 需要提前安装（`go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest`）；CI 会装，本地可用 `just install-tools`（可选）。
 - 每个 recipe 的每一行由 just 独立执行；`cd core && golangci-lint run` 写成一行，避免 cwd 丢失。
 - `go.work` 仍保留给 IDE 和手动 workspace 开发；`just` 的检查和构建全部走 `GOWORK=off`，CI 额外做一次 workspace build 验证 `go.work`。
 
@@ -1083,7 +1092,7 @@ just lint
 | core | `**/*.go` | UI 库、wazero（全局兜底） |
 | runtime | `**/*.go` | 所有 `yukumo-script/`、UI 库、yaml |
 | core/api | `**/*.go` | `yukumo-script/cli`、UI 库、wazero、yaml |
-| cli | `**/*.go` | `yukumo-script/core/internal`、`yukumo-script/runtime`、wazero、yaml |
+| cli | `**/*.go` | `yukumo-script/core/internal`、`yukumo-script/runtime`、wazero |
 | cli | `cmd/**` | `yukumo-script/core`、`yukumo-script/runtime`、UI 库、wazero、yaml |
 
 外部库归属：
@@ -1094,7 +1103,7 @@ just lint
 | `github.com/charmbracelet/huh` | `cli` |
 | `github.com/charmbracelet/lipgloss` | `cli` |
 | `github.com/tetratelabs/wazero` | `runtime` |
-| `gopkg.in/yaml.v3` | `core` |
+| `gopkg.in/yaml.v3` | `core`、`cli`（CLI YAML 输出） |
 
 ### 10.4 staticcheck
 
@@ -1186,7 +1195,7 @@ jobs:
 
       - name: Install golangci-lint
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: CI
