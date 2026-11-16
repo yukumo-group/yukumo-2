@@ -2,25 +2,14 @@ package prompt
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
+
+	"yukumo-script/cli/parse"
 
 	"github.com/charmbracelet/huh"
 )
 
 func ParseBool(raw string) (bool, error) {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "true", "1", "yes", "y", "on":
-		return true, nil
-	case "false", "0", "no", "n", "off":
-		return false, nil
-	default:
-		v, err := strconv.ParseBool(raw)
-		if err != nil {
-			return false, fmt.Errorf("invalid bool %q", raw)
-		}
-		return v, nil
-	}
+	return parse.ParseBool(raw)
 }
 
 func Bool(title string, value *bool) error {

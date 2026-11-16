@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/schema"
 )
 
 func AskKey(keys []string, values map[string]prompt.LeafMeta, key *string) error {
@@ -22,28 +23,28 @@ func BrowseKeys(
 	return prompt.BrowseKeys("Settings", keys, values, onLeaf, startPrefix, focusKey)
 }
 
-func Ask(f Field, current string, notify io.Writer) (string, error) {
+func Ask(f schema.Field, current string, notify io.Writer) (string, error) {
 	seg := askSegment(f)
 	switch f.Kind {
-	case KindString:
+	case schema.KindString:
 		v := current
 		if err := prompt.String(seg, &v); err != nil {
 			return "", err
 		}
 		return v, nil
-	case KindDir:
+	case schema.KindDir:
 		v := current
 		if err := prompt.Dir(seg, &v); err != nil {
 			return "", err
 		}
 		return v, nil
-	case KindFile:
+	case schema.KindFile:
 		v := current
 		if err := prompt.File(seg, &v); err != nil {
 			return "", err
 		}
 		return v, nil
-	case KindInt:
+	case schema.KindInt:
 		v, err := strconv.Atoi(current)
 		if err != nil {
 			v = f.Min
@@ -52,7 +53,7 @@ func Ask(f Field, current string, notify io.Writer) (string, error) {
 			return "", err
 		}
 		return strconv.Itoa(v), nil
-	case KindBool:
+	case schema.KindBool:
 		v, err := prompt.ParseBool(current)
 		if err != nil {
 			v = false
@@ -64,35 +65,9 @@ func Ask(f Field, current string, notify io.Writer) (string, error) {
 	}
 }
 
-func askSegment(f Field) string {
+func askSegment(f schema.Field) string {
 	if prompt.Crumb() != "" {
 		return ""
 	}
 	return f.Title
-}
-
-func Normalize(f Field, raw string, notify io.Writer) (string, error) {
-	switch f.Kind {
-	case KindString:
-		return raw, nil
-	case KindDir, KindFile:
-		return prompt.ExpandPath(raw), nil
-	case KindInt:
-		v, clamped, err := prompt.ParseRangedInt(raw, f.Min, f.Max)
-		if err != nil {
-			return "", err
-		}
-		if clamped && notify != nil {
-			_, _ = fmt.Fprintf(notify, "clamped %s → %d (range [%d, %d])\n", raw, v, f.Min, f.Max)
-		}
-		return strconv.Itoa(v), nil
-	case KindBool:
-		v, err := prompt.ParseBool(raw)
-		if err != nil {
-			return "", err
-		}
-		return strconv.FormatBool(v), nil
-	default:
-		return "", fmt.Errorf("unsupported field kind %d", f.Kind)
-	}
 }

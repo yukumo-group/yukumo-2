@@ -5,27 +5,17 @@ import (
 	"io"
 	"strconv"
 
+	"yukumo-script/cli/parse"
+
 	"github.com/charmbracelet/huh"
 )
 
 func ClampInt(v, min, max int) (int, bool) {
-	switch {
-	case v < min:
-		return min, true
-	case v > max:
-		return max, true
-	default:
-		return v, false
-	}
+	return parse.ClampInt(v, min, max)
 }
 
 func ParseRangedInt(raw string, min, max int) (int, bool, error) {
-	v, err := strconv.Atoi(raw)
-	if err != nil {
-		return 0, false, fmt.Errorf("invalid number %q", raw)
-	}
-	clamped, changed := ClampInt(v, min, max)
-	return clamped, changed, nil
+	return parse.ParseRangedInt(raw, min, max)
 }
 
 func RangedInt(title string, value *int, min, max int, notify io.Writer) error {

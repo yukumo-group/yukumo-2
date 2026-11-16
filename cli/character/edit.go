@@ -7,6 +7,7 @@ import (
 	"yukumo-script/cli/character/voice"
 	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/schema"
 	"yukumo-script/cli/setting"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
@@ -59,7 +60,7 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 		if err != nil {
 			return err
 		}
-		entry, err := setting.Lookup(fields, args[1])
+		entry, err := schema.Lookup(schema.CharacterFields(), args[1])
 		if err != nil {
 			return err
 		}
@@ -86,9 +87,9 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 				return err
 			}
 			prompt.Replace(currentName)
-			metas := setting.Metas(fields, c)
+			metas := setting.Metas(schema.CharacterFields(), c)
 			labels := []string{prompt.LabelBack}
-			keys := setting.Keys(fields)
+			keys := schema.Keys(schema.CharacterFields())
 			for _, key := range keys {
 				labels = append(labels, leafLabel(key, metas[key]))
 			}
@@ -111,7 +112,7 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 				continue
 			}
 			key := keys[idx-1]
-			entry, err := setting.Lookup(fields, key)
+			entry, err := schema.Lookup(schema.CharacterFields(), key)
 			if err != nil {
 				return err
 			}
@@ -153,15 +154,19 @@ func applyEdit(
 	key, raw string,
 	normalize bool,
 ) error {
-	entry, err := setting.Lookup(fields, key)
+	entry, err := schema.Lookup(schema.CharacterFields(), key)
 	if err != nil {
 		return err
 	}
 	value := raw
 	if normalize {
-		value, err = setting.Normalize(entry.Field, raw, s.Err)
+		var warning string
+		value, warning, err = schema.Normalize(entry.Field, raw)
 		if err != nil {
 			return err
+		}
+		if warning != "" {
+			_, _ = fmt.Fprint(s.Err, warning)
 		}
 	}
 	if err := entry.Set(c, value); err != nil {

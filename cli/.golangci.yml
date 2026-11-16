@@ -35,6 +35,49 @@ linters:
           deny:
             - pkg: "yukumo-script/cli$"
               desc: "CLI subpackages must not import the root package"
+        schema:
+          files:
+            - "**/schema/**"
+          deny:
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
+            - pkg: "yukumo-script/cli/prompt"
+            - pkg: "yukumo-script/cli/setting"
+            - pkg: "yukumo-script/cli/ui"
+            - pkg: "yukumo-script/cli/action"
+            - pkg: "yukumo-script/cli/internal"
+            - pkg: "yukumo-script/cli$"
+        setting:
+          files:
+            - "**/setting/**"
+          deny:
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "yukumo-script/core/api"
+            - pkg: "yukumo-script/cli/action"
+            - pkg: "yukumo-script/cli/ui"
+            - pkg: "yukumo-script/cli/internal"
+            - pkg: "yukumo-script/cli$"
+        prompt:
+          files:
+            - "**/prompt/**"
+          deny:
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "yukumo-script/core/api"
+            - pkg: "yukumo-script/cli/schema"
+            - pkg: "yukumo-script/cli/setting"
+            - pkg: "yukumo-script/cli/action"
+            - pkg: "yukumo-script/cli/ui"
+            - pkg: "yukumo-script/cli$"
+        leaf-pure:
+          files:
+            - "**/parse/**"
+            - "**/streams/**"
+          deny:
+            - pkg: "yukumo-script"
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
         cmd:
           files:
             - "cmd/**"

@@ -1,17 +1,16 @@
-package character
+package schema
 
 import (
-	"yukumo-script/cli/setting"
 	"yukumo-script/core/api"
 )
 
-var fields = []setting.Entry[api.Character]{
+var characterFields = []Entry[api.Character]{
 	{
-		Field: setting.Field{
+		Field: Field{
 			Key:         "name",
 			Title:       "Name",
 			Description: "Unique character name",
-			Kind:        setting.KindString,
+			Kind:        KindString,
 		},
 		Get: func(c api.Character) string { return c.Name },
 		Set: func(c *api.Character, v string) error {
@@ -20,11 +19,11 @@ var fields = []setting.Entry[api.Character]{
 		},
 	},
 	{
-		Field: setting.Field{
+		Field: Field{
 			Key:         "description",
 			Title:       "Description",
 			Description: "Optional notes",
-			Kind:        setting.KindString,
+			Kind:        KindString,
 		},
 		Get: func(c api.Character) string { return c.Description },
 		Set: func(c *api.Character, v string) error {
@@ -33,3 +32,6 @@ var fields = []setting.Entry[api.Character]{
 		},
 	},
 }
+
+// CharacterFields returns the editable character fields.
+func CharacterFields() []Entry[api.Character] { return characterFields }

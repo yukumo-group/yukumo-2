@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	"yukumo-script/cli/setting"
+	"yukumo-script/cli/schema"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
@@ -20,7 +20,7 @@ func newGetCmd(app *api.App, opts Options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			entry, err := setting.Lookup(fields, args[0])
+			entry, err := schema.Lookup(schema.ConfigFields(), args[0])
 			if err != nil {
 				return err
 			}

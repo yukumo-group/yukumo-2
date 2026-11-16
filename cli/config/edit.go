@@ -6,6 +6,7 @@ import (
 
 	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/schema"
 	"yukumo-script/cli/setting"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
@@ -51,7 +52,7 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 		if err != nil {
 			return err
 		}
-		entry, err := setting.Lookup(fields, args[0])
+		entry, err := schema.Lookup(schema.ConfigFields(), args[0])
 		if err != nil {
 			return err
 		}
@@ -66,18 +67,18 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 		focusKey = args[0]
 	}
 
-	err := setting.BrowseKeys(setting.Keys(fields), func() map[string]prompt.LeafMeta {
+	err := setting.BrowseKeys(schema.Keys(schema.ConfigFields()), func() map[string]prompt.LeafMeta {
 		cfg, err := app.Config()
 		if err != nil {
 			return map[string]prompt.LeafMeta{}
 		}
-		return setting.Metas(fields, cfg)
+		return setting.Metas(schema.ConfigFields(), cfg)
 	}, func(key string) error {
 		cfg, err := app.Config()
 		if err != nil {
 			return err
 		}
-		entry, err := setting.Lookup(fields, key)
+		entry, err := schema.Lookup(schema.ConfigFields(), key)
 		if err != nil {
 			return err
 		}
@@ -100,15 +101,19 @@ func applyEdit(
 	key, raw string,
 	normalize bool,
 ) error {
-	entry, err := setting.Lookup(fields, key)
+	entry, err := schema.Lookup(schema.ConfigFields(), key)
 	if err != nil {
 		return err
 	}
 	value := raw
 	if normalize {
-		value, err = setting.Normalize(entry.Field, raw, s.Err)
+		var warning string
+		value, warning, err = schema.Normalize(entry.Field, raw)
 		if err != nil {
 			return err
+		}
+		if warning != "" {
+			_, _ = fmt.Fprint(s.Err, warning)
 		}
 	}
 	if err := entry.Set(&cfg, value); err != nil {

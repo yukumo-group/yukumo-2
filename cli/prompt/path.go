@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"yukumo-script/cli/parse"
 )
 
 type PathOpts struct {
@@ -183,24 +185,5 @@ func pathStart(current string) string {
 }
 
 func ExpandPath(p string) string {
-	p = strings.TrimSpace(p)
-	if p == "" {
-		return p
-	}
-	if p == "~" {
-		if home, err := os.UserHomeDir(); err == nil {
-			return home
-		}
-		return p
-	}
-	if strings.HasPrefix(p, "~/") {
-		if home, err := os.UserHomeDir(); err == nil {
-			p = filepath.Join(home, p[2:])
-		}
-	}
-	abs, err := filepath.Abs(p)
-	if err != nil {
-		return filepath.Clean(p)
-	}
-	return filepath.Clean(abs)
+	return parse.ExpandPath(p)
 }

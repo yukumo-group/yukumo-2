@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/schema"
 	"yukumo-script/cli/setting"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
@@ -15,10 +16,10 @@ import (
 func editParamInteractive(s streams.Streams, app *api.App, p *api.SynthParam) error {
 	focus := 0
 	for {
-		entries := paramEntries(p.Version)
+		entries := schema.VoiceParamFields(p.Version)
 		metas := paramMetas(s.Ctx, app, entries, *p)
 		labels := []string{prompt.LabelCancel, prompt.LabelSave}
-		keys := setting.Keys(entries)
+		keys := schema.Keys(entries)
 		for _, key := range keys {
 			meta := metas[key]
 			value := meta.Value
@@ -58,8 +59,8 @@ func editParamInteractive(s streams.Streams, app *api.App, p *api.SynthParam) er
 }
 
 func editParamField(s streams.Streams, app *api.App, p *api.SynthParam, key string) error {
-	entries := paramEntries(p.Version)
-	entry, err := setting.Lookup(entries, key)
+	entries := schema.VoiceParamFields(p.Version)
+	entry, err := schema.Lookup(entries, key)
 	if err != nil {
 		return err
 	}
@@ -191,7 +192,7 @@ func presetDisplay(ctx context.Context, app *api.App, version, preset int) strin
 	return formatPreset(version, names[preset])
 }
 
-func paramMetas(ctx context.Context, app *api.App, entries []setting.Entry[api.SynthParam], p api.SynthParam) map[string]prompt.LeafMeta {
+func paramMetas(ctx context.Context, app *api.App, entries []schema.Entry[api.SynthParam], p api.SynthParam) map[string]prompt.LeafMeta {
 	out := setting.Metas(entries, p)
 	if meta, ok := out["preset"]; ok {
 		meta.Value = presetDisplay(ctx, app, p.Version, p.Preset)
