@@ -13,3 +13,4 @@ vendor/
 !.github/**
 !.golangci.yml
 !**/.golangci.yml
+.dsh-plugins/
