@@ -6,8 +6,11 @@ import (
 	"strconv"
 	"strings"
 
+	"yukumo-script/cli/action"
 	"yukumo-script/cli/internal/cobraio"
+	"yukumo-script/cli/play"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 
@@ -126,7 +129,7 @@ func doSynthesize(s streams.Streams, app *api.App, d *voiceDraft) error {
 		return fmt.Errorf("text is required")
 	}
 	reuse := d.reuseCache
-	res, elapsed, err := runRequest(s, app, api.SynthRequest{
+	res, elapsed, err := action.Synthesize(s.Ctx, app, api.SynthRequest{
 		VoiceRef:    d.voiceRef,
 		Text:        d.text,
 		Version:     d.version,
@@ -134,21 +137,19 @@ func doSynthesize(s streams.Streams, app *api.App, d *voiceDraft) error {
 		Output:      d.output,
 		Preview:     d.preview,
 		ReuseCache:  &reuse,
-	}, true)
+	})
 	if err != nil {
 		return err
 	}
-	ms := formatElapsed(elapsed)
-	switch {
-	case res.Wrote && res.FromCache:
-		d.status = res.Path + " (cached) " + ms
-	case res.Wrote:
-		d.status = res.Path + " " + ms
-	case res.FromCache:
-		d.status = "ok (cached, not written) " + ms
-	default:
-		d.status = "ok (not written) " + ms
+	if err := render.SynthResult(s.Out, res, elapsed); err != nil {
+		return err
 	}
+	if d.preview {
+		if err := play.Preview(s.Ctx, res, true); err != nil {
+			return err
+		}
+	}
+	d.status = render.SynthStatusText(res, elapsed)
 	return nil
 }
 

@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	"yukumo-script/cli/action"
 	"yukumo-script/cli/character/voice"
 	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/cli/schema"
 	"yukumo-script/cli/setting"
 	"yukumo-script/cli/streams"
@@ -39,11 +41,7 @@ func runOneShotEdit(s streams.Streams, app *api.App, args []string) error {
 	if len(args) < 3 {
 		return fmt.Errorf("name, field, and value are required")
 	}
-	c, err := app.GetCharacter(args[0])
-	if err != nil {
-		return err
-	}
-	return applyEdit(s, app, args[0], &c, args[1], args[2], true)
+	return applyCharacterEdit(s, app, args[0], args[1], args[2], true)
 }
 
 func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
@@ -70,7 +68,7 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 				if err != nil {
 					return err
 				}
-				return applyEdit(s, app, name, &c, args[1], value, false)
+				return applyCharacterEdit(s, app, name, args[1], value, false)
 			})
 		})
 		if err != nil {
@@ -121,7 +119,7 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 				if err != nil {
 					return err
 				}
-				return applyEdit(s, app, currentName, &c, key, value, false)
+				return applyCharacterEdit(s, app, currentName, key, value, false)
 			})
 			if err != nil {
 				if errors.Is(err, prompt.ErrAborted) {
@@ -146,35 +144,13 @@ func leafLabel(name string, meta prompt.LeafMeta) string {
 	return name + "\n  " + line
 }
 
-func applyEdit(
-	s streams.Streams,
-	app *api.App,
-	oldName string,
-	c *api.Character,
-	key, raw string,
-	normalize bool,
-) error {
-	entry, err := schema.Lookup(schema.CharacterFields(), key)
+func applyCharacterEdit(s streams.Streams, app *api.App, oldName, key, raw string, normalize bool) error {
+	_, result, err := action.ApplyCharacterEdit(s.Ctx, app, oldName, key, raw, normalize)
 	if err != nil {
 		return err
 	}
-	value := raw
-	if normalize {
-		var warning string
-		value, warning, err = schema.Normalize(entry.Field, raw)
-		if err != nil {
-			return err
-		}
-		if warning != "" {
-			_, _ = fmt.Fprint(s.Err, warning)
-		}
+	if result.Warning != "" {
+		_ = render.Warning(s.Err, result.Warning)
 	}
-	if err := entry.Set(c, value); err != nil {
-		return err
-	}
-	if err := app.UpdateCharacter(oldName, *c); err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(s.Out, "%s: %s\n", key, entry.Get(*c))
-	return err
+	return render.Line(s.Out, "%s: %s\n", key, result.Value)
 }

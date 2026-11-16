@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"yukumo-script/cli/action"
 	"yukumo-script/cli/internal/cobraio"
+	"yukumo-script/cli/play"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
@@ -96,6 +99,15 @@ func runSynth(cmd *cobra.Command, app *api.App, opts Options, args []string) err
 		req.ReuseCache = &v
 	}
 
-	_, _, err := runRequest(s, app, req, false)
-	return err
+	res, elapsed, err := action.Synthesize(s.Ctx, app, req)
+	if err != nil {
+		return err
+	}
+	if err := render.SynthResult(s.Out, res, elapsed); err != nil {
+		return err
+	}
+	if req.Preview {
+		return play.Preview(s.Ctx, res, false)
+	}
+	return nil
 }

@@ -3,10 +3,10 @@ package voice
 import (
 	"fmt"
 
+	"yukumo-script/cli/action"
+	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
-
-	"gopkg.in/yaml.v3"
 )
 
 func runGet(s streams.Streams, app *api.App, opts Options, charName string, args []string) error {
@@ -22,12 +22,9 @@ func runGet(s streams.Streams, app *api.App, opts Options, charName string, args
 	if name == "" {
 		return fmt.Errorf("usage: character <name> voice get <voice>")
 	}
-	v, err := app.GetVoice(charName, name)
+	v, err := action.GetVoice(s.Ctx, app, charName, name)
 	if err != nil {
 		return err
 	}
-	enc := yaml.NewEncoder(s.Out)
-	enc.SetIndent(2)
-	defer func() { _ = enc.Close() }()
-	return enc.Encode(v)
+	return render.YAML(s.Out, v)
 }

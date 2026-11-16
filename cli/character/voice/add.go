@@ -1,11 +1,12 @@
 package voice
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
+	"yukumo-script/cli/action"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 )
@@ -62,9 +63,9 @@ func runAdd(s streams.Streams, app *api.App, opts Options, charName string, args
 	}
 	v.Params = []api.SynthParam{p}
 
-	if err := app.AddVoice(context.Background(), charName, v); err != nil {
+	created, err := action.AddVoice(s.Ctx, app, charName, v)
+	if err != nil {
 		return err
 	}
-	_, err := fmt.Fprintf(s.Out, "added voice %q\n", v.Name)
-	return err
+	return render.Line(s.Out, "added voice %q\n", created.Name)
 }

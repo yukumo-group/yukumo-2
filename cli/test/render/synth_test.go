@@ -1,9 +1,10 @@
-package synth
+package render_test
 
 import (
 	"testing"
 	"time"
 
+	"yukumo-script/cli/render"
 	"yukumo-script/core/api"
 )
 
@@ -37,7 +38,7 @@ func TestFormatResultLine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := formatResultLine(tt.res, elapsed); got != tt.want {
+			if got := render.SynthResultText(tt.res, elapsed); got != tt.want {
 				t.Fatalf("got %q, want %q", got, tt.want)
 			}
 		})
@@ -45,7 +46,7 @@ func TestFormatResultLine(t *testing.T) {
 }
 
 func TestFormatElapsed(t *testing.T) {
-	if got := formatElapsed(1500 * time.Millisecond); got != "1.50s" {
+	if got := render.ElapsedText(1500 * time.Millisecond); got != "1.50s" {
 		t.Fatalf("got %q, want 1.50s", got)
 	}
 }

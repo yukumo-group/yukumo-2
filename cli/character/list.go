@@ -1,10 +1,12 @@
 package character
 
 import (
+	"yukumo-script/cli/action"
+	"yukumo-script/cli/internal/cobraio"
+	"yukumo-script/cli/render"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 func newListCmd(app *api.App) *cobra.Command {
@@ -13,14 +15,12 @@ func newListCmd(app *api.App) *cobra.Command {
 		Short: "Print all characters",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			chars, err := app.ListCharacters()
+			s := cobraio.FromCmd(cmd)
+			chars, err := action.ListCharacters(s.Ctx, app)
 			if err != nil {
 				return err
 			}
-			enc := yaml.NewEncoder(cmd.OutOrStdout())
-			enc.SetIndent(2)
-			defer func() { _ = enc.Close() }()
-			return enc.Encode(chars)
+			return render.YAML(s.Out, chars)
 		},
 	}
 }

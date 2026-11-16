@@ -1,9 +1,9 @@
 package config
 
 import (
-	"fmt"
-
-	"yukumo-script/cli/schema"
+	"yukumo-script/cli/action"
+	"yukumo-script/cli/internal/cobraio"
+	"yukumo-script/cli/render"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
@@ -16,16 +16,12 @@ func newGetCmd(app *api.App, opts Options) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_ = opts
-			cfg, err := app.Config()
+			s := cobraio.FromCmd(cmd)
+			value, err := action.GetConfigField(s.Ctx, app, args[0])
 			if err != nil {
 				return err
 			}
-			entry, err := schema.Lookup(schema.ConfigFields(), args[0])
-			if err != nil {
-				return err
-			}
-			_, err = fmt.Fprintln(cmd.OutOrStdout(), entry.Get(cfg))
-			return err
+			return render.Line(s.Out, "%s\n", value)
 		},
 	}
 }

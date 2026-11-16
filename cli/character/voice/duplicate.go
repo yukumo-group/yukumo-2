@@ -1,12 +1,13 @@
 package voice
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
+	"yukumo-script/cli/action"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 )
@@ -41,12 +42,11 @@ func runDuplicate(s streams.Streams, app *api.App, opts Options, charName string
 			newName = def
 		}
 	}
-	final, err := app.DuplicateVoice(context.Background(), charName, src, newName)
+	final, err := action.DuplicateVoice(s.Ctx, app, charName, src, newName)
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(s.Out, "duplicated %q → %q\n", src, final)
-	return err
+	return render.Line(s.Out, "duplicated %q → %q\n", src, final)
 }
 
 func defaultCopyName(name string) string {

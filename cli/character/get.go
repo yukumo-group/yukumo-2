@@ -1,10 +1,12 @@
 package character
 
 import (
+	"yukumo-script/cli/action"
+	"yukumo-script/cli/internal/cobraio"
+	"yukumo-script/cli/render"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 func newGetCmd(app *api.App, opts Options) *cobra.Command {
@@ -27,14 +29,12 @@ func newGetCmd(app *api.App, opts Options) *cobra.Command {
 					return err
 				}
 			}
-			c, err := app.GetCharacter(name)
+			s := cobraio.FromCmd(cmd)
+			c, err := action.GetCharacter(s.Ctx, app, name)
 			if err != nil {
 				return err
 			}
-			enc := yaml.NewEncoder(cmd.OutOrStdout())
-			enc.SetIndent(2)
-			defer func() { _ = enc.Close() }()
-			return enc.Encode(c)
+			return render.YAML(s.Out, c)
 		},
 	}
 }

@@ -1,12 +1,15 @@
-package synth
+package play
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"runtime"
 	"sync"
+
+	"yukumo-script/core/api"
 )
 
 var (
@@ -14,6 +17,40 @@ var (
 	playCmd *exec.Cmd
 	playTmp string
 )
+
+// Preview plays the synthesized WAV. If async is true, playback starts in the
+// background so interactive UIs can continue.
+func Preview(_ context.Context, res api.SynthResult, async bool) error {
+	path := res.Path
+	cleanup := ""
+	if path == "" {
+		f, err := os.CreateTemp("", "yukumo-synth-*.wav")
+		if err != nil {
+			return err
+		}
+		cleanup = f.Name()
+		if _, err := f.Write(res.WAV); err != nil {
+			_ = f.Close()
+			_ = os.Remove(cleanup)
+			return err
+		}
+		if err := f.Close(); err != nil {
+			_ = os.Remove(cleanup)
+			return err
+		}
+		path = cleanup
+	}
+	if async {
+		playWAVAsync(path, cleanup)
+		return nil
+	}
+	defer func() {
+		if cleanup != "" {
+			_ = os.Remove(cleanup)
+		}
+	}()
+	return playWAV(path)
+}
 
 // playWAV plays a WAV file with a platform-appropriate external player (blocking).
 func playWAV(path string) error {

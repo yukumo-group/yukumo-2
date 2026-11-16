@@ -78,6 +78,41 @@ linters:
             - pkg: "github.com/spf13/cobra"
             - pkg: "github.com/charmbracelet/huh"
             - pkg: "github.com/charmbracelet/lipgloss"
+        action:
+          files:
+            - "**/action/**"
+          deny:
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
+            - pkg: "yukumo-script/cli/prompt"
+            - pkg: "yukumo-script/cli/setting"
+            - pkg: "yukumo-script/cli/ui"
+            - pkg: "yukumo-script/cli/render"
+            - pkg: "yukumo-script/cli/play"
+            - pkg: "yukumo-script/cli/streams"
+            - pkg: "yukumo-script/cli/menu"
+            - pkg: "yukumo-script/cli/config"
+            - pkg: "yukumo-script/cli/character"
+            - pkg: "yukumo-script/cli/synth"
+            - pkg: "yukumo-script/cli/internal"
+            - pkg: "yukumo-script/cli$"
+        render-play:
+          files:
+            - "**/render/**"
+            - "**/play/**"
+          deny:
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
+            - pkg: "yukumo-script/cli/prompt"
+            - pkg: "yukumo-script/cli/setting"
+            - pkg: "yukumo-script/cli/ui"
+            - pkg: "yukumo-script/cli/action"
+            - pkg: "yukumo-script/cli/menu"
+            - pkg: "yukumo-script/cli/streams"
+            - pkg: "yukumo-script/cli/internal"
+            - pkg: "yukumo-script/cli$"
         cmd:
           files:
             - "cmd/**"

@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 
+	"yukumo-script/cli/action"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 )
@@ -34,9 +36,8 @@ func runDelete(s streams.Streams, app *api.App, opts Options, charName string, a
 			return nil
 		}
 	}
-	if err := app.DeleteVoice(charName, name); err != nil {
+	if err := action.DeleteVoice(s.Ctx, app, charName, name); err != nil {
 		return err
 	}
-	_, err := fmt.Fprintf(s.Out, "deleted voice %q\n", name)
-	return err
+	return render.Line(s.Out, "deleted voice %q\n", name)
 }

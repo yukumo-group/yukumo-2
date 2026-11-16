@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	"yukumo-script/cli/action"
 	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/cli/schema"
 	"yukumo-script/cli/setting"
 	"yukumo-script/cli/streams"
@@ -38,11 +40,7 @@ func runOneShotEdit(s streams.Streams, app *api.App, args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("key and value are required")
 	}
-	cfg, err := app.Config()
-	if err != nil {
-		return err
-	}
-	return applyEdit(s, app, cfg, args[0], args[1], true)
+	return applyConfigEdit(s, app, args[0], args[1], true)
 }
 
 func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
@@ -60,7 +58,7 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 		if err != nil {
 			return err
 		}
-		if err := applyEdit(s, app, cfg, args[0], value, false); err != nil {
+		if err := applyConfigEdit(s, app, args[0], value, false); err != nil {
 			return err
 		}
 		startPrefix = prompt.ParentPrefix(args[0])
@@ -86,7 +84,7 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 		if err != nil {
 			return err
 		}
-		return applyEdit(s, app, cfg, key, value, false)
+		return applyConfigEdit(s, app, key, value, false)
 	}, startPrefix, focusKey)
 	if errors.Is(err, prompt.ErrAborted) {
 		return nil
@@ -94,34 +92,13 @@ func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 	return err
 }
 
-func applyEdit(
-	s streams.Streams,
-	app *api.App,
-	cfg api.Config,
-	key, raw string,
-	normalize bool,
-) error {
-	entry, err := schema.Lookup(schema.ConfigFields(), key)
+func applyConfigEdit(s streams.Streams, app *api.App, key, raw string, normalize bool) error {
+	result, err := action.ApplyConfigEdit(s.Ctx, app, key, raw, normalize)
 	if err != nil {
 		return err
 	}
-	value := raw
-	if normalize {
-		var warning string
-		value, warning, err = schema.Normalize(entry.Field, raw)
-		if err != nil {
-			return err
-		}
-		if warning != "" {
-			_, _ = fmt.Fprint(s.Err, warning)
-		}
+	if result.Warning != "" {
+		_ = render.Warning(s.Err, result.Warning)
 	}
-	if err := entry.Set(&cfg, value); err != nil {
-		return err
-	}
-	if err := app.SaveConfig(cfg); err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(s.Out, "%s: %s\n", key, entry.Get(cfg))
-	return err
+	return render.Line(s.Out, "%s: %s\n", key, result.Value)
 }

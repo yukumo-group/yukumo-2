@@ -2,9 +2,11 @@ package character
 
 import (
 	"errors"
-	"fmt"
 
+	"yukumo-script/cli/action"
+	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
@@ -21,6 +23,7 @@ func newAddCmd(app *api.App, opts Options) *cobra.Command {
 			return cobra.RangeArgs(1, 2)(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			s := cobraio.FromCmd(cmd)
 			c := api.Character{}
 			if len(args) >= 1 {
 				c.Name = args[0]
@@ -44,11 +47,11 @@ func newAddCmd(app *api.App, opts Options) *cobra.Command {
 					}
 				}
 			}
-			if err := app.AddCharacter(c); err != nil {
+			created, err := action.AddCharacter(s.Ctx, app, c.Name, c.Description)
+			if err != nil {
 				return err
 			}
-			_, err := fmt.Fprintf(cmd.OutOrStdout(), "added %q\n", c.Name)
-			return err
+			return render.Line(s.Out, "added %q\n", created.Name)
 		},
 	}
 }

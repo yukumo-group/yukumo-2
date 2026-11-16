@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"yukumo-script/cli/action"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 )
@@ -37,56 +39,31 @@ func runEdit(s streams.Streams, app *api.App, opts Options, charName string, arg
 }
 
 func runOneShotVoiceEdit(s streams.Streams, app *api.App, charName, voiceName string, args []string) error {
-	v, err := app.GetVoice(charName, voiceName)
-	if err != nil {
-		return err
-	}
 	if len(args) < 2 {
 		return fmt.Errorf("field and value required")
 	}
 	field, raw := args[0], args[1]
 	switch field {
 	case "name":
-		v.Name = raw
+		_, result, err := action.ApplyVoiceName(s.Ctx, app, charName, voiceName, raw)
+		if err != nil {
+			return err
+		}
+		return render.Line(s.Out, "name: %s\n", result.Value)
 	case "param", "version":
 		return fmt.Errorf("use: edit <voice> <version> <field> <value>")
 	default:
 		if len(args) >= 3 && (field == "1" || field == "2" || field == "10") {
 			ver, _ := strconv.Atoi(field)
-			return editParamOneShot(s, app, charName, &v, ver, args[1], args[2])
+			if _, result, err := action.ApplyVoiceParam(s.Ctx, app, charName, voiceName, ver, args[1], args[2], true); err != nil {
+				return err
+			} else if result.Warning != "" {
+				_ = render.Warning(s.Err, result.Warning)
+			}
+			return render.Line(s.Out, "v%d.%s updated\n", ver, args[1])
 		}
 		return fmt.Errorf("unknown field %q (want name, or <version> <field> <value>)", field)
 	}
-	if err := app.UpdateVoice(s.Ctx, charName, voiceName, v); err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(s.Out, "name: %s\n", v.Name)
-	return err
-}
-
-func editParamOneShot(
-	s streams.Streams,
-	app *api.App,
-	charName string,
-	v *api.Voice,
-	version int,
-	field, raw string,
-) error {
-	p, idx := paramByVersion(v, version)
-	if idx < 0 {
-		np := api.DefaultSynthParam(version)
-		v.Params = append(v.Params, np)
-		idx = len(v.Params) - 1
-		p = &v.Params[idx]
-	}
-	if err := applyParamField(p, field, raw, s.Err); err != nil {
-		return err
-	}
-	if err := app.UpdateVoice(s.Ctx, charName, v.Name, *v); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintf(s.Out, "v%d.%s updated\n", version, field)
-	return err
 }
 
 func runInteractiveVoiceEdit(s streams.Streams, app *api.App, charName, voiceName string) error {
@@ -122,14 +99,13 @@ func runInteractiveVoiceEdit(s streams.Streams, app *api.App, charName, voiceNam
 					if err := prompt.String("", &name); err != nil {
 						return err
 					}
-					old := current
 					v.Name = name
-					if err := app.UpdateVoice(s.Ctx, charName, old, v); err != nil {
+					updated, err := action.SaveVoice(s.Ctx, app, charName, current, v)
+					if err != nil {
 						return err
 					}
-					current = v.Name
-					_, _ = fmt.Fprintf(s.Out, "name: %s\n", v.Name)
-					return nil
+					current = updated.Name
+					return render.Line(s.Out, "name: %s\n", updated.Name)
 				})
 				if err != nil {
 					if errors.Is(err, prompt.ErrAborted) {
@@ -160,7 +136,7 @@ func runInteractiveVoiceEdit(s streams.Streams, app *api.App, charName, voiceNam
 			} else {
 				v.Params[pidx] = *p
 			}
-			if err := app.UpdateVoice(s.Ctx, charName, current, v); err != nil {
+			if _, err := action.SaveVoice(s.Ctx, app, charName, current, v); err != nil {
 				return err
 			}
 		}
