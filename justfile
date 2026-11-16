@@ -5,10 +5,10 @@ export GOWORK := "off"
 default: check
 
 # Local full check.
-check: check-replaces lint build-modules vet test
+check: check-replaces check-cli-imports lint build-modules vet test
 
 # CI entry point: replace check, then lint before build, then tests/vet.
-ci: check-replaces build build-modules test vet
+ci: check-replaces check-cli-imports build build-modules test vet
 
 # Build runs depguard + staticcheck first.
 build: lint
@@ -46,3 +46,6 @@ lint:
 
 check-replaces:
     go run scripts/check-replaces.go
+
+check-cli-imports:
+    go run scripts/check-cli-imports.go

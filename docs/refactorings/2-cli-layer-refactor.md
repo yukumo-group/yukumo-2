@@ -1,6 +1,6 @@
 # CLI 层内部分层重构计划（可执行修订版）
 
-- 状态：In Progress
+- 状态：Implemented
 - 日期：2026-11-16（2026-11-16 修订：依赖边界可执行版）
 - 前置：[`1-layer-refactor.md`](./1-layer-refactor.md) 已完成（CLI 只依赖 `core/api`）
 - 分支：`layer-refactor-cli`
@@ -17,6 +17,15 @@
 ## 实施记录
 
 - Phase 0：基线（本文件状态改为 In Progress，分支 `layer-refactor-cli`）
+- `cc07202` docs(refactor): start cli layer refactor
+- `c708dac` refactor(cli): introduce streams io contract
+- `c558a29` refactor(cli): extract schema and parse packages
+- `ac6e195` refactor(cli): extract action render and play layers
+- `aec1a87` refactor(cli): extract interactive ui package
+- `1bc49f6` refactor(cli): replace browse mutation with menu spec
+- `f4e3708` refactor(cli): unify voice routing without options
+- 收尾：`refactor(cli): add import guard and tests`（本文件状态更新为 Implemented）
+- 最终检查：`just ci` 通过（4 module build/test/vet，depguard + staticcheck 0 issues，`scripts/check-cli-imports.go` 通过）。
 
 ## 目录
 
