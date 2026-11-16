@@ -10,12 +10,12 @@ import (
 	"yukumo-script/core/api"
 )
 
-func runDelete(s streams.Streams, app *api.App, opts Options, charName string, args []string) error {
+func runDelete(s streams.Streams, app *api.App, interactive bool, charName string, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
 	}
-	if opts.Interactive {
+	if interactive {
 		return ui.DeleteVoice(s, app, charName, name)
 	}
 	if name == "" {

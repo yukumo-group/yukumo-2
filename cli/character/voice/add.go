@@ -11,7 +11,7 @@ import (
 	"yukumo-script/core/api"
 )
 
-func runAdd(s streams.Streams, app *api.App, opts Options, charName string, args []string) error {
+func runAdd(s streams.Streams, app *api.App, interactive bool, charName string, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
@@ -24,7 +24,7 @@ func runAdd(s streams.Streams, app *api.App, opts Options, charName string, args
 		}
 		version = n
 	}
-	if opts.Interactive {
+	if interactive {
 		if len(args) < 2 {
 			version = 0
 		}

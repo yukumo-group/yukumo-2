@@ -10,7 +10,7 @@ import (
 	"yukumo-script/core/api"
 )
 
-func runDuplicate(s streams.Streams, app *api.App, opts Options, charName string, args []string) error {
+func runDuplicate(s streams.Streams, app *api.App, interactive bool, charName string, args []string) error {
 	src := ""
 	if len(args) >= 1 {
 		src = args[0]
@@ -19,7 +19,7 @@ func runDuplicate(s streams.Streams, app *api.App, opts Options, charName string
 	if len(args) >= 2 {
 		newName = args[1]
 	}
-	if opts.Interactive {
+	if interactive {
 		return ui.DuplicateVoice(s, app, charName, src, newName)
 	}
 	if src == "" {
