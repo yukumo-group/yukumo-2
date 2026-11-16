@@ -5,10 +5,10 @@ export GOWORK := "off"
 default: check
 
 # Local full check.
-check: check-replaces lint vet test
+check: check-replaces lint build-modules vet test
 
 # CI entry point: replace check, then lint before build, then tests/vet.
-ci: check-replaces build test vet
+ci: check-replaces build build-modules test vet
 
 # Build runs depguard + staticcheck first.
 build: lint
@@ -16,6 +16,12 @@ build: lint
 
 run *ARGS:
     go -C cli run ./cmd/yukumo-script {{ARGS}}
+
+build-modules:
+    go -C core build ./...
+    go -C runtime build ./...
+    go -C core/api build ./...
+    go -C cli build ./...
 
 install-tools:
     go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
