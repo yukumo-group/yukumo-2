@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"yukumo-script/internal/domain"
+	"yukumo-script/core/internal/domain"
 	"yukumo-script/runtime/aq"
 )
 

@@ -57,7 +57,7 @@ func TestReuseCacheCopiesNewFile(t *testing.T) {
 	})
 	pool := aq.NewPool()
 	t.Cleanup(func() { _ = pool.Close(ctx) })
-	svc := synth.New(cfgSvc, voices, pool)
+	svc := synth.New(cfgSvc, voices, aqEngine{pool: pool})
 
 	r1, err := svc.Synthesize(ctx, synth.Request{VoiceRef: "remilia:default", Text: "こんにちは"})
 	if err != nil {

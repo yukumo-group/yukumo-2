@@ -9,18 +9,21 @@ import (
 	"yukumo-script/core/internal/service/nameutil"
 )
 
-func (s *Service) Duplicate(ctx context.Context, charName, srcName, newName string) error {
+func (s *Service) Duplicate(ctx context.Context, charName, srcName, newName string) (string, error) {
 	srcName = strings.TrimSpace(srcName)
 	if srcName == "" {
-		return fmt.Errorf("%w: voice name is required", domain.ErrInvalid)
+		return "", fmt.Errorf("%w: voice name is required", domain.ErrInvalid)
 	}
 	src, err := s.Get(charName, srcName)
 	if err != nil {
-		return err
+		return "", err
 	}
 	dup := cloneVoice(src)
 	dup.Name = nameutil.ResolveCopy(src.Name, newName)
-	return s.Add(ctx, charName, dup)
+	if err := s.Add(ctx, charName, dup); err != nil {
+		return "", err
+	}
+	return dup.Name, nil
 }
 
 func cloneVoice(v domain.Voice) domain.Voice {

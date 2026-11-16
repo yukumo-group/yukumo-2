@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"yukumo-script/core/internal/domain"
-	"yukumo-script/runtime/aq"
 )
 
 type Config interface {
@@ -20,8 +19,21 @@ type Voices interface {
 	Get(charName, voiceName string) (domain.Voice, error)
 }
 
+type EngineParam struct {
+	Version int
+	Preset  int
+	Speed   int
+	Phont   []byte
+	Base    int
+	Volume  int
+	Pitch   int
+	Accent  int
+	Lmd     int
+	Fsc     int
+}
+
 type Engine interface {
-	Synthesize(ctx context.Context, text string, param aq.Param) ([]byte, error)
+	Synthesize(ctx context.Context, text string, param EngineParam) ([]byte, error)
 }
 
 type Service struct {
@@ -148,7 +160,7 @@ func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
 		}
 	}
 
-	wav, err := s.engine.Synthesize(ctx, text, toAQParam(p, speed))
+	wav, err := s.engine.Synthesize(ctx, text, toEngineParam(p, speed))
 	if err != nil {
 		return Result{}, err
 	}
@@ -218,17 +230,17 @@ func effectiveSpeed(base int, factor float64) int {
 	return v
 }
 
-func toAQParam(p domain.SynthParam, speed int) aq.Param {
-	return aq.Param{
-		Version: int32(p.Version),
-		Preset:  int32(p.Preset),
-		Speed:   int32(speed),
+func toEngineParam(p domain.SynthParam, speed int) EngineParam {
+	return EngineParam{
+		Version: p.Version,
+		Preset:  p.Preset,
+		Speed:   speed,
 		Phont:   p.PhontData,
-		Base:    int32(p.Base),
-		Volume:  int32(p.Volume),
-		Pitch:   int32(p.Pitch),
-		Accent:  int32(p.Accent),
-		Lmd:     int32(p.Lmd),
-		Fsc:     int32(p.Fsc),
+		Base:    p.Base,
+		Volume:  p.Volume,
+		Pitch:   p.Pitch,
+		Accent:  p.Accent,
+		Lmd:     p.Lmd,
+		Fsc:     p.Fsc,
 	}
 }

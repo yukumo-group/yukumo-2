@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"yukumo-script/internal/domain"
+	"yukumo-script/core/internal/domain"
 	"yukumo-script/runtime/aq"
 )
 

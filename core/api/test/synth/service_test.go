@@ -58,7 +58,7 @@ func TestSynthesizeVoiceWritesFile(t *testing.T) {
 
 	pool := aq.NewPool()
 	t.Cleanup(func() { _ = pool.Close(ctx) })
-	svc := synth.New(cfgSvc, voices, pool)
+	svc := synth.New(cfgSvc, voices, aqEngine{pool: pool})
 
 	res, err := svc.Synthesize(ctx, synth.Request{
 		VoiceRef: "remilia:default",
@@ -103,7 +103,7 @@ func TestSynthesizePreviewSkipWrite(t *testing.T) {
 	})
 	pool := aq.NewPool()
 	t.Cleanup(func() { _ = pool.Close(ctx) })
-	svc := synth.New(cfgSvc, voices, pool)
+	svc := synth.New(cfgSvc, voices, aqEngine{pool: pool})
 
 	res, err := svc.Synthesize(ctx, synth.Request{
 		VoiceRef: "remilia:default",

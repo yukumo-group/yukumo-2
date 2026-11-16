@@ -27,7 +27,7 @@ func TestDuplicate(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := voices.Duplicate(ctx, "A", "main", ""); err != nil {
+	if _, err := voices.Duplicate(ctx, "A", "main", ""); err != nil {
 		t.Fatal(err)
 	}
 	got, err := voices.Get("A", "main - copy")
