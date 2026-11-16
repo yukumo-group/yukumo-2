@@ -17,6 +17,7 @@
 - 最终检查：`just ci` 通过（replace 检查、4 module build/test/vet、depguard + staticcheck 0 issues）。
 - 范围：模块边界、依赖方向、API 门面、测试分层、CI 护栏；不改 CLI 输出、交互流程、合成策略、文件格式。
 - Web/WASM：可移植性评估与后续增量设计见 [16. Web/WASM 可移植性 addendum](#sec-16)，不属于当前 Phase 0–6 的实现范围。
+- CLI 内部分层与 Serve（stdin/stdout）运输层：见 [`2-cli-layer-refactor.md`](./2-cli-layer-refactor.md)（含 [Serve addendum](./2-cli-layer-refactor.md#sec-16)）。
 
 ## 目录
 
@@ -1000,6 +1001,8 @@ clisynth.NewCmd(app, synthOpts)
 
 CLI 的输出文本、交互流程、预览逻辑保持现状。
 
+后续 CLI **内部分层**（shell / action / ui）与 **serve（stdin/stdout）** 运输层评估见 [`2-cli-layer-refactor.md`](./2-cli-layer-refactor.md)；其中 Serve addendum 为 [`§16`](./2-cli-layer-refactor.md#sec-16)。本 Phase 不实现。
+
 ---
 
 <a id="sec-9"></a>
@@ -1476,6 +1479,11 @@ grep -R "yukumo-script/runtime" cli --include='*.go'        # 应为空
    - 新增 `gui/` module，路径 `yukumo-script/gui`。
    - 只能 import `yukumo-script/core/api`；depguard 禁止 core/internal 和 runtime。
    - `go.work` 增加 `./gui`，replace 脚本自动核对。
+
+10b. **未来 Serve（stdin/stdout IPC）**
+   - 本机子进程通过 length-prefixed 帧调用 `api.App.Synthesize`（`WAV []byte`）。
+   - 详细落点、与 interactive/browse 隔离、action 勿污染 stdout 等见 [`2-cli-layer-refactor.md` §16](./2-cli-layer-refactor.md#sec-16)。
+   - 不改动本计划的 module 图；与 Web/WASM（§16）是不同 transport。
 
 11. **`.gitignore` 的 YAML 通配**
     - 当前 `*.yml` / `*.yaml` 会忽略 `.github/workflows/ci.yml` 和 `.golangci.yml`。
