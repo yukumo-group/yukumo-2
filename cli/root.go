@@ -27,7 +27,7 @@ func Execute() error {
 
 	root := newRoot(app, cfg.CLI.DefaultInteractive)
 	if cfg.CLI.DefaultInteractive {
-		enableInteractiveBrowse(root)
+		enableInteractiveRoot(root)
 	}
 	return root.ExecuteContext(context.Background())
 }

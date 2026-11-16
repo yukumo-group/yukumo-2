@@ -123,6 +123,20 @@ linters:
             - pkg: "yukumo-script/cli/synth"
             - pkg: "yukumo-script/cli/internal"
             - pkg: "yukumo-script/cli$"
+        menu:
+          files:
+            - "**/menu/**"
+          deny:
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
+            - pkg: "yukumo-script/cli/prompt"
+            - pkg: "yukumo-script/cli/setting"
+            - pkg: "yukumo-script/cli/ui"
+            - pkg: "yukumo-script/cli/action"
+            - pkg: "yukumo-script/cli/schema"
+            - pkg: "yukumo-script/cli/internal"
+            - pkg: "yukumo-script/cli$"
         cmd:
           files:
             - "cmd/**"
