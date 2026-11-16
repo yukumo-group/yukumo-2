@@ -1,25 +1,25 @@
-package synth
+package ui
 
 import (
 	"fmt"
 
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
-var dimMeta = lipgloss.NewStyle().Faint(true)
+// EnsureSynthText prompts for synth text when it is empty.
+func EnsureSynthText(_ streams.Streams, text *string) error {
+	return prompt.EnsureString("text", text)
+}
 
-func ensureVoiceRef(app *api.App, interactive bool, ref *string) error {
+// PickVoiceRef prompts for a character and voice when ref is empty.
+func PickVoiceRef(_ streams.Streams, app *api.App, ref *string) error {
 	if ref == nil {
 		return fmt.Errorf("voice ref is nil")
 	}
 	if *ref != "" {
 		return nil
-	}
-	if !interactive {
-		return fmt.Errorf("voice is required (-v character:voice)")
 	}
 	list, err := app.ListCharacters()
 	if err != nil {
@@ -55,20 +55,4 @@ func ensureVoiceRef(app *api.App, interactive bool, ref *string) error {
 	}
 	*ref = charName + ":" + vs[vidx].Name
 	return nil
-}
-
-func characterLabel(c api.Character) string {
-	line := c.Name
-	if c.Description != "" {
-		line += "\n  " + dimMeta.Render(c.Description)
-	}
-	return line
-}
-
-func voiceLabel(v api.Voice) string {
-	line := v.Name
-	if n := len(v.Params); n > 0 {
-		line += "\n  " + dimMeta.Render(fmt.Sprintf("%d param(s)", n))
-	}
-	return line
 }

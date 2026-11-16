@@ -6,6 +6,7 @@ import (
 
 	"yukumo-script/cli/prompt"
 	"yukumo-script/cli/streams"
+	"yukumo-script/cli/ui"
 	"yukumo-script/core/api"
 )
 
@@ -20,7 +21,7 @@ func Dispatch(s streams.Streams, app *api.App, opts Options, charName string, ar
 			return fmt.Errorf("voice subcommand required (list|get|add|edit|delete|duplicate)")
 		}
 		return prompt.With(charName, func() error {
-			return RunMenu(s, app, charName)
+			return ui.VoiceMenu(s, app, charName)
 		})
 	}
 	verb, rest := args[0], args[1:]

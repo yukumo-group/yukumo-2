@@ -1,4 +1,4 @@
-package voice
+package ui
 
 import (
 	"context"
@@ -13,7 +13,9 @@ import (
 	"yukumo-script/core/api"
 )
 
-func editParamInteractive(s streams.Streams, app *api.App, p *api.SynthParam) error {
+// EditVoiceParam edits a synth param draft and returns on Save.
+func EditVoiceParam(s streams.Streams, app *api.App, version int, p *api.SynthParam) error {
+	_ = version
 	focus := 0
 	for {
 		entries := schema.VoiceParamFields(p.Version)
@@ -205,4 +207,26 @@ func paramMetas(ctx context.Context, app *api.App, entries []schema.Entry[api.Sy
 		out["base"] = meta
 	}
 	return out
+}
+
+// SelectVersion prompts for one of the supported synth versions.
+func SelectVersion(out *int) error {
+	if out == nil {
+		return fmt.Errorf("version is nil")
+	}
+	labels := []string{"1 (AquesTalk1)", "2 (AquesTalk2)", "10 (AquesTalk10)"}
+	values := []int{api.Version1, api.Version2, api.Version10}
+	focus := 0
+	for i, v := range values {
+		if v == *out {
+			focus = i
+			break
+		}
+	}
+	idx, err := prompt.Select("version", "↑↓ move · enter", labels, focus)
+	if err != nil {
+		return err
+	}
+	*out = values[idx]
+	return nil
 }

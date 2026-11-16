@@ -113,6 +113,16 @@ linters:
             - pkg: "yukumo-script/cli/streams"
             - pkg: "yukumo-script/cli/internal"
             - pkg: "yukumo-script/cli$"
+        ui:
+          files:
+            - "**/ui/**"
+          deny:
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "yukumo-script/cli/config"
+            - pkg: "yukumo-script/cli/character"
+            - pkg: "yukumo-script/cli/synth"
+            - pkg: "yukumo-script/cli/internal"
+            - pkg: "yukumo-script/cli$"
         cmd:
           files:
             - "cmd/**"

@@ -6,6 +6,7 @@ import (
 	"yukumo-script/cli/action"
 	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
+	"yukumo-script/cli/ui"
 	"yukumo-script/core/api"
 )
 
@@ -14,8 +15,10 @@ func runGet(s streams.Streams, app *api.App, opts Options, charName string, args
 	if len(args) >= 1 {
 		name = args[0]
 	}
-	if opts.Interactive || name == "" {
-		if err := ensureVoiceName(app, charName, &name); err != nil {
+	if opts.Interactive {
+		var err error
+		name, err = ui.PickVoice(s, app, charName, name)
+		if err != nil {
 			return err
 		}
 	}

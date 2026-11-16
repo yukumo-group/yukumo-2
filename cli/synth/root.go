@@ -7,8 +7,8 @@ import (
 	"yukumo-script/cli/action"
 	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/play"
-	"yukumo-script/cli/prompt"
 	"yukumo-script/cli/render"
+	"yukumo-script/cli/ui"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
@@ -73,14 +73,19 @@ func runSynth(cmd *cobra.Command, app *api.App, opts Options, args []string) err
 	}
 
 	text := strings.TrimSpace(strings.Join(args, " "))
-	if err := prompt.EnsureString("text", &text); err != nil {
-		return err
-	}
 	if text == "" {
-		return fmt.Errorf("text is required")
+		if !opts.Interactive {
+			return fmt.Errorf("text is required")
+		}
+		if err := ui.EnsureSynthText(s, &text); err != nil {
+			return err
+		}
 	}
-	if strings.TrimSpace(voicePath) == "" {
-		if err := ensureVoiceRef(app, opts.Interactive, &voiceRef); err != nil {
+	if strings.TrimSpace(voicePath) == "" && strings.TrimSpace(voiceRef) == "" {
+		if !opts.Interactive {
+			return fmt.Errorf("voice is required (-v character:voice)")
+		}
+		if err := ui.PickVoiceRef(s, app, &voiceRef); err != nil {
 			return err
 		}
 	}

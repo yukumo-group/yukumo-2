@@ -1,55 +1,33 @@
 package voice
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 
 	"yukumo-script/cli/action"
-	"yukumo-script/cli/prompt"
 	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
+	"yukumo-script/cli/ui"
 	"yukumo-script/core/api"
 )
 
 func runDuplicate(s streams.Streams, app *api.App, opts Options, charName string, args []string) error {
 	src := ""
-	newName := ""
 	if len(args) >= 1 {
 		src = args[0]
 	}
+	newName := ""
 	if len(args) >= 2 {
 		newName = args[1]
 	}
-	if opts.Interactive || src == "" {
-		if err := ensureVoiceName(app, charName, &src); err != nil {
-			return err
-		}
+	if opts.Interactive {
+		return ui.DuplicateVoice(s, app, charName, src, newName)
 	}
 	if src == "" {
 		return fmt.Errorf("voice name is required")
-	}
-	if opts.Interactive && len(args) < 2 {
-		def := defaultCopyName(src)
-		newName = def
-		if err := prompt.String(fmt.Sprintf("New name (default %q)", def), &newName); err != nil {
-			if errors.Is(err, prompt.ErrAborted) {
-				return nil
-			}
-			return err
-		}
-		if newName == "" {
-			newName = def
-		}
 	}
 	final, err := action.DuplicateVoice(s.Ctx, app, charName, src, newName)
 	if err != nil {
 		return err
 	}
 	return render.Line(s.Out, "duplicated %q → %q\n", src, final)
-}
-
-func defaultCopyName(name string) string {
-	name = strings.TrimSpace(name)
-	return name + " - copy"
 }

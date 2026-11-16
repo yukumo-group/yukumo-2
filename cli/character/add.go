@@ -1,12 +1,11 @@
 package character
 
 import (
-	"errors"
-
 	"yukumo-script/cli/action"
 	"yukumo-script/cli/internal/cobraio"
-	"yukumo-script/cli/prompt"
 	"yukumo-script/cli/render"
+	"yukumo-script/cli/streams"
+	"yukumo-script/cli/ui"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
@@ -24,34 +23,20 @@ func newAddCmd(app *api.App, opts Options) *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s := cobraio.FromCmd(cmd)
-			c := api.Character{}
-			if len(args) >= 1 {
-				c.Name = args[0]
-			}
-			if len(args) >= 2 {
-				c.Description = args[1]
-			}
 			if opts.Interactive {
-				if err := prompt.EnsureString("Name", &c.Name); err != nil {
-					if errors.Is(err, prompt.ErrAborted) {
-						return nil
-					}
-					return err
-				}
-				if len(args) < 2 {
-					if err := prompt.String("Description (optional)", &c.Description); err != nil {
-						if errors.Is(err, prompt.ErrAborted) {
-							return nil
-						}
-						return err
-					}
-				}
+				return ui.AddCharacter(s, app, argAt(args, 0), argAt(args, 1), len(args) >= 2)
 			}
-			created, err := action.AddCharacter(s.Ctx, app, c.Name, c.Description)
-			if err != nil {
-				return err
-			}
-			return render.Line(s.Out, "added %q\n", created.Name)
+			return runOneShotAdd(s, app, args)
 		},
 	}
+}
+
+func runOneShotAdd(s streams.Streams, app *api.App, args []string) error {
+	name := argAt(args, 0)
+	description := argAt(args, 1)
+	created, err := action.AddCharacter(s.Ctx, app, name, description)
+	if err != nil {
+		return err
+	}
+	return render.Line(s.Out, "added %q\n", created.Name)
 }

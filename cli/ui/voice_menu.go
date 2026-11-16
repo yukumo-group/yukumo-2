@@ -1,17 +1,18 @@
-package voice
+package ui
 
 import (
 	"errors"
 	"fmt"
 
+	"yukumo-script/cli/action"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 )
 
-// RunMenu is the huh entry under character › edit › voices.
-func RunMenu(s streams.Streams, app *api.App, charName string) error {
-	opts := Options{Interactive: true}
+// VoiceMenu is the voice submenu under character edit.
+func VoiceMenu(s streams.Streams, app *api.App, charName string) error {
 	return prompt.With("voices", func() error {
 		for {
 			labels := []string{
@@ -35,23 +36,23 @@ func RunMenu(s streams.Streams, app *api.App, charName string) error {
 				return nil
 			case 1:
 				runErr = prompt.With("list", func() error {
-					return runList(s, app, charName, nil)
+					return showVoices(s, app, charName)
 				})
 			case 2:
 				runErr = prompt.With("add", func() error {
-					return runAdd(s, app, opts, charName, nil)
+					return AddVoice(s, app, charName, "", 0)
 				})
 			case 3:
 				runErr = prompt.With("edit", func() error {
-					return runEdit(s, app, opts, charName, nil)
+					return EditVoice(s, app, charName, "")
 				})
 			case 4:
 				runErr = prompt.With("duplicate", func() error {
-					return runDuplicate(s, app, opts, charName, nil)
+					return DuplicateVoice(s, app, charName, "", "")
 				})
 			case 5:
 				runErr = prompt.With("delete", func() error {
-					return runDelete(s, app, opts, charName, nil)
+					return DeleteVoice(s, app, charName, "")
 				})
 			}
 			if runErr != nil {
@@ -59,4 +60,12 @@ func RunMenu(s streams.Streams, app *api.App, charName string) error {
 			}
 		}
 	})
+}
+
+func showVoices(s streams.Streams, app *api.App, charName string) error {
+	voices, err := action.ListVoices(s.Ctx, app, charName)
+	if err != nil {
+		return err
+	}
+	return render.YAML(s.Out, voices)
 }
