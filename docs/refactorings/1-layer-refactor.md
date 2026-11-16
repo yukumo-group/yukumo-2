@@ -13,6 +13,7 @@
   - `d35d07e` chore(lint): add justfile, depguard/staticcheck, and CI gates
   - `f59b997` docs: update architecture guides and refactor status
   - `69a3b4f` chore(just): build every module in ci
+  - `0cedf9a` fix(ci): track the CLI entrypoint
 - 最终检查：`just ci` 通过（replace 检查、4 module build/test/vet、depguard + staticcheck 0 issues）。
 - 范围：模块边界、依赖方向、API 门面、测试分层、CI 护栏；不改 CLI 输出、交互流程、合成策略、文件格式。
 - Web/WASM：可移植性评估与后续增量设计见 [16. Web/WASM 可移植性 addendum](#sec-16)，不属于当前 Phase 0–6 的实现范围。
@@ -213,6 +214,14 @@ yukumo-script/runtime     → github.com/tetratelabs/wazero
 ```
 
 否则 CI / linter（depguard、staticcheck）配置不会进 Git，检查会“静默缺失”。
+
+另外，二进制名 `yukumo-script` 必须锚定根目录：
+
+```gitignore
+/yukumo-script
+```
+
+如果写成 `yukumo-script`，Git 会同时忽略 `cli/cmd/yukumo-script/` 目录，导致 CI checkout 缺入口文件。
 
 ---
 
