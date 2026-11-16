@@ -1,0 +1,29 @@
+version: "2"
+
+linters:
+  enable:
+    - depguard
+    - staticcheck
+  settings:
+    depguard:
+      rules:
+        cli:
+          files:
+            - "**/*.go"
+          deny:
+            - pkg: "yukumo-script/core/internal"
+              desc: "CLI must go through core/api"
+            - pkg: "yukumo-script/runtime"
+              desc: "CLI must go through core/api"
+            - pkg: "github.com/tetratelabs/wazero"
+        cmd:
+          files:
+            - "cmd/**"
+          deny:
+            - pkg: "yukumo-script/core"
+              desc: "main only wires cli"
+            - pkg: "yukumo-script/runtime"
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
+            - pkg: "gopkg.in/yaml.v3"

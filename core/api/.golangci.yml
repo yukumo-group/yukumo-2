@@ -1,0 +1,20 @@
+version: "2"
+
+linters:
+  enable:
+    - depguard
+    - staticcheck
+  settings:
+    depguard:
+      rules:
+        api:
+          files:
+            - "**/*.go"
+          deny:
+            - pkg: "yukumo-script/cli"
+              desc: "api must not depend on the interaction layer"
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
+            - pkg: "github.com/tetratelabs/wazero"
+            - pkg: "gopkg.in/yaml.v3"

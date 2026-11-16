@@ -31,7 +31,7 @@ func runRequest(cmd *cobra.Command, app *api.App, req api.SynthRequest, asyncPre
 	}
 	line := formatResultLine(res, elapsed)
 	if line != "" {
-		fmt.Fprintln(cmd.OutOrStdout(), line)
+		_, _ = fmt.Fprintln(cmd.OutOrStdout(), line)
 	}
 	if req.Preview {
 		if err := previewResult(res, asyncPreview); err != nil {

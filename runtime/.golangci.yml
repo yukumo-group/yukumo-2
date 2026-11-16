@@ -1,0 +1,19 @@
+version: "2"
+
+linters:
+  enable:
+    - depguard
+    - staticcheck
+  settings:
+    depguard:
+      rules:
+        runtime:
+          files:
+            - "**/*.go"
+          deny:
+            - pkg: "yukumo-script"
+              desc: "runtime must stay below all project layers"
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
+            - pkg: "gopkg.in/yaml.v3"

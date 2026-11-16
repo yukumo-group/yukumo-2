@@ -130,7 +130,7 @@ func runInteractiveVoiceEdit(cmd *cobra.Command, app *api.App, charName, voiceNa
 						return err
 					}
 					current = v.Name
-					fmt.Fprintf(cmd.OutOrStdout(), "name: %s\n", v.Name)
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "name: %s\n", v.Name)
 					return nil
 				})
 				if err != nil {

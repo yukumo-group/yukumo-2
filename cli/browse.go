@@ -52,7 +52,7 @@ func browseCommands(start *cobra.Command) error {
 		}
 		prompt.Reset(append(menuParts(stack), chosen.Name())...)
 		if err := runCommand(chosen); err != nil {
-			fmt.Fprintln(chosen.ErrOrStderr(), err)
+			_, _ = fmt.Fprintln(chosen.ErrOrStderr(), err)
 		}
 		prompt.Reset(menuParts(stack)...)
 	}

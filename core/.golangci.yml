@@ -1,0 +1,46 @@
+version: "2"
+
+linters:
+  enable:
+    - depguard
+    - staticcheck
+  settings:
+    depguard:
+      rules:
+        domain:
+          files:
+            - "internal/domain/**"
+          deny:
+            - pkg: "yukumo-script"
+              desc: "domain is the bottom layer"
+        store:
+          files:
+            - "internal/store/**"
+          deny:
+            - pkg: "yukumo-script"
+              desc: "store must not import application layers"
+        service:
+          files:
+            - "internal/service/**"
+          deny:
+            - pkg: "yukumo-script/runtime"
+              desc: "service owns the engine port; runtime is an adapter"
+            - pkg: "yukumo-script/core/api"
+              desc: "api depends on service, not the other way around"
+            - pkg: "yukumo-script/cli"
+              desc: "service must not depend on the interaction layer"
+        core-test:
+          files:
+            - "test/**"
+          deny:
+            - pkg: "yukumo-script/runtime"
+            - pkg: "yukumo-script/core/api"
+            - pkg: "yukumo-script/cli"
+        core-external:
+          files:
+            - "**/*.go"
+          deny:
+            - pkg: "github.com/tetratelabs/wazero"
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"

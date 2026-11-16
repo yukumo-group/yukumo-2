@@ -71,24 +71,24 @@ func runInteractiveVoice(cmd *cobra.Command, app *api.App) error {
 			case 1:
 				if err := editVoiceRef(app, &d.voiceRef); err != nil {
 					if !errors.Is(err, prompt.ErrAborted) {
-						fmt.Fprintln(cmd.ErrOrStderr(), err)
+						_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
 					}
 				}
 				focus = 1
 			case 2:
 				if err := editVersion(&d.version); err != nil {
-					fmt.Fprintln(cmd.ErrOrStderr(), err)
+					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
 				focus = 2
 			case 3:
 				if err := editSpeedFactor(&d.speedFactor); err != nil {
-					fmt.Fprintln(cmd.ErrOrStderr(), err)
+					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
 				focus = 3
 			case 4:
 				if err := editOutput(&d.output); err != nil {
 					if !errors.Is(err, prompt.ErrAborted) {
-						fmt.Fprintln(cmd.ErrOrStderr(), err)
+						_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
 					}
 				}
 				focus = 4
@@ -100,12 +100,12 @@ func runInteractiveVoice(cmd *cobra.Command, app *api.App) error {
 				focus = 6
 			case 7:
 				if err := prompt.String("text", &d.text); err != nil {
-					fmt.Fprintln(cmd.ErrOrStderr(), err)
+					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
 				focus = 7
 			case 8:
 				if err := doSynthesize(cmd, app, &d); err != nil {
-					fmt.Fprintln(cmd.ErrOrStderr(), err)
+					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
 					d.status = "error"
 				}
 				focus = 8

@@ -83,7 +83,7 @@ func Normalize(f Field, raw string, notify io.Writer) (string, error) {
 			return "", err
 		}
 		if clamped && notify != nil {
-			fmt.Fprintf(notify, "clamped %s → %d (range [%d, %d])\n", raw, v, f.Min, f.Max)
+			_, _ = fmt.Fprintf(notify, "clamped %s → %d (range [%d, %d])\n", raw, v, f.Min, f.Max)
 		}
 		return strconv.Itoa(v), nil
 	case KindBool:

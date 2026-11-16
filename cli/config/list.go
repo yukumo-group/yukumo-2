@@ -19,7 +19,7 @@ func newListCmd(app *api.App) *cobra.Command {
 			}
 			enc := yaml.NewEncoder(cmd.OutOrStdout())
 			enc.SetIndent(2)
-			defer enc.Close()
+			defer func() { _ = enc.Close() }()
 			return enc.Encode(cfg)
 		},
 	}

@@ -33,7 +33,7 @@ func newGetCmd(app *api.App, opts Options) *cobra.Command {
 			}
 			enc := yaml.NewEncoder(cmd.OutOrStdout())
 			enc.SetIndent(2)
-			defer enc.Close()
+			defer func() { _ = enc.Close() }()
 			return enc.Encode(c)
 		},
 	}

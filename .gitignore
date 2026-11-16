@@ -9,3 +9,7 @@ vendor/
 
 *.yaml
 *.yml
+!.github/
+!.github/**
+!.golangci.yml
+!**/.golangci.yml

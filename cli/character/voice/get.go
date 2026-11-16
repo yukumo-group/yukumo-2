@@ -26,6 +26,6 @@ func runGet(cmd *cobra.Command, app *api.App, opts Options, charName string, arg
 	}
 	enc := yaml.NewEncoder(cmd.OutOrStdout())
 	enc.SetIndent(2)
-	defer enc.Close()
+	defer func() { _ = enc.Close() }()
 	return enc.Encode(v)
 }

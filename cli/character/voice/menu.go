@@ -56,7 +56,7 @@ func RunMenu(cmd *cobra.Command, app *api.App, charName string) error {
 				})
 			}
 			if runErr != nil {
-				fmt.Fprintln(cmd.ErrOrStderr(), runErr)
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), runErr)
 			}
 		}
 	})

@@ -17,6 +17,6 @@ func runList(cmd *cobra.Command, app *api.App, charName string, args []string) e
 	}
 	enc := yaml.NewEncoder(cmd.OutOrStdout())
 	enc.SetIndent(2)
-	defer enc.Close()
+	defer func() { _ = enc.Close() }()
 	return enc.Encode(voices)
 }

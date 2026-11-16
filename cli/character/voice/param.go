@@ -163,13 +163,13 @@ func pickPhont(cmd *cobra.Command, p *api.SynthParam) error {
 				return err
 			}
 			if err := api.SetPhontPath(p, path); err != nil {
-				fmt.Fprintln(cmd.ErrOrStderr(), err)
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
 				continue
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "phont_data: %d bytes\n", len(p.PhontData))
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "phont_data: %d bytes\n", len(p.PhontData))
 		case 2:
 			p.PhontData = nil
-			fmt.Fprintln(cmd.OutOrStdout(), "phont_data: cleared")
+			_, _ = fmt.Fprintln(cmd.OutOrStdout(), "phont_data: cleared")
 		}
 	}
 }

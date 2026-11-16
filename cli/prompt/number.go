@@ -51,7 +51,7 @@ func RangedInt(title string, value *int, min, max int, notify io.Writer) error {
 		return err
 	}
 	if clamped && notify != nil {
-		fmt.Fprintf(notify, "clamped %s → %d (range [%d, %d])\n", raw, v, min, max)
+		_, _ = fmt.Fprintf(notify, "clamped %s → %d (range [%d, %d])\n", raw, v, min, max)
 	}
 	*value = v
 	return nil
