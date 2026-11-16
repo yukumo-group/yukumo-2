@@ -1,0 +1,208 @@
+package voice
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strconv"
+
+	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/setting"
+	"yukumo-script/core/api"
+
+	"github.com/spf13/cobra"
+)
+
+func editParamInteractive(cmd *cobra.Command, app *api.App, p *api.SynthParam) error {
+	focus := 0
+	for {
+		entries := paramEntries(p.Version)
+		metas := paramMetas(app, entries, *p)
+		labels := []string{prompt.LabelCancel, prompt.LabelSave}
+		keys := setting.Keys(entries)
+		for _, key := range keys {
+			meta := metas[key]
+			value := meta.Value
+			if value == "" {
+				value = "(empty)"
+			}
+			line := value
+			if meta.Description != "" {
+				line += "  —  " + meta.Description
+			}
+			labels = append(labels, key+"\n  "+line)
+		}
+
+		idx, err := prompt.Select("", "edit fields, then Save", labels, focus)
+		if err != nil {
+			return err
+		}
+		focus = idx
+		switch idx {
+		case 0:
+			return prompt.ErrAborted
+		case 1:
+			p.Normalize()
+			return nil
+		}
+		key := keys[idx-2]
+		err = prompt.With(key, func() error {
+			return editParamField(cmd, app, p, key)
+		})
+		if err != nil {
+			if errors.Is(err, prompt.ErrAborted) {
+				continue
+			}
+			return err
+		}
+	}
+}
+
+func editParamField(cmd *cobra.Command, app *api.App, p *api.SynthParam, key string) error {
+	entries := paramEntries(p.Version)
+	entry, err := setting.Lookup(entries, key)
+	if err != nil {
+		return err
+	}
+	switch key {
+	case "preset":
+		return pickPreset(cmd, app, p)
+	case "base":
+		return pickBase(cmd, p)
+	case "phont_data":
+		return pickPhont(cmd, p)
+	}
+	value, err := setting.Ask(entry.Field, entry.Get(*p), cmd.ErrOrStderr())
+	if err != nil {
+		return err
+	}
+	if err := entry.Set(p, value); err != nil {
+		return err
+	}
+	p.Normalize()
+	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", key, entry.Get(*p))
+	return nil
+}
+
+func pickPreset(cmd *cobra.Command, app *api.App, p *api.SynthParam) error {
+	if app == nil {
+		return fmt.Errorf("preset catalog unavailable")
+	}
+	names, err := app.PresetNames(context.Background(), p.Version)
+	if err != nil {
+		return err
+	}
+	labels := make([]string, 0, len(names))
+	indexes := make([]int, 0, len(names))
+	focus := 0
+	for i, name := range names {
+		ok, err := app.HasPreset(context.Background(), p.Version, i)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			continue
+		}
+		if i == p.Preset {
+			focus = len(labels)
+		}
+		labels = append(labels, formatPreset(p.Version, name))
+		indexes = append(indexes, i)
+	}
+	if len(labels) == 0 {
+		return fmt.Errorf("no valid presets for version %d", p.Version)
+	}
+	idx, err := prompt.Select("", "aq_preset_names", labels, focus)
+	if err != nil {
+		return err
+	}
+	p.Preset = indexes[idx]
+	_, err = fmt.Fprintf(cmd.OutOrStdout(), "preset: %s\n", formatPreset(p.Version, names[p.Preset]))
+	return err
+}
+
+func pickBase(cmd *cobra.Command, p *api.SynthParam) error {
+	focus := p.Base
+	names := api.BaseNames()
+	if focus < 0 || focus >= len(names) {
+		focus = 0
+	}
+	idx, err := prompt.Select("", "AQ10 基本素片", names, focus)
+	if err != nil {
+		return err
+	}
+	p.Base = idx
+	_, err = fmt.Fprintf(cmd.OutOrStdout(), "base: %s\n", api.BaseName(p.Base))
+	return err
+}
+
+func pickPhont(cmd *cobra.Command, p *api.SynthParam) error {
+	for {
+		status := "(none)"
+		if len(p.PhontData) > 0 {
+			status = fmt.Sprintf("(%d bytes)", len(p.PhontData))
+		}
+		labels := []string{
+			prompt.LabelBack,
+			"Load from .phont file",
+			"Clear embedded data",
+		}
+		idx, err := prompt.Select("", status+"  ·  Back returns to param edit", labels, 0)
+		if err != nil {
+			return err
+		}
+		switch idx {
+		case 0:
+			return nil
+		case 1:
+			path := ""
+			if err := prompt.File("", &path); err != nil {
+				if errors.Is(err, prompt.ErrAborted) {
+					continue
+				}
+				return err
+			}
+			if err := api.SetPhontPath(p, path); err != nil {
+				fmt.Fprintln(cmd.ErrOrStderr(), err)
+				continue
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "phont_data: %d bytes\n", len(p.PhontData))
+		case 2:
+			p.PhontData = nil
+			fmt.Fprintln(cmd.OutOrStdout(), "phont_data: cleared")
+		}
+	}
+}
+
+func formatPreset(version int, name string) string {
+	if name == "" {
+		return fmt.Sprintf("v%d", version)
+	}
+	return fmt.Sprintf("v%d · %s", version, name)
+}
+
+func presetDisplay(app *api.App, version, preset int) string {
+	if app == nil {
+		return formatPreset(version, strconv.Itoa(preset))
+	}
+	names, err := app.PresetNames(context.Background(), version)
+	if err != nil || preset < 0 || preset >= len(names) {
+		return formatPreset(version, strconv.Itoa(preset))
+	}
+	return formatPreset(version, names[preset])
+}
+
+func paramMetas(app *api.App, entries []setting.Entry[api.SynthParam], p api.SynthParam) map[string]prompt.LeafMeta {
+	out := setting.Metas(entries, p)
+	if meta, ok := out["preset"]; ok {
+		meta.Value = presetDisplay(app, p.Version, p.Preset)
+		out["preset"] = meta
+	}
+	if meta, ok := out["base"]; ok {
+		if name := api.BaseName(p.Base); name != "" {
+			meta.Value = name
+		}
+		out["base"] = meta
+	}
+	return out
+}
