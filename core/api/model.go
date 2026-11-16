@@ -7,58 +7,58 @@ import (
 
 // Character is the UI-facing character model.
 type Character struct {
-	Name        string
-	Description string
-	Voices      []Voice
+	Name        string  `yaml:"name"`
+	Description string  `yaml:"description,omitempty"`
+	Voices      []Voice `yaml:"voices,omitempty"`
 }
 
 // Voice is the UI-facing voice model.
 type Voice struct {
-	Name   string
-	Params []SynthParam
+	Name   string       `yaml:"name"`
+	Params []SynthParam `yaml:"params,omitempty"`
 }
 
 // SynthParam is the UI-facing synthesis parameter model.
 type SynthParam struct {
-	Version   int
-	Preset    int
-	Speed     int
-	PhontData []byte
-	Base      int
-	Volume    int
-	Pitch     int
-	Accent    int
-	Lmd       int
-	Fsc       int
+	Version   int    `yaml:"version"`
+	Preset    int    `yaml:"preset"`
+	Speed     int    `yaml:"speed"`
+	PhontData []byte `yaml:"phont_data,omitempty"`
+	Base      int    `yaml:"base,omitempty"`
+	Volume    int    `yaml:"volume,omitempty"`
+	Pitch     int    `yaml:"pitch,omitempty"`
+	Accent    int    `yaml:"accent,omitempty"`
+	Lmd       int    `yaml:"lmd,omitempty"`
+	Fsc       int    `yaml:"fsc,omitempty"`
 }
 
 // Config is the UI-facing configuration model. Booleans are effective values;
 // SaveConfig writes them back as explicit values.
 type Config struct {
-	Characters CharacterConfig
-	Paths      PathConfig
-	CLI        CLIConfig
-	Synth      SynthConfig
+	Characters CharacterConfig `yaml:"characters"`
+	Paths      PathConfig      `yaml:"paths"`
+	CLI        CLIConfig       `yaml:"cli"`
+	Synth      SynthConfig     `yaml:"synth"`
 }
 
 type CharacterConfig struct {
-	InitDefaultVoice bool
+	InitDefaultVoice bool `yaml:"init_default_voice"`
 }
 
 type PathConfig struct {
-	CharacterPath string
-	OutputPath    string
+	CharacterPath string `yaml:"character_path"`
+	OutputPath    string `yaml:"output_path"`
 }
 
 type CLIConfig struct {
-	DefaultInteractive bool
-	WithAccessibility  bool
+	DefaultInteractive bool `yaml:"default_interactive"`
+	WithAccessibility  bool `yaml:"with_accessibility"`
 }
 
 type SynthConfig struct {
-	OutputFormat string
-	AlwaysWrite  bool
-	ReuseCache   bool
+	OutputFormat string `yaml:"output_format"`
+	AlwaysWrite  bool   `yaml:"always_write"`
+	ReuseCache   bool   `yaml:"reuse_cache"`
 }
 
 const (
