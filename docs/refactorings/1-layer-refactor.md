@@ -11,7 +11,9 @@
   - `680ea1a` fix(api): preserve YAML field names in DTOs
   - `e4b82c6` refactor(cli): move CLI into its own module behind api
   - `d35d07e` chore(lint): add justfile, depguard/staticcheck, and CI gates
-- 最终检查：`just ci` 通过；depguard 与 staticcheck 0 issues。
+  - `f59b997` docs: update architecture guides and refactor status
+  - `69a3b4f` chore(just): build every module in ci
+- 最终检查：`just ci` 通过（replace 检查、4 module build/test/vet、depguard + staticcheck 0 issues）。
 - 范围：模块边界、依赖方向、API 门面、测试分层、CI 护栏；不改 CLI 输出、交互流程、合成策略、文件格式。
 - Web/WASM：可移植性评估与后续增量设计见 [16. Web/WASM 可移植性 addendum](#sec-16)，不属于当前 Phase 0–6 的实现范围。
 
