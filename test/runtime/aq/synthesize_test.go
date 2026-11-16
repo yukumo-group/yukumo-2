@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"yukumo-script/internal/domain"
-	"yukumo-script/internal/runtime/aq"
+	"yukumo-script/runtime/aq"
 )
 
 func TestSynthesizeWAV(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 	svcconfig "yukumo-script/core/internal/service/config"
 	"yukumo-script/core/internal/service/synth"
 	"yukumo-script/core/internal/store"
-	"yukumo-script/internal/runtime/aq"
+	"yukumo-script/runtime/aq"
 )
 
 type allowAllPresets struct{}

@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"yukumo-script/internal/cli/prompt"
-	"yukumo-script/internal/service/nameutil"
 	svcvoice "yukumo-script/internal/service/character/voice"
+	"yukumo-script/internal/service/nameutil"
 
 	"github.com/spf13/cobra"
 )

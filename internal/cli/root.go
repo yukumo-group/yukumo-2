@@ -10,12 +10,12 @@ import (
 	cliconfig "yukumo-script/internal/cli/config"
 	"yukumo-script/internal/cli/prompt"
 	clisynth "yukumo-script/internal/cli/synth"
-	"yukumo-script/internal/runtime/aq"
 	svccharacter "yukumo-script/internal/service/character"
 	svcvoice "yukumo-script/internal/service/character/voice"
 	svcconfig "yukumo-script/internal/service/config"
 	svcsynth "yukumo-script/internal/service/synth"
 	"yukumo-script/internal/store"
+	"yukumo-script/runtime/aq"
 
 	"github.com/spf13/cobra"
 )

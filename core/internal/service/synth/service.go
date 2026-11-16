@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"yukumo-script/core/internal/domain"
-	"yukumo-script/internal/runtime/aq"
+	"yukumo-script/runtime/aq"
 )
 
 type Config interface {
