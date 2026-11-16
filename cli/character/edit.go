@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"yukumo-script/cli/character/voice"
+	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/prompt"
 	"yukumo-script/cli/setting"
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
@@ -23,15 +25,16 @@ func newEditCmd(app *api.App, opts Options) *cobra.Command {
 			return cobra.ExactArgs(3)(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			s := cobraio.FromCmd(cmd)
 			if opts.Interactive && len(args) < 3 {
-				return runInteractiveEdit(cmd, app, args)
+				return runInteractiveEdit(s, app, args)
 			}
-			return runOneShotEdit(cmd, app, args)
+			return runOneShotEdit(s, app, args)
 		},
 	}
 }
 
-func runOneShotEdit(cmd *cobra.Command, app *api.App, args []string) error {
+func runOneShotEdit(s streams.Streams, app *api.App, args []string) error {
 	if len(args) < 3 {
 		return fmt.Errorf("name, field, and value are required")
 	}
@@ -39,10 +42,10 @@ func runOneShotEdit(cmd *cobra.Command, app *api.App, args []string) error {
 	if err != nil {
 		return err
 	}
-	return applyEdit(cmd, app, args[0], &c, args[1], args[2], true)
+	return applyEdit(s, app, args[0], &c, args[1], args[2], true)
 }
 
-func runInteractiveEdit(cmd *cobra.Command, app *api.App, args []string) error {
+func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
@@ -62,11 +65,11 @@ func runInteractiveEdit(cmd *cobra.Command, app *api.App, args []string) error {
 		}
 		err = prompt.With(name, func() error {
 			return prompt.With(args[1], func() error {
-				value, err := setting.Ask(entry.Field, entry.Get(c), cmd.ErrOrStderr())
+				value, err := setting.Ask(entry.Field, entry.Get(c), s.Err)
 				if err != nil {
 					return err
 				}
-				return applyEdit(cmd, app, name, &c, args[1], value, false)
+				return applyEdit(s, app, name, &c, args[1], value, false)
 			})
 		})
 		if err != nil {
@@ -102,7 +105,7 @@ func runInteractiveEdit(cmd *cobra.Command, app *api.App, args []string) error {
 				return nil
 			}
 			if idx == len(labels)-1 {
-				if err := voice.RunMenu(cmd, app, currentName); err != nil {
+				if err := voice.RunMenu(s, app, currentName); err != nil {
 					return err
 				}
 				continue
@@ -113,11 +116,11 @@ func runInteractiveEdit(cmd *cobra.Command, app *api.App, args []string) error {
 				return err
 			}
 			err = prompt.With(key, func() error {
-				value, err := setting.Ask(entry.Field, entry.Get(c), cmd.ErrOrStderr())
+				value, err := setting.Ask(entry.Field, entry.Get(c), s.Err)
 				if err != nil {
 					return err
 				}
-				return applyEdit(cmd, app, currentName, &c, key, value, false)
+				return applyEdit(s, app, currentName, &c, key, value, false)
 			})
 			if err != nil {
 				if errors.Is(err, prompt.ErrAborted) {
@@ -143,7 +146,7 @@ func leafLabel(name string, meta prompt.LeafMeta) string {
 }
 
 func applyEdit(
-	cmd *cobra.Command,
+	s streams.Streams,
 	app *api.App,
 	oldName string,
 	c *api.Character,
@@ -156,7 +159,7 @@ func applyEdit(
 	}
 	value := raw
 	if normalize {
-		value, err = setting.Normalize(entry.Field, raw, cmd.ErrOrStderr())
+		value, err = setting.Normalize(entry.Field, raw, s.Err)
 		if err != nil {
 			return err
 		}
@@ -167,6 +170,6 @@ func applyEdit(
 	if err := app.UpdateCharacter(oldName, *c); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", key, entry.Get(*c))
+	_, err = fmt.Fprintf(s.Out, "%s: %s\n", key, entry.Get(*c))
 	return err
 }

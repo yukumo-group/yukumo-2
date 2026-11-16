@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 
 	"github.com/charmbracelet/lipgloss"
@@ -34,12 +36,12 @@ func newVoiceCmd(app *api.App, opts Options) *cobra.Command {
 			if !opts.Interactive {
 				return fmt.Errorf("interactive only; use: synth -v character:voice TEXT")
 			}
-			return runInteractiveVoice(cmd, app)
+			return runInteractiveVoice(cobraio.FromCmd(cmd), app)
 		},
 	}
 }
 
-func runInteractiveVoice(cmd *cobra.Command, app *api.App) error {
+func runInteractiveVoice(s streams.Streams, app *api.App) error {
 	d := voiceDraft{speedFactor: 1, reuseCache: true}
 	return prompt.With("voice", func() error {
 		focus := 0
@@ -71,24 +73,24 @@ func runInteractiveVoice(cmd *cobra.Command, app *api.App) error {
 			case 1:
 				if err := editVoiceRef(app, &d.voiceRef); err != nil {
 					if !errors.Is(err, prompt.ErrAborted) {
-						_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+						_, _ = fmt.Fprintln(s.Err, err)
 					}
 				}
 				focus = 1
 			case 2:
 				if err := editVersion(&d.version); err != nil {
-					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+					_, _ = fmt.Fprintln(s.Err, err)
 				}
 				focus = 2
 			case 3:
 				if err := editSpeedFactor(&d.speedFactor); err != nil {
-					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+					_, _ = fmt.Fprintln(s.Err, err)
 				}
 				focus = 3
 			case 4:
 				if err := editOutput(&d.output); err != nil {
 					if !errors.Is(err, prompt.ErrAborted) {
-						_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+						_, _ = fmt.Fprintln(s.Err, err)
 					}
 				}
 				focus = 4
@@ -100,12 +102,12 @@ func runInteractiveVoice(cmd *cobra.Command, app *api.App) error {
 				focus = 6
 			case 7:
 				if err := prompt.String("text", &d.text); err != nil {
-					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+					_, _ = fmt.Fprintln(s.Err, err)
 				}
 				focus = 7
 			case 8:
-				if err := doSynthesize(cmd, app, &d); err != nil {
-					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+				if err := doSynthesize(s, app, &d); err != nil {
+					_, _ = fmt.Fprintln(s.Err, err)
 					d.status = "error"
 				}
 				focus = 8
@@ -116,7 +118,7 @@ func runInteractiveVoice(cmd *cobra.Command, app *api.App) error {
 	})
 }
 
-func doSynthesize(cmd *cobra.Command, app *api.App, d *voiceDraft) error {
+func doSynthesize(s streams.Streams, app *api.App, d *voiceDraft) error {
 	if strings.TrimSpace(d.voiceRef) == "" {
 		return fmt.Errorf("voice is required")
 	}
@@ -124,7 +126,7 @@ func doSynthesize(cmd *cobra.Command, app *api.App, d *voiceDraft) error {
 		return fmt.Errorf("text is required")
 	}
 	reuse := d.reuseCache
-	res, elapsed, err := runRequest(cmd, app, api.SynthRequest{
+	res, elapsed, err := runRequest(s, app, api.SynthRequest{
 		VoiceRef:    d.voiceRef,
 		Text:        d.text,
 		Version:     d.version,

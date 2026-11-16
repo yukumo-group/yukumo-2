@@ -8,16 +8,15 @@ import (
 
 	"yukumo-script/cli/prompt"
 	"yukumo-script/cli/setting"
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
-
-	"github.com/spf13/cobra"
 )
 
-func editParamInteractive(cmd *cobra.Command, app *api.App, p *api.SynthParam) error {
+func editParamInteractive(s streams.Streams, app *api.App, p *api.SynthParam) error {
 	focus := 0
 	for {
 		entries := paramEntries(p.Version)
-		metas := paramMetas(app, entries, *p)
+		metas := paramMetas(s.Ctx, app, entries, *p)
 		labels := []string{prompt.LabelCancel, prompt.LabelSave}
 		keys := setting.Keys(entries)
 		for _, key := range keys {
@@ -47,7 +46,7 @@ func editParamInteractive(cmd *cobra.Command, app *api.App, p *api.SynthParam) e
 		}
 		key := keys[idx-2]
 		err = prompt.With(key, func() error {
-			return editParamField(cmd, app, p, key)
+			return editParamField(s, app, p, key)
 		})
 		if err != nil {
 			if errors.Is(err, prompt.ErrAborted) {
@@ -58,7 +57,7 @@ func editParamInteractive(cmd *cobra.Command, app *api.App, p *api.SynthParam) e
 	}
 }
 
-func editParamField(cmd *cobra.Command, app *api.App, p *api.SynthParam, key string) error {
+func editParamField(s streams.Streams, app *api.App, p *api.SynthParam, key string) error {
 	entries := paramEntries(p.Version)
 	entry, err := setting.Lookup(entries, key)
 	if err != nil {
@@ -66,13 +65,13 @@ func editParamField(cmd *cobra.Command, app *api.App, p *api.SynthParam, key str
 	}
 	switch key {
 	case "preset":
-		return pickPreset(cmd, app, p)
+		return pickPreset(s, app, p)
 	case "base":
-		return pickBase(cmd, p)
+		return pickBase(s, p)
 	case "phont_data":
-		return pickPhont(cmd, p)
+		return pickPhont(s, p)
 	}
-	value, err := setting.Ask(entry.Field, entry.Get(*p), cmd.ErrOrStderr())
+	value, err := setting.Ask(entry.Field, entry.Get(*p), s.Err)
 	if err != nil {
 		return err
 	}
@@ -80,15 +79,15 @@ func editParamField(cmd *cobra.Command, app *api.App, p *api.SynthParam, key str
 		return err
 	}
 	p.Normalize()
-	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", key, entry.Get(*p))
+	_, _ = fmt.Fprintf(s.Out, "%s: %s\n", key, entry.Get(*p))
 	return nil
 }
 
-func pickPreset(cmd *cobra.Command, app *api.App, p *api.SynthParam) error {
+func pickPreset(s streams.Streams, app *api.App, p *api.SynthParam) error {
 	if app == nil {
 		return fmt.Errorf("preset catalog unavailable")
 	}
-	names, err := app.PresetNames(context.Background(), p.Version)
+	names, err := app.PresetNames(s.Ctx, p.Version)
 	if err != nil {
 		return err
 	}
@@ -96,7 +95,7 @@ func pickPreset(cmd *cobra.Command, app *api.App, p *api.SynthParam) error {
 	indexes := make([]int, 0, len(names))
 	focus := 0
 	for i, name := range names {
-		ok, err := app.HasPreset(context.Background(), p.Version, i)
+		ok, err := app.HasPreset(s.Ctx, p.Version, i)
 		if err != nil {
 			return err
 		}
@@ -117,11 +116,11 @@ func pickPreset(cmd *cobra.Command, app *api.App, p *api.SynthParam) error {
 		return err
 	}
 	p.Preset = indexes[idx]
-	_, err = fmt.Fprintf(cmd.OutOrStdout(), "preset: %s\n", formatPreset(p.Version, names[p.Preset]))
+	_, err = fmt.Fprintf(s.Out, "preset: %s\n", formatPreset(p.Version, names[p.Preset]))
 	return err
 }
 
-func pickBase(cmd *cobra.Command, p *api.SynthParam) error {
+func pickBase(s streams.Streams, p *api.SynthParam) error {
 	focus := p.Base
 	names := api.BaseNames()
 	if focus < 0 || focus >= len(names) {
@@ -132,11 +131,11 @@ func pickBase(cmd *cobra.Command, p *api.SynthParam) error {
 		return err
 	}
 	p.Base = idx
-	_, err = fmt.Fprintf(cmd.OutOrStdout(), "base: %s\n", api.BaseName(p.Base))
+	_, err = fmt.Fprintf(s.Out, "base: %s\n", api.BaseName(p.Base))
 	return err
 }
 
-func pickPhont(cmd *cobra.Command, p *api.SynthParam) error {
+func pickPhont(s streams.Streams, p *api.SynthParam) error {
 	for {
 		status := "(none)"
 		if len(p.PhontData) > 0 {
@@ -163,13 +162,13 @@ func pickPhont(cmd *cobra.Command, p *api.SynthParam) error {
 				return err
 			}
 			if err := api.SetPhontPath(p, path); err != nil {
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+				_, _ = fmt.Fprintln(s.Err, err)
 				continue
 			}
-			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "phont_data: %d bytes\n", len(p.PhontData))
+			_, _ = fmt.Fprintf(s.Out, "phont_data: %d bytes\n", len(p.PhontData))
 		case 2:
 			p.PhontData = nil
-			_, _ = fmt.Fprintln(cmd.OutOrStdout(), "phont_data: cleared")
+			_, _ = fmt.Fprintln(s.Out, "phont_data: cleared")
 		}
 	}
 }
@@ -181,21 +180,21 @@ func formatPreset(version int, name string) string {
 	return fmt.Sprintf("v%d · %s", version, name)
 }
 
-func presetDisplay(app *api.App, version, preset int) string {
+func presetDisplay(ctx context.Context, app *api.App, version, preset int) string {
 	if app == nil {
 		return formatPreset(version, strconv.Itoa(preset))
 	}
-	names, err := app.PresetNames(context.Background(), version)
+	names, err := app.PresetNames(ctx, version)
 	if err != nil || preset < 0 || preset >= len(names) {
 		return formatPreset(version, strconv.Itoa(preset))
 	}
 	return formatPreset(version, names[preset])
 }
 
-func paramMetas(app *api.App, entries []setting.Entry[api.SynthParam], p api.SynthParam) map[string]prompt.LeafMeta {
+func paramMetas(ctx context.Context, app *api.App, entries []setting.Entry[api.SynthParam], p api.SynthParam) map[string]prompt.LeafMeta {
 	out := setting.Metas(entries, p)
 	if meta, ok := out["preset"]; ok {
-		meta.Value = presetDisplay(app, p.Version, p.Preset)
+		meta.Value = presetDisplay(ctx, app, p.Version, p.Preset)
 		out["preset"] = meta
 	}
 	if meta, ok := out["base"]; ok {

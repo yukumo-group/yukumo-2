@@ -1,13 +1,15 @@
 package voice
 
 import (
+	"fmt"
+
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 
-	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
-func runGet(cmd *cobra.Command, app *api.App, opts Options, charName string, args []string) error {
+func runGet(s streams.Streams, app *api.App, opts Options, charName string, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
@@ -18,13 +20,13 @@ func runGet(cmd *cobra.Command, app *api.App, opts Options, charName string, arg
 		}
 	}
 	if name == "" {
-		return cmd.Usage()
+		return fmt.Errorf("usage: character <name> voice get <voice>")
 	}
 	v, err := app.GetVoice(charName, name)
 	if err != nil {
 		return err
 	}
-	enc := yaml.NewEncoder(cmd.OutOrStdout())
+	enc := yaml.NewEncoder(s.Out)
 	enc.SetIndent(2)
 	defer func() { _ = enc.Close() }()
 	return enc.Encode(v)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"yukumo-script/cli/character/voice"
+	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
@@ -23,7 +24,7 @@ func NewCmd(app *api.App, opts Options) *cobra.Command {
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) >= 2 && args[1] == "voice" {
-				return voice.Dispatch(cmd, app, voice.Options{Interactive: opts.Interactive}, args[0], args[2:])
+				return voice.Dispatch(cobraio.FromCmd(cmd), app, voice.Options{Interactive: opts.Interactive}, args[0], args[2:])
 			}
 			if len(args) == 0 {
 				return cmd.Help()

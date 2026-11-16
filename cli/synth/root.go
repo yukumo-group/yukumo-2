@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/prompt"
 	"yukumo-script/core/api"
 
@@ -56,6 +57,7 @@ func newCustomCmd() *cobra.Command {
 }
 
 func runSynth(cmd *cobra.Command, app *api.App, opts Options, args []string) error {
+	s := cobraio.FromCmd(cmd)
 	voiceRef, _ := cmd.Flags().GetString("voice")
 	voicePath, _ := cmd.Flags().GetString("voice-path")
 	version, _ := cmd.Flags().GetInt("version")
@@ -94,6 +96,6 @@ func runSynth(cmd *cobra.Command, app *api.App, opts Options, args []string) err
 		req.ReuseCache = &v
 	}
 
-	_, _, err := runRequest(cmd, app, req, false)
+	_, _, err := runRequest(s, app, req, false)
 	return err
 }

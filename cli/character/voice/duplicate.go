@@ -7,12 +7,11 @@ import (
 	"strings"
 
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
-
-	"github.com/spf13/cobra"
 )
 
-func runDuplicate(cmd *cobra.Command, app *api.App, opts Options, charName string, args []string) error {
+func runDuplicate(s streams.Streams, app *api.App, opts Options, charName string, args []string) error {
 	src := ""
 	newName := ""
 	if len(args) >= 1 {
@@ -46,7 +45,7 @@ func runDuplicate(cmd *cobra.Command, app *api.App, opts Options, charName strin
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(cmd.OutOrStdout(), "duplicated %q → %q\n", src, final)
+	_, err = fmt.Fprintf(s.Out, "duplicated %q → %q\n", src, final)
 	return err
 }
 

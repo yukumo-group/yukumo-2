@@ -1,37 +1,26 @@
 package synth
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"time"
 
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
-
-	"github.com/spf13/cobra"
 )
-
-func cmdContext(cmd *cobra.Command) context.Context {
-	if cmd != nil {
-		if ctx := cmd.Context(); ctx != nil {
-			return ctx
-		}
-	}
-	return context.Background()
-}
 
 // runRequest synthesizes, prints the output path (with timing) when written, and optionally previews.
 // When asyncPreview is true, playback starts in the background so the UI can continue.
-func runRequest(cmd *cobra.Command, app *api.App, req api.SynthRequest, asyncPreview bool) (api.SynthResult, time.Duration, error) {
+func runRequest(s streams.Streams, app *api.App, req api.SynthRequest, asyncPreview bool) (api.SynthResult, time.Duration, error) {
 	start := time.Now()
-	res, err := app.Synthesize(cmdContext(cmd), req)
+	res, err := app.Synthesize(s.Ctx, req)
 	elapsed := time.Since(start)
 	if err != nil {
 		return res, elapsed, err
 	}
 	line := formatResultLine(res, elapsed)
 	if line != "" {
-		_, _ = fmt.Fprintln(cmd.OutOrStdout(), line)
+		_, _ = fmt.Fprintln(s.Out, line)
 	}
 	if req.Preview {
 		if err := previewResult(res, asyncPreview); err != nil {

@@ -16,6 +16,25 @@ linters:
             - pkg: "yukumo-script/runtime"
               desc: "CLI must go through core/api"
             - pkg: "github.com/tetratelabs/wazero"
+        no-root:
+          files:
+            - "**/action/**"
+            - "**/character/**"
+            - "**/config/**"
+            - "**/internal/**"
+            - "**/menu/**"
+            - "**/parse/**"
+            - "**/play/**"
+            - "**/prompt/**"
+            - "**/render/**"
+            - "**/schema/**"
+            - "**/setting/**"
+            - "**/streams/**"
+            - "**/synth/**"
+            - "**/ui/**"
+          deny:
+            - pkg: "yukumo-script/cli$"
+              desc: "CLI subpackages must not import the root package"
         cmd:
           files:
             - "cmd/**"

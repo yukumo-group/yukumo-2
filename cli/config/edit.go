@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/prompt"
 	"yukumo-script/cli/setting"
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
@@ -22,15 +24,16 @@ func newEditCmd(app *api.App, opts Options) *cobra.Command {
 			return cobra.ExactArgs(2)(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			s := cobraio.FromCmd(cmd)
 			if opts.Interactive && len(args) < 2 {
-				return runInteractiveEdit(cmd, app, args)
+				return runInteractiveEdit(s, app, args)
 			}
-			return runOneShotEdit(cmd, app, args)
+			return runOneShotEdit(s, app, args)
 		},
 	}
 }
 
-func runOneShotEdit(cmd *cobra.Command, app *api.App, args []string) error {
+func runOneShotEdit(s streams.Streams, app *api.App, args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("key and value are required")
 	}
@@ -38,10 +41,10 @@ func runOneShotEdit(cmd *cobra.Command, app *api.App, args []string) error {
 	if err != nil {
 		return err
 	}
-	return applyEdit(cmd, app, cfg, args[0], args[1], true)
+	return applyEdit(s, app, cfg, args[0], args[1], true)
 }
 
-func runInteractiveEdit(cmd *cobra.Command, app *api.App, args []string) error {
+func runInteractiveEdit(s streams.Streams, app *api.App, args []string) error {
 	startPrefix, focusKey := "", ""
 	if len(args) >= 1 {
 		cfg, err := app.Config()
@@ -52,11 +55,11 @@ func runInteractiveEdit(cmd *cobra.Command, app *api.App, args []string) error {
 		if err != nil {
 			return err
 		}
-		value, err := setting.Ask(entry.Field, entry.Get(cfg), cmd.ErrOrStderr())
+		value, err := setting.Ask(entry.Field, entry.Get(cfg), s.Err)
 		if err != nil {
 			return err
 		}
-		if err := applyEdit(cmd, app, cfg, args[0], value, false); err != nil {
+		if err := applyEdit(s, app, cfg, args[0], value, false); err != nil {
 			return err
 		}
 		startPrefix = prompt.ParentPrefix(args[0])
@@ -78,11 +81,11 @@ func runInteractiveEdit(cmd *cobra.Command, app *api.App, args []string) error {
 		if err != nil {
 			return err
 		}
-		value, err := setting.Ask(entry.Field, entry.Get(cfg), cmd.ErrOrStderr())
+		value, err := setting.Ask(entry.Field, entry.Get(cfg), s.Err)
 		if err != nil {
 			return err
 		}
-		return applyEdit(cmd, app, cfg, key, value, false)
+		return applyEdit(s, app, cfg, key, value, false)
 	}, startPrefix, focusKey)
 	if errors.Is(err, prompt.ErrAborted) {
 		return nil
@@ -91,7 +94,7 @@ func runInteractiveEdit(cmd *cobra.Command, app *api.App, args []string) error {
 }
 
 func applyEdit(
-	cmd *cobra.Command,
+	s streams.Streams,
 	app *api.App,
 	cfg api.Config,
 	key, raw string,
@@ -103,7 +106,7 @@ func applyEdit(
 	}
 	value := raw
 	if normalize {
-		value, err = setting.Normalize(entry.Field, raw, cmd.ErrOrStderr())
+		value, err = setting.Normalize(entry.Field, raw, s.Err)
 		if err != nil {
 			return err
 		}
@@ -114,6 +117,6 @@ func applyEdit(
 	if err := app.SaveConfig(cfg); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", key, entry.Get(cfg))
+	_, err = fmt.Fprintf(s.Out, "%s: %s\n", key, entry.Get(cfg))
 	return err
 }

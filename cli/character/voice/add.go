@@ -6,12 +6,11 @@ import (
 	"fmt"
 
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
-
-	"github.com/spf13/cobra"
 )
 
-func runAdd(cmd *cobra.Command, app *api.App, opts Options, charName string, args []string) error {
+func runAdd(s streams.Streams, app *api.App, opts Options, charName string, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
@@ -52,7 +51,7 @@ func runAdd(cmd *cobra.Command, app *api.App, opts Options, charName string, arg
 	p := api.DefaultSynthParam(version)
 	if opts.Interactive {
 		err := prompt.With(fmt.Sprintf("param v%d", version), func() error {
-			return editParamInteractive(cmd, app, &p)
+			return editParamInteractive(s, app, &p)
 		})
 		if err != nil {
 			if errors.Is(err, prompt.ErrAborted) {
@@ -66,6 +65,6 @@ func runAdd(cmd *cobra.Command, app *api.App, opts Options, charName string, arg
 	if err := app.AddVoice(context.Background(), charName, v); err != nil {
 		return err
 	}
-	_, err := fmt.Fprintf(cmd.OutOrStdout(), "added voice %q\n", v.Name)
+	_, err := fmt.Fprintf(s.Out, "added voice %q\n", v.Name)
 	return err
 }

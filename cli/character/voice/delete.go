@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
-
-	"github.com/spf13/cobra"
 )
 
-func runDelete(cmd *cobra.Command, app *api.App, opts Options, charName string, args []string) error {
+func runDelete(s streams.Streams, app *api.App, opts Options, charName string, args []string) error {
 	name := ""
 	if len(args) >= 1 {
 		name = args[0]
@@ -38,6 +37,6 @@ func runDelete(cmd *cobra.Command, app *api.App, opts Options, charName string, 
 	if err := app.DeleteVoice(charName, name); err != nil {
 		return err
 	}
-	_, err := fmt.Fprintf(cmd.OutOrStdout(), "deleted voice %q\n", name)
+	_, err := fmt.Fprintf(s.Out, "deleted voice %q\n", name)
 	return err
 }

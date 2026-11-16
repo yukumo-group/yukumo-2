@@ -5,13 +5,12 @@ import (
 	"fmt"
 
 	"yukumo-script/cli/prompt"
+	"yukumo-script/cli/streams"
 	"yukumo-script/core/api"
-
-	"github.com/spf13/cobra"
 )
 
 // RunMenu is the huh entry under character › edit › voices.
-func RunMenu(cmd *cobra.Command, app *api.App, charName string) error {
+func RunMenu(s streams.Streams, app *api.App, charName string) error {
 	opts := Options{Interactive: true}
 	return prompt.With("voices", func() error {
 		for {
@@ -36,27 +35,27 @@ func RunMenu(cmd *cobra.Command, app *api.App, charName string) error {
 				return nil
 			case 1:
 				runErr = prompt.With("list", func() error {
-					return runList(cmd, app, charName, nil)
+					return runList(s, app, charName, nil)
 				})
 			case 2:
 				runErr = prompt.With("add", func() error {
-					return runAdd(cmd, app, opts, charName, nil)
+					return runAdd(s, app, opts, charName, nil)
 				})
 			case 3:
 				runErr = prompt.With("edit", func() error {
-					return runEdit(cmd, app, opts, charName, nil)
+					return runEdit(s, app, opts, charName, nil)
 				})
 			case 4:
 				runErr = prompt.With("duplicate", func() error {
-					return runDuplicate(cmd, app, opts, charName, nil)
+					return runDuplicate(s, app, opts, charName, nil)
 				})
 			case 5:
 				runErr = prompt.With("delete", func() error {
-					return runDelete(cmd, app, opts, charName, nil)
+					return runDelete(s, app, opts, charName, nil)
 				})
 			}
 			if runErr != nil {
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), runErr)
+				_, _ = fmt.Fprintln(s.Err, runErr)
 			}
 		}
 	})
