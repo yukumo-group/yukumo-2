@@ -15,10 +15,22 @@ linters:
               desc: "domain is the bottom layer"
         store:
           files:
-            - "internal/store/**"
+            - "internal/store/*.go"
           deny:
-            - pkg: "yukumo-script"
-              desc: "store must not import application layers"
+            - pkg: "yukumo-script/core/internal/service"
+            - pkg: "yukumo-script/core/api"
+            - pkg: "yukumo-script/cli"
+            - pkg: "yukumo-script/runtime"
+            - pkg: "os"
+            - pkg: "path/filepath"
+        store-fs:
+          files:
+            - "internal/store/fs/**"
+          deny:
+            - pkg: "yukumo-script/core/internal/service"
+            - pkg: "yukumo-script/core/api"
+            - pkg: "yukumo-script/cli"
+            - pkg: "yukumo-script/runtime"
         service:
           files:
             - "internal/service/**"
@@ -29,6 +41,11 @@ linters:
               desc: "api depends on service, not the other way around"
             - pkg: "yukumo-script/cli"
               desc: "service must not depend on the interaction layer"
+            - pkg: "os"
+              desc: "service must not do OS IO"
+            - pkg: "path/filepath"
+              desc: "service must not do OS IO"
+            - pkg: "github.com/tetratelabs/wazero"
         core-test:
           files:
             - "test/**"

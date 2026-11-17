@@ -15,6 +15,8 @@ linters:
               desc: "CLI must go through core/api"
             - pkg: "yukumo-script/runtime"
               desc: "CLI must go through core/api"
+            - pkg: "yukumo-script/core/port"
+              desc: "CLI must go through core/api"
             - pkg: "github.com/tetratelabs/wazero"
         no-root:
           files:

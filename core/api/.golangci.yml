@@ -18,3 +18,23 @@ linters:
             - pkg: "github.com/charmbracelet/lipgloss"
             - pkg: "github.com/tetratelabs/wazero"
             - pkg: "gopkg.in/yaml.v3"
+        api-pure:
+          files:
+            - "*.go"
+          deny:
+            - pkg: "yukumo-script/runtime"
+              desc: "only core/api/cliopen may own runtime"
+            - pkg: "os"
+              desc: "pure api must not do OS IO"
+            - pkg: "path/filepath"
+              desc: "pure api must not do OS IO"
+            - pkg: "github.com/tetratelabs/wazero"
+        api-test:
+          files:
+            - "test/**"
+          deny:
+            - pkg: "yukumo-script/cli"
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
+            - pkg: "github.com/tetratelabs/wazero"

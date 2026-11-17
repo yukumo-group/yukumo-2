@@ -1,0 +1,20 @@
+version: "2"
+
+linters:
+  enable:
+    - depguard
+    - staticcheck
+  settings:
+    depguard:
+      rules:
+        port:
+          files:
+            - "**/*.go"
+          deny:
+            - pkg: "yukumo-script"
+              desc: "port is the bottom contract and must not import project code"
+            - pkg: "github.com/tetratelabs/wazero"
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"
+            - pkg: "gopkg.in/yaml.v3"
