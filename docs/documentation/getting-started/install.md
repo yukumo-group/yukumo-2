@@ -11,12 +11,10 @@ Requires a usable `third-party/aq_wasm.wasm` (or set `YUKUMO_AQ_WASM`). Developm
 Without the WASM module, synthesis and preset validation will fail. Point `YUKUMO_AQ_WASM` at the module if it is not at the default path.
 {% endhint %}
 
-## Recipes
+## Run from Source
 
 ```bash
 just build          # depguard + staticcheck, then build
-just test           # all modules
-just ci             # replace check + lint + build + test + vet
 ```
 
 ## Running the CLI
@@ -25,13 +23,12 @@ All later examples use `just run …`, which forwards args to the CLI (`go -C cl
 
 ```bash
 just run                          # interactive root menu
-just run synth -v remilia:default "こんにちは"
 go run ./cli/cmd/yukumo-script …  # same without just
 ./yukumo-script …                 # after just build
 ```
 
 {% columns %}
-{% column %}
+{% column width="50%" %}
 ### Interactive
 
 With no subcommand and interactive mode on, the root browse menu opens.
@@ -41,7 +38,7 @@ just run
 ```
 {% endcolumn %}
 
-{% column %}
+{% column width="50%" %}
 ### Scripted
 
 Disable interactive prompts first when automating.
@@ -51,7 +48,3 @@ just run config edit cli.default_interactive false
 ```
 {% endcolumn %}
 {% endcolumns %}
-
-{% hint style="success" icon="circle-check" %}
-Next: [Quickstart](quickstart.md) — create a character and synthesize your first line.
-{% endhint %}
