@@ -1,6 +1,6 @@
 $schema: https://api.gitbook.com/gitbook-docs.yaml
 site:
-  title: yukumo-group Docs
+  title: Yukumo Script Docs
   structure:
     - type: section
       key: section-1
