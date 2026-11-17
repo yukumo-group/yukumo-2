@@ -1,89 +1,88 @@
 ---
-description: Go from sign-up to your first deploy in under five minutes.
-icon: bolt
+description: Create a character, add a voice, and synthesize your first WAV
+icon: rocket-launch
 ---
 
 # Quickstart
 
-This quickstart gets you to your first deploy as fast as possible. We'll skip most of the configuration — you can refine things later once you have something running.
+{% tabs %}
+{% tab title="English" %}
+Create a character with a default voice, then synthesize Japanese text. Pick **one** of the character-creation paths below — do not add the same default voice twice.
+{% endtab %}
 
-{% hint style="success" %}
-**Estimated time: 5 minutes.** All you need is an account and a project to deploy.
+{% tab title="中文" %}
+创建角色并带上默认音色，然后合成日文文本。下面两条角色创建路径**二选一**，勿对同一角色重复加同名 `default`。
+{% endtab %}
+{% endtabs %}
+
+{% hint style="info" icon="terminal" %}
+Commands below assume [Install & build](install.md) — use `just run …` (or the equivalents noted there).
 {% endhint %}
-
-## Steps
 
 {% stepper %}
 {% step %}
-#### Create your workspace
+## Enable auto default voice (option A)
 
-Sign in and create a new workspace. The workspace name appears in URLs and email notifications, so pick something recognisable.
-
+```bash
+just run config edit characters.init_default_voice true
+just run character add remilia "example"
 ```
-yourcompany
+
+<details>
+<summary>Option B — add the voice manually</summary>
+
+```bash
+just run character add remilia "example"
+just run character remilia voice add default 1
+```
+
+{% hint style="info" %}
+With interactive mode on, `voice add` opens the param editor — accept defaults to continue. For scripting first:
+
+```bash
+just run config edit cli.default_interactive false
+```
+{% endhint %}
+</details>
+{% endstep %}
+
+{% step %}
+## Synthesize
+
+```bash
+just run synth -v remilia:default "こんにちは"
 ```
 {% endstep %}
 
 {% step %}
-#### Connect a source
-
-Link a repository from your version control provider, or upload a project directly.
+## Preview or write an explicit path
 
 {% tabs %}
-{% tab title="Repository" %}
-Click **Connect repository**, authenticate with your provider, and select the repository to import. The platform will detect your framework automatically.
-{% endtab %}
-
-{% tab title="Upload" %}
-Drag and drop a project folder, or use the CLI:
-
+{% tab title="Preview (-p)" %}
 ```bash
-platform deploy ./my-project
+just run synth -v remilia:default -p "こんにちは"
 ```
 {% endtab %}
 
-{% tab title="Template" %}
-Browse the template gallery and click **Use template**. A new project will be created from the template in your workspace.
+{% tab title="Explicit output (-o)" %}
+```bash
+just run synth -v remilia:default -o /tmp/out.wav "テスト"
+```
+{% endtab %}
+
+{% tab title="YAML override (-P)" %}
+```bash
+just run synth -P ./remilia.yaml:default "こんにちは"
+```
 {% endtab %}
 {% endtabs %}
 {% endstep %}
-
-{% step %}
-#### Configure your build
-
-Most projects work with the auto-detected settings. If yours doesn't, override them in **Project settings → Build**.
-
-```yaml
-build:
-  command: npm run build
-  output: dist/
-  node: 20
-```
-{% endstep %}
-
-{% step %}
-#### Deploy
-
-Hit **Deploy**. Your project will build and go live at a generated subdomain. You can promote it to production or add a custom domain at any time.
-
-{% hint style="info" %}
-First builds typically take 1–3 minutes. Subsequent builds are faster because dependencies are cached.
-{% endhint %}
-{% endstep %}
 {% endstepper %}
 
-## What's next?
+{% hint style="success" icon="waveform-lines" %}
+After each synth, the CLI prints the output path, optional `(cached)`, and duration — e.g. `/tmp/a.wav (cached) 12.34ms`.
+{% endhint %}
 
-You've shipped something — now make it yours.
+## Next steps
 
-{% content-ref url="../guides/custom-domains.md" %}
-[custom-domains.md](../guides/custom-domains.md)
-{% endcontent-ref %}
-
-{% content-ref url="../core-concepts/permissions.md" %}
-[permissions.md](../core-concepts/permissions.md)
-{% endcontent-ref %}
-
-{% content-ref url="../guides/automations.md" %}
-[automations.md](../guides/automations.md)
-{% endcontent-ref %}
+<table data-view="cards"><thead><tr><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h4><i class="fa-sliders" style="color:$primary;">:sliders:</i></h4></td><td>Tune <code>config.yaml</code> paths, cache, and interactive defaults.</td><td><a href="../reference/configuration.md">configuration.md</a></td></tr><tr><td><h4><i class="fa-microphone" style="color:$primary;">:microphone:</i></h4></td><td>Edit voice params (preset, speed, v2/v10 fields).</td><td><a href="../cli/voice.md">voice.md</a></td></tr><tr><td><h4><i class="fa-wave-square" style="color:$primary;">:wave-square:</i></h4></td><td>Cache, version selection, and write policy for <code>synth</code>.</td><td><a href="../cli/synth.md">synth.md</a></td></tr></tbody></table>
