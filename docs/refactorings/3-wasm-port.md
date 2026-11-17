@@ -1,10 +1,22 @@
 # Yukumo Script Web/WASM 适配计划
 
-- 状态：In progress
+- 状态：Implemented
 - 日期：2026-11-16
 - 分支：`wasm-port`（当前重构分支）
 - 前置：[1-layer-refactor.md](1-layer-refactor.md)（Implemented）
-- 相关计划：[2-cli-layer-refactor.md](2-cli-layer-refactor.md)（CLI 内部分层；本计划的 CLI 改动需与它协调，避免同名文件/命令重复）
+- 相关计划：[2-cli-layer-refactor.md](2-cli-layer-refactor.md)（CLI 内部分层；已合入，本计划的 CLI 落点按它的 action/schema/ui 结构实现）
+- 实施记录：
+  - `88e62cd` chore(plan): split wasm port plan from layer refactor
+  - `51addf9` refactor(port): add core/port and inject stores into core services
+  - `c2fbaed` refactor(synth): move artifact io behind artifact store
+  - `311ea93` refactor(api): split pure api from cliopen composition root
+  - `e5a085f` refactor(cli): adopt cliopen and bytes-only file inputs
+  - `6d938e1` test(wasm): add node headless smoke harness
+  - `8ff61ef` chore(ci): add wasm gates and port module checks
+  - `db30838` refactor(api): expose cliopen defaults
+  - `a2a9afc` test(core): cover fs store and pure api wiring
+  - `afc7ed3` style(api): gofmt app struct
+- 最终检查：`just ci`、`just wasm-smoke`、`just wasm-lint` 通过；`just check-replaces`、`just check-cli-imports` 通过。
 - 范围：`core/port` 契约、依赖注入、`core/api` 去 IO、平台组合根、synth 的 IO port 化、bytes-only 文件入口、Node headless 冒烟、CI 门禁。
 - 非范围：产品级 `web/` module、IndexedDB、Web Audio、浏览器 UI、WASI 目标、`runtime.NewWithWASM`。
 - 约束：CLI 可以修改，但 CLI 的输出文本、交互流程、`-o` / `-p` / `-P` 行为、合成策略、YAML 文件格式与现状一致；有意差异集中在 §19。
@@ -630,7 +642,9 @@ func LoadVoiceBytes(data []byte, voiceName, base string) (domain.Character, doma
 package cliopen
 
 type Options struct {
-	ConfigDir string
+	ConfigDir     string
+	CharacterPath string // 可选；测试/嵌入覆盖
+	OutputPath    string // 可选；测试/嵌入覆盖
 }
 
 func Open(opts Options) (*api.App, error)
@@ -642,14 +656,14 @@ func Defaults() (api.Config, error) // 含 OS 路径
 
 1. `resolveConfigDir(opts.ConfigDir)`：`Options.ConfigDir` > `YUKUMO_CONFIG_DIR` > `os.UserConfigDir()/yukumo-script`。
 2. `cfgStore := fs.New(dir)`。
-3. `charPath, err := defaultCharacterPath()`；`defaultOutputPath()`；`defaults := domain.DefaultConfig(domain.PathConfig{CharacterPath: charPath, OutputPath: outPath})`。
+3. `defaults, err := domainDefaults()`（OS 默认路径）。
 4. `cfgSvc := config.New(cfgStore, defaults)`；`cfg, err := cfgSvc.Get()`；失败返回错误。
-5. `charStore := fs.New(cfg.Paths.CharacterPath)`。
-6. `artifacts := fs.New(cfg.Paths.OutputPath)`。
+5. 若 `opts.CharacterPath` / `opts.OutputPath` 非空，覆盖 `cfg.Paths`（测试/嵌入用）。
+6. `charStore := fs.New(cfg.Paths.CharacterPath)`；`artifacts := fs.New(cfg.Paths.OutputPath)`。
 7. `outputs := fs.Output{}`。
 8. `pool := aq.NewPool()`；`engine := aqEngine{pool: pool}`。
-9. `app, err := api.New(api.Deps{ ... Defaults: toAPIConfig(defaults) })`；失败时 `pool.Close` 并返回。
-10. `EnsurePaths(app)`；失败时 `app.Close` 并返回。
+9. `app, err := api.New(api.Deps{ ... Defaults: apiDefaults(defaults) })`；失败时 `pool.Close` 并返回。
+10. `ensurePaths(cfg.Paths.CharacterPath, cfg.Paths.OutputPath)`；失败时 `app.Close` 并返回。
 11. `app.CleanIndex()`；失败时 `app.Close` 并返回。
 12. 返回 `app`。
 
@@ -697,14 +711,14 @@ CLI 行为保持不变，但以下文件需要跟着 API 调整：
 | 文件 | 改动 |
 |---|---|
 | `cli/root.go` | `api.Open` → `cliopen.Open`；其余不变 |
-| `cli/config/edit.go` | `app.SaveConfig` 后调用 `cliopen.EnsurePaths(app)` |
-| `cli/character/voice/fields.go` | `api.SetPhontPath` → 读文件 + `api.SetPhontData` |
-| `cli/character/voice/param.go` | 同上；`.phont` 扩展名与空文件校验在 CLI |
-| `cli/character/voice/phont.go` | 新增 `readPhont(path) ([]byte, error)` |
+| `cli/action/config.go` | `app.SaveConfig` 成功后调用 `cliopen.EnsurePaths(app)`（CLI 分层后实际落点） |
+| `cli/parse/parse.go` | 新增 `ReadPhont(path) ([]byte, error)`，校验 `.phont` 与空文件 |
+| `cli/schema/voice.go` | phont 字段 `SetPhontPath` → `parse.ReadPhont` + `api.SetPhontData` |
+| `cli/action/voice.go` | 同上；空值清除 phont |
+| `cli/ui/voice_param.go` | `pickPhont` 用 `parse.ReadPhont` + `api.SetPhontData` |
 | `cli/synth/root.go` | `-P` 改为 `parseVoicePathSpec` + 读 bytes；写 `VoiceFile` / `VoiceName` / `VoiceBase` |
 | `cli/synth/voice_file.go` | 新增 `-P` 解析、读文件、base name |
-| `cli/synth/run.go` | 只改 `SynthRequest` 构造；输出行 / preview 不变 |
-| `cli/synth/preview.go` | 不变 |
+| `cli/test/action/action_test.go` | `cliopen.Open` + `Options` 路径覆盖，避免写用户目录 |
 | `cli/go.mod` | 增加 `yukumo-script/core/port` 的 require + replace（传递依赖） |
 
 `-P` 新流程：
@@ -717,20 +731,18 @@ req.VoiceName = name
 req.VoiceBase = base
 ```
 
-`readPhont`：
+`readPhont` 落在 `cli/parse`（CLI 层保留路径校验）：
 
 ```go
-func readPhont(path string) ([]byte, error) {
+func ReadPhont(path string) ([]byte, error) {
+	path = strings.TrimSpace(path)
+	if path == "" { return nil, fmt.Errorf("phont path is required") }
 	if !strings.EqualFold(filepath.Ext(path), ".phont") {
-		return nil, fmt.Errorf("%w: phont path must end with .phont", api.ErrInvalid)
+		return nil, fmt.Errorf("phont path must end with .phont")
 	}
 	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	if len(data) == 0 {
-		return nil, fmt.Errorf("%w: phont file is empty", api.ErrInvalid)
-	}
+	if err != nil { return nil, err }
+	if len(data) == 0 { return nil, fmt.Errorf("phont file is empty") }
 	return data, nil
 }
 ```
@@ -1068,30 +1080,28 @@ core/internal/store/fs OS
 | 现在 | 之后 | 类型 |
 |---|---|---|
 | `core/api/test/runtime/aq/*` | 不变（仍 import runtime） | runtime 集成 |
-| `core/api/test/synth/cache_test.go` | 改用 `port.ArtifactStore` + `store.Memory`；走 `App` 或 `synth.Service` | synth 集成 |
-| `core/api/test/synth/service_test.go` | 改用 `port.EngineParam` / `port.Engine` | synth 集成 |
+| `core/api/test/synth/cache_test.go` | 用 `store.Memory` 作为 ArtifactStore；真实 WASM 合成仍由 `core/api/test/runtime/aq` 与 `wasmtest` 覆盖 | synth 集成 |
+| `core/api/test/synth/service_test.go` | 用 `store.Memory` 作为 ArtifactStore + 真实 `aq.Pool` | synth 集成 |
 | `core/api/test/synth/adapter_test.go` | adapter 用 `port.EngineParam` | synth 集成 |
-| `core/test/service/synth/filename_test.go` | `UniquePath` → `uniqueKey` + Memory store | 纯单元 |
+| `core/test/service/synth/filename_test.go` | 删除 `UniquePath` 用例；`uniqueKey` 由 synth 集成测试覆盖 | 纯单元 |
 | `core/test/service/synth/voice_test.go` | `LoadVoiceFile` → `LoadVoiceBytes` | 纯单元 |
 | `core/test/service/config/service_test.go` | 去掉 EnsurePaths 用例；默认值用注入的 defaults | 纯单元 |
-| `core/test/service/character/**` | `character.New(cfg, store)` 注入 Memory store | 纯单元 |
-| `core/test/store/fs/**` | 新增 FS store / ArtifactStore / Output 测试 | OS 单元 |
-| `cli/synth/run_test.go` | 只改 `SynthRequest` 构造 | CLI 单元 |
+| `core/test/service/character/**` | `character.New(nil, mem)` 注入 Memory store | 纯单元 |
+| `core/test/store/fs/fs_test.go` | 新增 FS Store / Output / key escape 测试 | OS 单元 |
+| `cli/test/action/action_test.go` | 用 `cliopen.Open` + `Options` 路径覆盖 | CLI 单元 |
 | `cli/test/prompt/**` | 不变 | CLI 单元 |
 | `runtime/aq/errors_test.go` | 不变 | runtime 包内单元 |
 
 ### 13.2 新增测试
 
 1. `core/api/app_test.go`
-   - `api.New(Deps{ConfigStore: mem, CharacterStore: mem, Artifacts: mem, Outputs: nil, Engine: fake})`；
-   - Config 往返、Character CRUD、Voice CRUD（fake preset catalog）、`DuplicateVoice`、`Close`。
+   - `api.New` 用 Memory store 构造，Config 默认值/往返、Character CRUD 与 `Close`；
+   - 缺少 ConfigStore / CharacterStore 时返回错误。
 2. `core/api/convert_test.go`
-   - 现有用例保持；确认 `SetPhontData` 深拷贝。
-3. `core/test/store/fs/store_test.go`
-   - Write 原子性（tmp + rename）、Read/Delete 的 `ErrNotFound`、List 缺目录、key 逃逸拒绝、Path。
-4. `core/test/store/fs/artifact_test.go`
-   - FS ArtifactStore + OutputWriter 写 `-o` 路径。
-5. `wasmtest`
+   - 现有用例保持。
+3. `core/test/store/fs/fs_test.go`
+   - FS Store 读写/List/Delete/key escape/Path + OutputWriter 写 `-o` 路径。
+4. `wasmtest`
    - fake engine：CRUD + 配置持久化 + `Close` flush；
    - 真 `aq_wasm.wasm`：`HasPreset` / `Synthesize` / 缓存命中 / WAV header；
    - `go list -deps` 门禁。
@@ -1625,17 +1635,18 @@ main().catch((err) => {
 ### Phase 4：CLI
 
 1. `cli/root.go` 改用 `cliopen.Open`。
-2. `cli/config/edit.go` 保存后 `cliopen.EnsurePaths`。
-3. `cli/character/voice/{fields,param}.go` + 新 `phont.go` 改用 `SetPhontData`。
-4. `cli/synth/{root,run}.go` + 新 `voice_file.go` 改用 bytes。
-5. `cli/go.mod` 加 `core/port` require + replace；`go mod tidy`。
-6. `just ci` 必须绿。
+2. `cli/action/config.go` 保存后调用 `cliopen.EnsurePaths`。
+3. `cli/parse/parse.go` 新增 `ReadPhont`；`cli/schema/voice.go`、`cli/action/voice.go`、`cli/ui/voice_param.go` 改用 `SetPhontData`。
+4. `cli/synth/root.go` + 新 `voice_file.go` 改用 bytes。
+5. `cli/test/action/action_test.go` 改用 `cliopen.Open` + 路径覆盖。
+6. `cli/go.mod` 加 `core/port` require + replace；`go mod tidy`。
+7. `just ci` 必须绿。
 
 ### Phase 5：wasmtest + Node
 
 1. 创建 `wasmtest` module 与 replace。
-2. 写 Go adapter（jsstore / jsartifact / jsengine / fakeengine）与 `smoke.go`。
-3. 写 JS（store / aq_engine / harness）。
+2. 写 Go adapter（`jsstore.go` 含 JSArtifactStore、`jsengine.go`、`fakeengine.go`）与 `smoke.go`。
+3. 写 JS（`store.cjs` / `aq_engine.cjs` / `harness.cjs`）。
 4. 写 `scripts/prepare-wasm.go` / `scripts/check-wasm-deps.go`。
 5. `just wasm-smoke` 手动绿。
 
@@ -1648,6 +1659,28 @@ main().catch((err) => {
 5. README / README.zh 增加 wasm 段落（可选，但建议）。
 6. `1-layer-refactor.md` §16 改成指针。
 7. 跑 §18 全量验收。
+
+### 17.1 实际落地差异
+
+- 实际提交顺序是 Phase 1 → synth IO → API 拆分 → CLI → wasmtest → CI；与计划 Phase 2/3 的顺序对调，提交记录见头部。
+- CLI 已合入 `2-cli-layer-refactor` 的结构，phont 读取落在 `cli/parse.ReadPhont`，`EnsurePaths` 落在 `cli/action/config.go`，不再有 `cli/character/voice/phont.go`。
+- `cliopen.Options` 增加 `CharacterPath` / `OutputPath` 覆盖，供 CLI 测试避免写用户目录。
+- `core/internal/store/fs` 的 Store / ArtifactStore / Output 合并在 `fs.go`，没有单独的 `artifact.go` / `output.go`。
+- `core/api/test/synth` 用 `store.Memory` 作为 ArtifactStore；真实 WASM 合成仍由 `core/api/test/runtime/aq` 和 `wasmtest` 覆盖。
+- `UniquePath` 的直接单测删除；`uniqueKey` 由 synth 集成测试覆盖。
+- README / README.zh 的 wasm 段落未加（可选），不影响 gate。
+
+### 17.2 完成状态
+
+| Phase | 状态 | 提交 |
+|---|---|---|
+| Phase 0 基线 | 完成 | `88e62cd` |
+| Phase 1 `core/port` + store | 完成 | `51addf9` |
+| Phase 2 `core/api` + `cliopen` | 完成 | `311ea93` |
+| Phase 3 synth IO | 完成 | `c2fbaed` |
+| Phase 4 CLI | 完成 | `e5a085f` |
+| Phase 5 `wasmtest` | 完成 | `6d938e1` |
+| Phase 6 lint / CI / docs | 完成 | `8ff61ef` |
 
 ---
 
@@ -1829,24 +1862,23 @@ just check-replaces
 | 现在 | 之后 |
 |---|---|
 | `core/internal/store/store.go` | `core/port/store.go` + `core/internal/store/store.go`（type alias） |
-| `core/internal/store/fs.go` | `core/internal/store/fs/store.go` |
-| （无） | `core/internal/store/fs/artifact.go` |
-| （无） | `core/internal/store/fs/output.go` |
-| `core/internal/store/memory.go` | 不变（改实现 port） |
-| `core/internal/store/yaml.go` | 不变（参数改 port） |
+| `core/internal/store/fs.go` | `core/internal/store/fs/fs.go`（Store + ArtifactStore + Output） |
+| `core/internal/store/memory.go` | 改实现 port + ArtifactStore + Flusher |
+| `core/internal/store/yaml.go` | 参数改 port |
 | `core/internal/service/synth/index.go` | 改用 ArtifactStore |
-| `core/internal/service/synth/filename.go` | `UniquePath` → `uniqueKey` |
+| `core/internal/service/synth/filename.go` | 删除 `UniquePath`；`uniqueKey` 移到 `index.go` |
 | `core/internal/service/synth/voice.go` | `LoadVoiceFile` → `LoadVoiceBytes` |
-| `core/internal/service/character/voice/phont.go` | 删除；逻辑移到 CLI |
 | `core/internal/domain/config.go` | 删除 `DefaultCharacterPath` / `DefaultOutputPath` / `os` |
 | `core/api/app.go` | `Deps` / `New` / `App` / `Close` / `CleanIndex` |
 | `core/api/aqengine.go` | `core/api/cliopen/aqengine.go` |
-| （无） | `core/api/cliopen/open.go` |
-| （无） | `core/api/cliopen/defaults.go` |
+| （无） | `core/api/cliopen/open.go`（`Options` + `EnsurePaths` + `Open`） |
+| （无） | `core/api/cliopen/defaults.go`（OS 默认路径 + `apiDefaults`） |
 | `core/api/model.go` | `SetPhontPath` → `SetPhontData`；加 `DefaultConfig` |
 | `core/api/synth.go` | `SynthRequest` 改 bytes |
-| （无） | `cli/character/voice/phont.go` |
+| `core/internal/service/character/voice/phont.go` | 删除；CLI 用 `cli/parse.ReadPhont` + `api.SetPhontData` |
 | （无） | `cli/synth/voice_file.go` |
+| （无） | `core/test/store/fs/fs_test.go` |
+| （无） | `core/api/app_test.go` |
 | （无） | `wasmtest/**` |
 | （无） | `scripts/prepare-wasm.go` |
 | （无） | `scripts/check-wasm-deps.go` |
