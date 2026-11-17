@@ -10,3 +10,7 @@
   label: Fix
   icon: bug-slash
   color: red
+- tag: docs
+  label: Docs
+  icon: book
+  color: blue
