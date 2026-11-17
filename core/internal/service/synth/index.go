@@ -1,26 +1,25 @@
 package synth
 
 import (
+	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"gopkg.in/yaml.v3"
+
+	"yukumo-script/core/port"
 )
 
-const indexFileName = "index.yaml"
+const indexKey = "index.yaml"
 
-type synthIndex map[string]string // hash → basename under output dir
+type synthIndex map[string]string // hash → artifact key
 
-func indexPath(outputDir string) string {
-	return filepath.Join(outputDir, indexFileName)
-}
-
-func loadIndex(outputDir string) (synthIndex, error) {
-	path := indexPath(outputDir)
-	data, err := os.ReadFile(path)
+func loadIndex(a port.ArtifactStore) (synthIndex, error) {
+	if a == nil {
+		return synthIndex{}, nil
+	}
+	data, err := a.Read(indexKey)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, port.ErrNotFound) {
 			return synthIndex{}, nil
 		}
 		return nil, err
@@ -35,27 +34,35 @@ func loadIndex(outputDir string) (synthIndex, error) {
 	return idx, nil
 }
 
-func saveIndex(outputDir string, idx synthIndex) error {
-	if err := os.MkdirAll(outputDir, 0o755); err != nil {
-		return err
+func saveIndex(a port.ArtifactStore, idx synthIndex) error {
+	if a == nil {
+		return nil
 	}
 	data, err := yaml.Marshal(idx)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(indexPath(outputDir), data, 0o644)
+	return a.Write(indexKey, data)
 }
 
-// CleanIndex removes entries whose WAV files are missing under outputDir.
-func CleanIndex(outputDir string) error {
-	outputDir = filepath.Clean(outputDir)
-	idx, err := loadIndex(outputDir)
+// cleanIndex removes entries whose artifact keys are missing.
+func cleanIndex(a port.ArtifactStore) error {
+	idx, err := loadIndex(a)
 	if err != nil {
 		return err
 	}
 	changed := false
-	for hash, name := range idx {
-		if name == "" || !fileExists(filepath.Join(outputDir, name)) {
+	for hash, key := range idx {
+		if key == "" {
+			delete(idx, hash)
+			changed = true
+			continue
+		}
+		ok, err := a.Exists(key)
+		if err != nil {
+			return err
+		}
+		if !ok {
 			delete(idx, hash)
 			changed = true
 		}
@@ -63,58 +70,89 @@ func CleanIndex(outputDir string) error {
 	if !changed {
 		return nil
 	}
-	return saveIndex(outputDir, idx)
+	return saveIndex(a, idx)
 }
 
-func lookupCache(outputDir, hash string) (absPath string, ok bool, err error) {
-	idx, err := loadIndex(outputDir)
+func lookupCache(a port.ArtifactStore, hash string) (key string, ok bool, err error) {
+	idx, err := loadIndex(a)
 	if err != nil {
 		return "", false, err
 	}
-	name, found := idx[hash]
-	if !found || name == "" {
+	key, found := idx[hash]
+	if !found || key == "" {
 		return "", false, nil
 	}
-	abs := filepath.Join(outputDir, name)
-	if !fileExists(abs) {
+	exists, err := a.Exists(key)
+	if err != nil {
+		return "", false, err
+	}
+	if !exists {
 		delete(idx, hash)
-		if err := saveIndex(outputDir, idx); err != nil {
+		if err := saveIndex(a, idx); err != nil {
 			return "", false, err
 		}
 		return "", false, nil
 	}
-	return abs, true, nil
+	return key, true, nil
 }
 
-func putCache(outputDir, hash, basename string) error {
-	idx, err := loadIndex(outputDir)
+func putCache(a port.ArtifactStore, hash string, t target, wav []byte) error {
+	if a == nil {
+		return nil
+	}
+	idx, err := loadIndex(a)
 	if err != nil {
 		return err
 	}
-	idx[hash] = basename
-	return saveIndex(outputDir, idx)
+	key := t.key
+	if t.external != "" {
+		key = cacheKey(hash)
+		if err := a.Write(key, wav); err != nil {
+			return err
+		}
+	}
+	idx[hash] = key
+	return saveIndex(a, idx)
 }
 
-func fileExists(path string) bool {
-	st, err := os.Stat(path)
-	return err == nil && !st.IsDir()
-}
-
-func copyFile(src, dst string) error {
-	data, err := os.ReadFile(src)
+func putCacheRemove(a port.ArtifactStore, hash string) error {
+	if a == nil {
+		return nil
+	}
+	idx, err := loadIndex(a)
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		return err
+	delete(idx, hash)
+	return saveIndex(a, idx)
+}
+
+func cacheKey(hash string) string {
+	return "cache-" + hash + ".wav"
+}
+
+// uniqueKey returns base.ext or base-N.ext within the artifact store.
+func uniqueKey(a port.ArtifactStore, base, ext string) (string, error) {
+	if len(ext) > 0 && ext[0] != '.' {
+		ext = "." + ext
 	}
-	tmp := dst + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		return err
+	candidate := base + ext
+	exists, err := a.Exists(candidate)
+	if err != nil {
+		return "", err
 	}
-	if err := os.Rename(tmp, dst); err != nil {
-		_ = os.Remove(tmp)
-		return fmt.Errorf("copy cache: %w", err)
+	if !exists {
+		return candidate, nil
 	}
-	return nil
+	for i := 1; i < 10000; i++ {
+		candidate = fmt.Sprintf("%s-%d%s", base, i, ext)
+		exists, err := a.Exists(candidate)
+		if err != nil {
+			return "", err
+		}
+		if !exists {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("could not allocate unique key for %s", base)
 }

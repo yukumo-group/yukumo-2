@@ -2,7 +2,6 @@ package synth
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"yukumo-script/core/internal/domain"
@@ -23,35 +22,25 @@ func ParseVoiceRef(ref string) (character, voice string, err error) {
 	return ref[:i], ref[i+1:], nil
 }
 
-// ParseVoicePathSpec splits "/path/to/character.yaml:voice" on the last colon.
-func ParseVoicePathSpec(spec string) (yamlPath, voiceName string, err error) {
-	spec = strings.TrimSpace(spec)
-	if spec == "" {
-		return "", "", fmt.Errorf("%w: voice-path is required (file.yaml:voice)", domain.ErrInvalid)
-	}
-	i := strings.LastIndexByte(spec, ':')
-	if i <= 0 || i == len(spec)-1 {
-		return "", "", fmt.Errorf("%w: voice-path must be file.yaml:voice", domain.ErrInvalid)
-	}
-	return spec[:i], spec[i+1:], nil
-}
-
-// LoadVoiceFile reads a Character YAML and returns the named voice plus raw file bytes (for hashing).
-func LoadVoiceFile(yamlPath, voiceName string) (domain.Character, domain.Voice, []byte, error) {
+// LoadVoiceBytes parses a Character YAML and returns the named voice plus raw
+// file bytes (for hashing).
+func LoadVoiceBytes(data []byte, voiceName, base string) (domain.Character, domain.Voice, []byte, error) {
 	voiceName = strings.TrimSpace(voiceName)
 	if voiceName == "" {
 		return domain.Character{}, domain.Voice{}, nil, fmt.Errorf("%w: voice name is required", domain.ErrInvalid)
 	}
-	data, err := os.ReadFile(yamlPath)
-	if err != nil {
-		return domain.Character{}, domain.Voice{}, nil, err
+	if len(data) == 0 {
+		return domain.Character{}, domain.Voice{}, nil, fmt.Errorf("%w: character file is empty", domain.ErrInvalid)
 	}
 	var c domain.Character
 	if err := yaml.Unmarshal(data, &c); err != nil {
 		return domain.Character{}, domain.Voice{}, nil, err
 	}
 	if c.Name == "" {
-		c.Name = baseNameNoExt(yamlPath)
+		c.Name = strings.TrimSpace(base)
+		if c.Name == "" {
+			c.Name = "character"
+		}
 	}
 	for _, v := range c.Voices {
 		if v.Name == voiceName {
@@ -59,17 +48,6 @@ func LoadVoiceFile(yamlPath, voiceName string) (domain.Character, domain.Voice, 
 		}
 	}
 	return domain.Character{}, domain.Voice{}, nil, fmt.Errorf("%w: voice %q", domain.ErrNotFound, voiceName)
-}
-
-func baseNameNoExt(path string) string {
-	base := path
-	if i := strings.LastIndexAny(path, `/\`); i >= 0 {
-		base = path[i+1:]
-	}
-	if i := strings.LastIndexByte(base, '.'); i > 0 {
-		return base[:i]
-	}
-	return base
 }
 
 // SelectParam picks a SynthParam: explicit version, else first of 1→2→10 present.

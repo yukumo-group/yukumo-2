@@ -2,8 +2,6 @@ package synth_test
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"testing"
 	"time"
@@ -37,23 +35,5 @@ func TestFormatOutputNameWidths(t *testing.T) {
 	y2 := synth.FormatOutputName("{yy}", "c", "v")
 	if !regexp.MustCompile(`^\d{2}$`).MatchString(y2) {
 		t.Fatalf("yy: %q", y2)
-	}
-}
-
-func TestUniquePath(t *testing.T) {
-	dir := t.TempDir()
-	p1, err := synth.UniquePath(dir, "out", ".wav")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(p1, []byte("a"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	p2, err := synth.UniquePath(dir, "out", ".wav")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if p2 != filepath.Join(dir, "out-1.wav") {
-		t.Fatalf("got %q", p2)
 	}
 }

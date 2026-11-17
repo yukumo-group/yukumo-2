@@ -2,8 +2,6 @@ package synth
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -118,28 +116,4 @@ func sanitizeName(s string) string {
 		return "unknown"
 	}
 	return out
-}
-
-// UniquePath returns dir/base.ext, or dir/base-N.ext when the file exists.
-func UniquePath(dir, base, ext string) (string, error) {
-	if !strings.HasPrefix(ext, ".") {
-		ext = "." + ext
-	}
-	candidate := filepath.Join(dir, base+ext)
-	if _, err := os.Stat(candidate); err != nil {
-		if os.IsNotExist(err) {
-			return candidate, nil
-		}
-		return "", err
-	}
-	for i := 1; i < 10000; i++ {
-		candidate = filepath.Join(dir, fmt.Sprintf("%s-%d%s", base, i, ext))
-		if _, err := os.Stat(candidate); err != nil {
-			if os.IsNotExist(err) {
-				return candidate, nil
-			}
-			return "", err
-		}
-	}
-	return "", fmt.Errorf("could not allocate unique filename for %s", base)
 }

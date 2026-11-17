@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"yukumo-script/core/internal/domain"
+	"yukumo-script/core/port"
 )
 
 type Config interface {
@@ -19,42 +18,29 @@ type Voices interface {
 	Get(charName, voiceName string) (domain.Voice, error)
 }
 
-type EngineParam struct {
-	Version int
-	Preset  int
-	Speed   int
-	Phont   []byte
-	Base    int
-	Volume  int
-	Pitch   int
-	Accent  int
-	Lmd     int
-	Fsc     int
-}
-
-type Engine interface {
-	Synthesize(ctx context.Context, text string, param EngineParam) ([]byte, error)
-}
-
 type Service struct {
-	config Config
-	voices Voices
-	engine Engine
+	config    Config
+	voices    Voices
+	engine    port.Synthesizer
+	artifacts port.ArtifactStore
+	outputs   port.OutputWriter
 }
 
-func New(cfg Config, voices Voices, engine Engine) *Service {
-	return &Service{config: cfg, voices: voices, engine: engine}
+func New(cfg Config, voices Voices, engine port.Synthesizer, artifacts port.ArtifactStore, outputs port.OutputWriter) *Service {
+	return &Service{config: cfg, voices: voices, engine: engine, artifacts: artifacts, outputs: outputs}
 }
 
 type Request struct {
-	VoiceRef      string // "character:voice" (mutually exclusive with VoicePathSpec)
-	VoicePathSpec string // "/path/character.yaml:voice"
-	Text          string
-	Version       int     // 0 = auto 1→2→10
-	SpeedFactor   float64 // default 1.0
-	Output        string  // explicit -o path
-	Preview       bool
-	ReuseCache    *bool // nil → use config synth.reuse_cache
+	VoiceRef    string // "character:voice" (mutually exclusive with VoiceFile)
+	VoiceFile   []byte // raw Character YAML bytes
+	VoiceName   string // required with VoiceFile
+	VoiceBase   string // fallback character name when the YAML has none
+	Text        string
+	Version     int     // 0 = auto 1→2→10
+	SpeedFactor float64 // default 1.0
+	Output      string  // explicit -o path
+	Preview     bool
+	ReuseCache  *bool // nil → use config synth.reuse_cache
 }
 
 type Result struct {
@@ -65,11 +51,10 @@ type Result struct {
 }
 
 func (s *Service) CleanIndex() error {
-	cfg, err := s.config.Get()
-	if err != nil {
-		return err
+	if s.artifacts == nil {
+		return nil
 	}
-	return CleanIndex(outputDir(cfg))
+	return cleanIndex(s.artifacts)
 }
 
 func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
@@ -78,9 +63,9 @@ func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
 		return Result{}, fmt.Errorf("%w: text is required", domain.ErrInvalid)
 	}
 	hasRef := strings.TrimSpace(req.VoiceRef) != ""
-	hasPath := strings.TrimSpace(req.VoicePathSpec) != ""
-	if hasRef == hasPath {
-		return Result{}, fmt.Errorf("%w: provide exactly one of --voice or --voice-path", domain.ErrInvalid)
+	hasFile := req.VoiceFile != nil
+	if hasRef == hasFile {
+		return Result{}, fmt.Errorf("%w: provide exactly one of voice or voice file", domain.ErrInvalid)
 	}
 
 	var (
@@ -88,19 +73,12 @@ func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
 		voice               domain.Voice
 		fileBytes           []byte
 	)
-	if hasPath {
-		yamlPath, vn, err := ParseVoicePathSpec(req.VoicePathSpec)
-		if err != nil {
-			return Result{}, err
-		}
-		c, v, raw, err := LoadVoiceFile(yamlPath, vn)
+	if hasFile {
+		c, v, raw, err := LoadVoiceBytes(req.VoiceFile, req.VoiceName, req.VoiceBase)
 		if err != nil {
 			return Result{}, err
 		}
 		charName, voiceName, voice, fileBytes = c.Name, v.Name, v, raw
-		if charName == "" {
-			charName = baseNameNoExt(yamlPath)
-		}
 	} else {
 		var err error
 		charName, voiceName, err = ParseVoiceRef(req.VoiceRef)
@@ -128,92 +106,101 @@ func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	dir := outputDir(cfg)
 	reuse := cfg.Synth.CacheReuse()
 	if req.ReuseCache != nil {
 		reuse = *req.ReuseCache
 	}
 
-	dest, write, err := s.resolveOutputPath(cfg, req, charName, voiceName)
+	target, err := s.resolveTarget(cfg, req, charName, voiceName)
 	if err != nil {
 		return Result{}, err
 	}
 
-	if reuse {
-		cached, ok, err := lookupCache(dir, hash)
+	if reuse && s.artifacts != nil {
+		key, ok, err := lookupCache(s.artifacts, hash)
 		if err != nil {
 			return Result{}, err
 		}
 		if ok {
-			data, err := os.ReadFile(cached)
+			data, err := s.artifacts.Read(key)
 			if err != nil {
-				putCacheRemove(dir, hash) // best-effort; lookup already cleaned missing
-				// fall through to synthesize
-			} else if !write {
+				_ = putCacheRemove(s.artifacts, hash)
+			} else if !target.write {
 				return Result{WAV: data, FromCache: true}, nil
 			} else {
-				if err := copyFile(cached, dest); err != nil {
+				if err := s.writeTarget(target, data); err != nil {
 					return Result{}, err
 				}
-				return Result{WAV: data, Path: dest, Wrote: true, FromCache: true}, nil
+				return Result{WAV: data, Path: s.targetPath(target), Wrote: true, FromCache: true}, nil
 			}
 		}
 	}
 
+	if s.engine == nil {
+		return Result{}, fmt.Errorf("%w: engine unavailable", domain.ErrInvalid)
+	}
 	wav, err := s.engine.Synthesize(ctx, text, toEngineParam(p, speed))
 	if err != nil {
 		return Result{}, err
 	}
 	out := Result{WAV: wav}
-	if !write {
+	if !target.write {
 		return out, nil
 	}
-	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+	if err := s.writeTarget(target, wav); err != nil {
 		return Result{}, err
 	}
-	if err := os.WriteFile(dest, wav, 0o644); err != nil {
-		return Result{}, err
-	}
-	out.Path = dest
+	out.Path = s.targetPath(target)
 	out.Wrote = true
-	if err := putCache(dir, hash, filepath.Base(dest)); err != nil {
+	if err := putCache(s.artifacts, hash, target, wav); err != nil {
 		return out, err
 	}
 	return out, nil
 }
 
-func putCacheRemove(outputDir, hash string) {
-	idx, err := loadIndex(outputDir)
-	if err != nil {
-		return
-	}
-	delete(idx, hash)
-	_ = saveIndex(outputDir, idx)
+type target struct {
+	external string // -o path; empty means artifact key
+	key      string
+	write    bool
 }
 
-func (s *Service) resolveOutputPath(cfg domain.Config, req Request, charName, voiceName string) (path string, write bool, err error) {
+func (s *Service) resolveTarget(cfg domain.Config, req Request, charName, voiceName string) (target, error) {
 	if strings.TrimSpace(req.Output) != "" {
-		return req.Output, true, nil
+		return target{external: req.Output, write: true}, nil
 	}
 	if !cfg.Synth.WriteAlways() && req.Preview {
-		return "", false, nil
+		return target{}, nil
 	}
-	dir := outputDir(cfg)
+	if s.artifacts == nil {
+		return target{}, fmt.Errorf("%w: artifact store unavailable", domain.ErrInvalid)
+	}
 	format := strings.TrimSpace(cfg.Synth.OutputFormat)
 	if format == "" {
 		format = domain.DefaultOutputFormat
 	}
 	base := FormatOutputName(format, charName, voiceName)
-	path, err = UniquePath(dir, base, ".wav")
-	return path, true, err
+	key, err := uniqueKey(s.artifacts, base, ".wav")
+	if err != nil {
+		return target{}, err
+	}
+	return target{key: key, write: true}, nil
 }
 
-func outputDir(cfg domain.Config) string {
-	dir := strings.TrimSpace(cfg.Paths.OutputPath)
-	if dir == "" {
-		return domain.DefaultOutputPath()
+func (s *Service) writeTarget(t target, data []byte) error {
+	if t.external != "" {
+		if s.outputs == nil {
+			return fmt.Errorf("%w: output writer unavailable", domain.ErrInvalid)
+		}
+		return s.outputs.Write(t.external, data)
 	}
-	return dir
+	return s.artifacts.Write(t.key, data)
+}
+
+func (s *Service) targetPath(t target) string {
+	if t.external != "" {
+		return t.external
+	}
+	return s.artifacts.Path(t.key)
 }
 
 func effectiveSpeed(base int, factor float64) int {
@@ -230,8 +217,8 @@ func effectiveSpeed(base int, factor float64) int {
 	return v
 }
 
-func toEngineParam(p domain.SynthParam, speed int) EngineParam {
-	return EngineParam{
+func toEngineParam(p domain.SynthParam, speed int) port.EngineParam {
+	return port.EngineParam{
 		Version: p.Version,
 		Preset:  p.Preset,
 		Speed:   speed,

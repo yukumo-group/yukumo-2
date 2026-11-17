@@ -2,8 +2,6 @@ package synth_test
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -24,26 +22,20 @@ func TestParseVoiceRef(t *testing.T) {
 	}
 }
 
-func TestParseVoicePathSpec(t *testing.T) {
-	path, voice, err := synth.ParseVoicePathSpec(`/tmp/foo:bar.yaml:default`)
-	if err != nil || path != `/tmp/foo:bar.yaml` || voice != "default" {
-		t.Fatalf("got %q %q %v", path, voice, err)
-	}
-}
-
-func TestLoadVoiceFile(t *testing.T) {
-	dir := t.TempDir()
-	p := filepath.Join(dir, "remilia.yaml")
-	content := "name: remilia\nvoices:\n  - name: default\n    params:\n      - version: 1\n        preset: 0\n        speed: 100\n"
-	if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	c, v, raw, err := synth.LoadVoiceFile(p, "default")
+func TestLoadVoiceBytes(t *testing.T) {
+	content := []byte("name: remilia\nvoices:\n  - name: default\n    params:\n      - version: 1\n        preset: 0\n        speed: 100\n")
+	c, v, raw, err := synth.LoadVoiceBytes(content, "default", "fallback")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if c.Name != "remilia" || v.Name != "default" || len(raw) == 0 {
 		t.Fatalf("got %+v %+v len=%d", c, v, len(raw))
+	}
+	// no name in YAML falls back to the hint
+	content = []byte("voices:\n  - name: default\n    params:\n      - version: 1\n")
+	c, _, _, err = synth.LoadVoiceBytes(content, "default", "fallback")
+	if err != nil || c.Name != "fallback" {
+		t.Fatalf("fallback = %+v %v", c, err)
 	}
 }
 
