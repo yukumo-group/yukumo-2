@@ -1,38 +1,30 @@
 ---
-description: CLI docs for character and voice management, plus AquesTalk speech synthesis
-icon: book-open
+description: >-
+  Everything you need to build, deploy, and manage your projects on the
+  platform.
+icon: hand-wave
 ---
 
 # Welcome
 
-{% tabs %}
-{% tab title="English" %}
-**Yukumo Script** is a CLI for character/voice management and speech synthesis via AquesTalk WASM (`third-party/aq_wasm`).
-
-Use these docs to install the tool, create characters and voices, synthesize audio, and configure paths and cache behavior.
-{% endtab %}
-
-{% tab title="中文" %}
-**Yukumo Script** 是基于 AquesTalk WASM（`third-party/aq_wasm`）的角色/音色管理与语音合成 CLI。
-
-本文档覆盖安装构建、创建角色与音色、合成音频，以及路径与缓存配置。
-{% endtab %}
-{% endtabs %}
+Welcome to the platform. These docs cover everything from your first project to advanced workflows — pick a starting point below or ask the Assistant to jump straight to what you need.
 
 <button type="button" class="button primary" data-action="ask" data-icon="gitbook-assistant">Ask a question…</button>
 
-<button type="button" class="button secondary" data-action="ask" data-query="How do I synthesize speech with the CLI?" data-icon="waveform-lines">Synthesize speech</button><button type="button" class="button secondary" data-action="ask" data-query="How do I create a character and voice?" data-icon="user-plus">Create a character</button><button type="button" class="button secondary" data-action="ask" data-query="Where is config.yaml and what keys exist?" data-icon="sliders">Configure the CLI</button>
+<button type="button" class="button secondary" data-action="ask" data-query="How do I deploy my first project" data-icon="rocket-launch">Deploy your first project</button><button type="button" class="button secondary" data-action="ask" data-query="How do I set up a custom domain" data-icon="globe">Set up a custom domain</button><button type="button" class="button secondary" data-action="ask" data-query="How do I invite my team" data-icon="user-group">Invite your team</button>
 
 ***
 
-{% hint style="info" icon="terminal" %}
-Prefer embedding the Go API instead of the CLI? See the [API Reference](https://app.gitbook.com/s/XYoAJYQXysfu26sSYZOc/).
+{% hint style="success" icon="sparkles" %}
+**New: scheduled deploys and team-level audit logs.** Schedule deploys for any future date and review every action taken in your workspace.
+
+<a href="https://app.gitbook.com/s/NsbfOUOvEOWxSaeMAFeB/" class="button secondary">See what's new</a>
 {% endhint %}
 
 ## Where to start
 
-<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h4><i class="fa-download" style="color:$primary;">:download:</i></h4></td><td><h4>Install &amp; build</h4></td><td>Requirements, <code>just</code> recipes, and how to run the binary.</td><td><a href="getting-started/install.md">install.md</a></td></tr><tr><td><h4><i class="fa-rocket-launch" style="color:$primary;">:rocket-launch:</i></h4></td><td><h4>Quickstart</h4></td><td>Create a character, add a voice, and synthesize your first WAV.</td><td><a href="getting-started/quickstart.md">quickstart.md</a></td></tr><tr><td><h4><i class="fa-terminal" style="color:$primary;">:terminal:</i></h4></td><td><h4>CLI commands</h4></td><td><code>config</code>, <code>character</code>, <code>voice</code>, and <code>synth</code> reference.</td><td><a href="cli/overview.md">overview.md</a></td></tr><tr><td><h4><i class="fa-gear" style="color:$primary;">:gear:</i></h4></td><td><h4>Configuration</h4></td><td><code>config.yaml</code> keys, filename patterns, and write policy.</td><td><a href="reference/configuration.md">configuration.md</a></td></tr></tbody></table>
+<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h4><i class="fa-rocket-launch" style="color:$primary;">:rocket-launch:</i></h4></td><td><h4>Getting started</h4></td><td>Set up your account and ship your first project in minutes.</td><td><a href="getting-started/getting-started.md">getting-started.md</a></td></tr><tr><td><h4><i class="fa-book" style="color:$primary;">:book:</i></h4></td><td><h4>Core concepts</h4></td><td>Understand workspaces, projects, and how permissions work.</td><td><a href="core-concepts/core-concepts.md">core-concepts.md</a></td></tr><tr><td><h4><i class="fa-graduation-cap" style="color:$primary;">:graduation-cap:</i></h4></td><td><h4>Guides</h4></td><td>Walkthroughs for common tasks like custom domains and automations.</td><td><a href="guides/guides.md">guides.md</a></td></tr><tr><td><h4><i class="fa-book-open" style="color:$primary;">:book-open:</i></h4></td><td><h4>Reference</h4></td><td>Detailed configuration options, limits, and terminology.</td><td><a href="reference/reference.md">reference.md</a></td></tr></tbody></table>
 
 ## Popular tasks
 
-<table data-view="cards"><thead><tr><th></th><th data-type="content-ref"></th><th data-type="content-ref"></th><th data-type="content-ref"></th></tr></thead><tbody><tr><td><h4>Day-to-day CLI</h4></td><td><a href="cli/synth.md">synth.md</a></td><td><a href="cli/character.md">character.md</a></td><td><a href="cli/voice.md">voice.md</a></td></tr><tr><td><h4>Setup</h4></td><td><a href="cli/config.md">config.md</a></td><td><a href="reference/configuration.md">configuration.md</a></td><td><a href="getting-started/install.md">install.md</a></td></tr><tr><td><h4>Internals</h4></td><td><a href="reference/architecture.md">architecture.md</a></td><td><a href="reference/domain-model.md">domain-model.md</a></td><td><a href="https://app.gitbook.com/s/XYoAJYQXysfu26sSYZOc/">API Reference</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th data-type="content-ref"></th><th data-type="content-ref"></th><th data-type="content-ref"></th></tr></thead><tbody><tr><td><h4>For builders</h4></td><td><a href="getting-started/quickstart.md">quickstart.md</a></td><td><a href="getting-started/your-first-project.md">your-first-project.md</a></td><td><a href="guides/custom-domains.md">custom-domains.md</a></td></tr><tr><td><h4>For admins</h4></td><td><a href="core-concepts/permissions.md">permissions.md</a></td><td><a href="reference/configuration.md">configuration.md</a></td><td><a href="core-concepts/workspaces-and-projects.md">workspaces-and-projects.md</a></td></tr><tr><td><h4>For developers</h4></td><td><a href="guides/automations.md">automations.md</a></td><td><a href="reference/glossary.md">glossary.md</a></td><td><a href="reference/configuration.md">configuration.md</a></td></tr></tbody></table>
