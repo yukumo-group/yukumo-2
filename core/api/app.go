@@ -25,12 +25,12 @@ type Deps struct {
 
 // App is the use-case facade used by CLI, wasm hosts and future GUIs.
 type App struct {
-	config  *config.Service
-	chars   *character.Service
-	voices  *svcvoice.Service
-	synth   *synth.Service
-	engine  port.Engine
-	stores  []port.Store
+	config *config.Service
+	chars  *character.Service
+	voices *svcvoice.Service
+	synth  *synth.Service
+	engine port.Engine
+	stores []port.Store
 }
 
 // New wires the use cases around host-supplied ports. It performs no OS IO.
