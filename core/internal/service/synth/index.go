@@ -96,7 +96,9 @@ func lookupCache(a port.ArtifactStore, hash string) (key string, ok bool, err er
 	return key, true, nil
 }
 
-func putCache(a port.ArtifactStore, hash string, t target, wav []byte) error {
+// putCache records hash → key; an external output keeps its own key and gets a
+// cache copy under cacheKey.
+func putCache(a port.ArtifactStore, hash, key string, external bool, wav []byte) error {
 	if a == nil {
 		return nil
 	}
@@ -104,8 +106,7 @@ func putCache(a port.ArtifactStore, hash string, t target, wav []byte) error {
 	if err != nil {
 		return err
 	}
-	key := t.key
-	if t.external != "" {
+	if external {
 		key = cacheKey(hash)
 		if err := a.Write(key, wav); err != nil {
 			return err

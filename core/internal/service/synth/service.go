@@ -152,7 +152,7 @@ func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
 	}
 	out.Path = s.targetPath(target)
 	out.Wrote = true
-	if err := putCache(s.artifacts, hash, target, wav); err != nil {
+	if err := putCache(s.artifacts, hash, target.key, target.external != "", wav); err != nil {
 		return out, err
 	}
 	return out, nil
