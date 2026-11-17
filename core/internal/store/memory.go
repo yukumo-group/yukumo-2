@@ -1,11 +1,15 @@
 package store
 
 import (
+	"context"
 	"path"
+	"sort"
 	"strings"
 	"sync"
 )
 
+// Memory is a pure in-memory store. It also implements port.ArtifactStore and
+// port.Flusher so tests and wasm hosts can use it directly.
 type Memory struct {
 	mu   sync.RWMutex
 	data map[string][]byte
@@ -65,6 +69,7 @@ func (m *Memory) List(dir string) ([]string, error) {
 			}
 		}
 	}
+	sort.Strings(out)
 	return out, nil
 }
 
@@ -77,3 +82,9 @@ func (m *Memory) Delete(name string) error {
 	delete(m.data, name)
 	return nil
 }
+
+// Path makes Memory usable as a port.ArtifactStore; it is display-only.
+func (m *Memory) Path(key string) string { return key }
+
+// Flush makes Memory usable as a port.Flusher.
+func (m *Memory) Flush(context.Context) error { return nil }

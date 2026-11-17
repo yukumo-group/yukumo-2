@@ -1,11 +1,5 @@
 package domain
 
-import (
-	"fmt"
-	"os"
-	"path/filepath"
-)
-
 type Config struct {
 	Characters CharacterConfig `yaml:"characters"`
 	Paths      PathConfig      `yaml:"paths"`
@@ -62,26 +56,13 @@ type CharacterConfig struct {
 	InitDefaultVoice bool `yaml:"init_default_voice"`
 }
 
-func DefaultCharacterPath() string {
-	base, err := os.UserConfigDir()
-	if err != nil {
-		panic(fmt.Sprintf("resolve user config dir: %v", err))
-	}
-	return filepath.Join(base, "yukumo-script", "characters")
-}
-
-func DefaultOutputPath() string {
-	return filepath.Join(os.TempDir(), "yukumo-script")
-}
-
-func DefaultConfig() Config {
+// DefaultConfig returns non-OS defaults. The platform composition root supplies
+// PathConfig (filesystem paths for CLI, logical namespaces for web).
+func DefaultConfig(paths PathConfig) Config {
 	on := true
 	off := false
 	return Config{
-		Paths: PathConfig{
-			CharacterPath: DefaultCharacterPath(),
-			OutputPath:    DefaultOutputPath(),
-		},
+		Paths: paths,
 		CLI: CLIConfig{
 			DefaultInteractive: &on,
 			WithAccessibility:  &off,

@@ -2,7 +2,7 @@ package character
 
 import (
 	"fmt"
-	"path/filepath"
+	"path"
 	"sort"
 	"strings"
 
@@ -11,25 +11,21 @@ import (
 )
 
 func (s *Service) List() ([]domain.Character, error) {
-	b, err := s.backend()
-	if err != nil {
-		return nil, err
-	}
-	names, err := b.List("")
+	names, err := s.store.List("")
 	if err != nil {
 		return nil, err
 	}
 	out := make([]domain.Character, 0, len(names))
 	for _, name := range names {
-		if !strings.EqualFold(filepath.Ext(name), ".yaml") && !strings.EqualFold(filepath.Ext(name), ".yml") {
+		if !strings.EqualFold(path.Ext(name), ".yaml") && !strings.EqualFold(path.Ext(name), ".yml") {
 			continue
 		}
-		c, err := store.LoadYAML[domain.Character](b, name)
+		c, err := store.LoadYAML[domain.Character](s.store, name)
 		if err != nil {
 			return nil, fmt.Errorf("load %s: %w", name, err)
 		}
 		if c.Name == "" {
-			c.Name = strings.TrimSuffix(name, filepath.Ext(name))
+			c.Name = strings.TrimSuffix(name, path.Ext(name))
 		}
 		out = append(out, c)
 	}

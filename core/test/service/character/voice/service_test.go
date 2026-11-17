@@ -21,7 +21,7 @@ func (allowAllPresets) PresetNames(context.Context, int32) ([]string, error) {
 }
 
 func TestVoiceCRUD(t *testing.T) {
-	chars := svccharacter.NewWithStore(store.NewMemory())
+	chars := svccharacter.New(nil, store.NewMemory())
 	voices := svcvoice.New(chars, allowAllPresets{})
 	if err := chars.Add(domain.Character{Name: "Alice"}); err != nil {
 		t.Fatal(err)

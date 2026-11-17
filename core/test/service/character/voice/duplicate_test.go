@@ -11,7 +11,7 @@ import (
 )
 
 func TestDuplicate(t *testing.T) {
-	chars := svccharacter.NewWithStore(store.NewMemory())
+	chars := svccharacter.New(nil, store.NewMemory())
 	voices := svcvoice.New(chars, allowAllPresets{})
 	if err := chars.Add(domain.Character{Name: "A"}); err != nil {
 		t.Fatal(err)

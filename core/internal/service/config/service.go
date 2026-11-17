@@ -1,36 +1,35 @@
 package config
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
 	"yukumo-script/core/internal/domain"
 	"yukumo-script/core/internal/store"
+	"yukumo-script/core/port"
 )
 
 const fileName = "config.yaml"
 
 type Service struct {
-	store store.Store
+	store    port.Store
+	defaults domain.Config
 }
 
-func New(s store.Store) *Service {
-	return &Service{store: s}
+func New(s port.Store, defaults domain.Config) *Service {
+	return &Service{store: s, defaults: defaults}
 }
 
 func (s *Service) Get() (domain.Config, error) {
-	cfg, err := store.LoadYAMLOrDefault(s.store, fileName, domain.DefaultConfig())
+	cfg, err := store.LoadYAMLOrDefault(s.store, fileName, s.defaults)
 	if err != nil {
 		return cfg, err
 	}
-	applyPathDefaults(&cfg)
+	applyDefaults(&cfg, s.defaults)
 	return cfg, nil
 }
 
 func (s *Service) Save(cfg domain.Config) error {
-	applyPathDefaults(&cfg)
-	ensurePaths(cfg)
+	applyDefaults(&cfg, s.defaults)
 	return store.SaveYAML(s.store, fileName, cfg)
 }
 
@@ -46,43 +45,34 @@ func (s *Service) Edit(mutate func(*domain.Config)) (domain.Config, error) {
 	return cfg, nil
 }
 
-// EnsurePaths creates configured directories; panics if creation fails (e.g. permission denied).
-func (s *Service) EnsurePaths() {
-	cfg, err := s.Get()
-	if err != nil {
-		panic(fmt.Sprintf("load config for path ensure: %v", err))
-	}
-	ensurePaths(cfg)
-}
-
-func applyPathDefaults(cfg *domain.Config) {
+func applyDefaults(cfg *domain.Config, def domain.Config) {
 	if strings.TrimSpace(cfg.Paths.CharacterPath) == "" {
-		cfg.Paths.CharacterPath = domain.DefaultCharacterPath()
+		cfg.Paths.CharacterPath = def.Paths.CharacterPath
 	}
 	if strings.TrimSpace(cfg.Paths.OutputPath) == "" {
-		cfg.Paths.OutputPath = domain.DefaultOutputPath()
+		cfg.Paths.OutputPath = def.Paths.OutputPath
 	}
 	if strings.TrimSpace(cfg.Synth.OutputFormat) == "" {
-		cfg.Synth.OutputFormat = domain.DefaultOutputFormat
+		cfg.Synth.OutputFormat = def.Synth.OutputFormat
 	}
 	if cfg.Synth.AlwaysWrite == nil {
-		on := true
-		cfg.Synth.AlwaysWrite = &on
+		cfg.Synth.AlwaysWrite = boolPtr(def.Synth.AlwaysWrite, true)
 	}
 	if cfg.Synth.ReuseCache == nil {
-		on := true
-		cfg.Synth.ReuseCache = &on
+		cfg.Synth.ReuseCache = boolPtr(def.Synth.ReuseCache, true)
+	}
+	if cfg.CLI.DefaultInteractive == nil {
+		cfg.CLI.DefaultInteractive = boolPtr(def.CLI.DefaultInteractive, true)
+	}
+	if cfg.CLI.WithAccessibility == nil {
+		cfg.CLI.WithAccessibility = boolPtr(def.CLI.WithAccessibility, false)
 	}
 }
 
-func ensurePaths(cfg domain.Config) {
-	for _, p := range []string{cfg.Paths.CharacterPath, cfg.Paths.OutputPath} {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
-		if err := os.MkdirAll(p, 0o755); err != nil {
-			panic(fmt.Sprintf("create config path %q: %v", p, err))
-		}
+func boolPtr(v *bool, def bool) *bool {
+	b := def
+	if v != nil {
+		b = *v
 	}
+	return &b
 }

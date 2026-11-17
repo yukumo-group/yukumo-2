@@ -2,6 +2,7 @@ go 1.27
 
 use (
 	./core
+	./core/port
 	./core/api
 	./cli
 	./runtime

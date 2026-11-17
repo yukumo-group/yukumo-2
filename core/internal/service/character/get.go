@@ -18,11 +18,7 @@ func (s *Service) Get(name string) (domain.Character, error) {
 	if err != nil {
 		return domain.Character{}, err
 	}
-	b, err := s.backend()
-	if err != nil {
-		return domain.Character{}, err
-	}
-	c, err := store.LoadYAML[domain.Character](b, file)
+	c, err := store.LoadYAML[domain.Character](s.store, file)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return domain.Character{}, fmt.Errorf("%w: character %q", domain.ErrNotFound, name)

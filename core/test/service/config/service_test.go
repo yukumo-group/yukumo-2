@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -11,15 +10,19 @@ import (
 )
 
 func TestGetDefaultAndEdit(t *testing.T) {
+	dir := t.TempDir()
+	chars := filepath.Join(dir, "characters")
+	out := filepath.Join(dir, "output")
+	defaults := domain.DefaultConfig(domain.PathConfig{CharacterPath: chars, OutputPath: out})
 	mem := store.NewMemory()
-	svc := svcconfig.New(mem)
+	svc := svcconfig.New(mem, defaults)
 
 	cfg, err := svc.Get()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Paths.CharacterPath != domain.DefaultCharacterPath() ||
-		cfg.Paths.OutputPath != domain.DefaultOutputPath() ||
+	if cfg.Paths.CharacterPath != chars ||
+		cfg.Paths.OutputPath != out ||
 		cfg.Characters.InitDefaultVoice {
 		t.Fatalf("unexpected default: %+v", cfg)
 	}
@@ -31,9 +34,6 @@ func TestGetDefaultAndEdit(t *testing.T) {
 		t.Fatalf("unexpected synth defaults: %+v", cfg.Synth)
 	}
 
-	dir := t.TempDir()
-	chars := filepath.Join(dir, "characters")
-	out := filepath.Join(dir, "output")
 	cfg, err = svc.Edit(func(c *domain.Config) {
 		c.Paths.CharacterPath = chars
 		c.Paths.OutputPath = out
@@ -52,12 +52,6 @@ func TestGetDefaultAndEdit(t *testing.T) {
 	if cfg.Synth.OutputFormat != "{character}-{voice}" || cfg.Synth.WriteAlways() {
 		t.Fatalf("synth after edit: %+v", cfg.Synth)
 	}
-	for _, p := range []string{chars, out} {
-		if st, err := os.Stat(p); err != nil || !st.IsDir() {
-			t.Fatalf("expected dir %q created: %v", p, err)
-		}
-	}
-
 	got, err := svc.Get()
 	if err != nil {
 		t.Fatal(err)
@@ -71,25 +65,5 @@ func TestGetDefaultAndEdit(t *testing.T) {
 	}
 	if got.Synth.OutputFormat != "{character}-{voice}" || got.Synth.WriteAlways() {
 		t.Fatalf("persisted synth = %+v", got.Synth)
-	}
-}
-
-func TestEnsurePathsCreatesDirs(t *testing.T) {
-	mem := store.NewMemory()
-	svc := svcconfig.New(mem)
-	dir := t.TempDir()
-	chars := filepath.Join(dir, "characters")
-	out := filepath.Join(dir, "output")
-	if _, err := svc.Edit(func(c *domain.Config) {
-		c.Paths.CharacterPath = chars
-		c.Paths.OutputPath = out
-	}); err != nil {
-		t.Fatal(err)
-	}
-	svc.EnsurePaths()
-	for _, p := range []string{chars, out} {
-		if st, err := os.Stat(p); err != nil || !st.IsDir() {
-			t.Fatalf("expected dir %q: %v", p, err)
-		}
 	}
 }

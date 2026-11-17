@@ -1,9 +1,8 @@
 package voice
 
 import (
-	"context"
-
 	"yukumo-script/core/internal/domain"
+	"yukumo-script/core/port"
 )
 
 type Characters interface {
@@ -11,18 +10,13 @@ type Characters interface {
 	Update(oldName string, c domain.Character) error
 }
 
-type PresetCatalog interface {
-	HasPreset(ctx context.Context, version, preset int32) (bool, error)
-	PresetNames(ctx context.Context, version int32) ([]string, error)
-}
-
 type Service struct {
 	chars   Characters
-	presets PresetCatalog
+	presets port.PresetCatalog
 }
 
-func New(chars Characters, presets PresetCatalog) *Service {
+func New(chars Characters, presets port.PresetCatalog) *Service {
 	return &Service{chars: chars, presets: presets}
 }
 
-func (s *Service) Presets() PresetCatalog { return s.presets }
+func (s *Service) Presets() port.PresetCatalog { return s.presets }

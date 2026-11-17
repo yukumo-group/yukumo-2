@@ -18,11 +18,7 @@ func (s *Service) Delete(name string) error {
 	if err != nil {
 		return err
 	}
-	b, err := s.backend()
-	if err != nil {
-		return err
-	}
-	if err := b.Delete(file); err != nil {
+	if err := s.store.Delete(file); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return fmt.Errorf("%w: character %q", domain.ErrNotFound, name)
 		}

@@ -11,7 +11,7 @@ import (
 
 func TestCRUD(t *testing.T) {
 	mem := store.NewMemory()
-	svc := svccharacter.NewWithStore(mem)
+	svc := svccharacter.New(nil, mem)
 
 	if err := svc.Add(domain.Character{Name: "Alice", Description: "hero"}); err != nil {
 		t.Fatal(err)
@@ -83,7 +83,7 @@ func TestCRUD(t *testing.T) {
 }
 
 func TestAddRequiresName(t *testing.T) {
-	svc := svccharacter.NewWithStore(store.NewMemory())
+	svc := svccharacter.New(nil, store.NewMemory())
 	if err := svc.Add(domain.Character{}); !errors.Is(err, domain.ErrInvalid) {
 		t.Fatalf("err=%v", err)
 	}

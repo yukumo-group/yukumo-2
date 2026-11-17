@@ -17,11 +17,7 @@ func (s *Service) Add(c domain.Character) error {
 	if err != nil {
 		return err
 	}
-	b, err := s.backend()
-	if err != nil {
-		return err
-	}
-	exists, err := b.Exists(file)
+	exists, err := s.store.Exists(file)
 	if err != nil {
 		return err
 	}
@@ -37,5 +33,5 @@ func (s *Service) Add(c domain.Character) error {
 	for i := range c.Voices {
 		c.Voices[i].Normalize()
 	}
-	return store.SaveYAML(b, file, c)
+	return store.SaveYAML(s.store, file, c)
 }

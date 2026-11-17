@@ -23,12 +23,7 @@ func (s *Service) Update(oldName string, c domain.Character) error {
 	if err != nil {
 		return err
 	}
-	b, err := s.backend()
-	if err != nil {
-		return err
-	}
-
-	if _, err := store.LoadYAML[domain.Character](b, oldFile); err != nil {
+	if _, err := store.LoadYAML[domain.Character](s.store, oldFile); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return fmt.Errorf("%w: character %q", domain.ErrNotFound, oldName)
 		}
@@ -36,7 +31,7 @@ func (s *Service) Update(oldName string, c domain.Character) error {
 	}
 
 	if oldFile != newFile {
-		exists, err := b.Exists(newFile)
+		exists, err := s.store.Exists(newFile)
 		if err != nil {
 			return err
 		}
@@ -48,11 +43,11 @@ func (s *Service) Update(oldName string, c domain.Character) error {
 	for i := range c.Voices {
 		c.Voices[i].Normalize()
 	}
-	if err := store.SaveYAML(b, newFile, c); err != nil {
+	if err := store.SaveYAML(s.store, newFile, c); err != nil {
 		return err
 	}
 	if oldFile != newFile {
-		if err := b.Delete(oldFile); err != nil {
+		if err := s.store.Delete(oldFile); err != nil {
 			return err
 		}
 	}
