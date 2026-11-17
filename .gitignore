@@ -1,7 +1,7 @@
 .claude/
 .cursor/
 .idea/
-yukumo-script
+/yukumo-script
 *.exe
 *.test
 *.out
@@ -9,3 +9,10 @@ vendor/
 
 *.yaml
 *.yml
+!.github/
+!.github/**
+!.golangci.yml
+!**/.golangci.yml
+.dsh-plugins/
+
+/wasmtest/.build/

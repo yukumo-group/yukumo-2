@@ -1,0 +1,63 @@
+version: "2"
+
+linters:
+  enable:
+    - depguard
+    - staticcheck
+  settings:
+    depguard:
+      rules:
+        domain:
+          files:
+            - "internal/domain/**"
+          deny:
+            - pkg: "yukumo-script"
+              desc: "domain is the bottom layer"
+        store:
+          files:
+            - "internal/store/*.go"
+          deny:
+            - pkg: "yukumo-script/core/internal/service"
+            - pkg: "yukumo-script/core/api"
+            - pkg: "yukumo-script/cli"
+            - pkg: "yukumo-script/runtime"
+            - pkg: "os"
+            - pkg: "path/filepath"
+        store-fs:
+          files:
+            - "internal/store/fs/**"
+          deny:
+            - pkg: "yukumo-script/core/internal/service"
+            - pkg: "yukumo-script/core/api"
+            - pkg: "yukumo-script/cli"
+            - pkg: "yukumo-script/runtime"
+        service:
+          files:
+            - "internal/service/**"
+          deny:
+            - pkg: "yukumo-script/runtime"
+              desc: "service owns the engine port; runtime is an adapter"
+            - pkg: "yukumo-script/core/api"
+              desc: "api depends on service, not the other way around"
+            - pkg: "yukumo-script/cli"
+              desc: "service must not depend on the interaction layer"
+            - pkg: "os"
+              desc: "service must not do OS IO"
+            - pkg: "path/filepath"
+              desc: "service must not do OS IO"
+            - pkg: "github.com/tetratelabs/wazero"
+        core-test:
+          files:
+            - "test/**"
+          deny:
+            - pkg: "yukumo-script/runtime"
+            - pkg: "yukumo-script/core/api"
+            - pkg: "yukumo-script/cli"
+        core-external:
+          files:
+            - "**/*.go"
+          deny:
+            - pkg: "github.com/tetratelabs/wazero"
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"

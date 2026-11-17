@@ -1,0 +1,23 @@
+version: "2"
+
+linters:
+  enable:
+    - depguard
+    - staticcheck
+  settings:
+    depguard:
+      rules:
+        wasmtest:
+          files:
+            - "**/*.go"
+          deny:
+            - pkg: "yukumo-script/runtime"
+              desc: "the wasm host must supply the engine"
+            - pkg: "github.com/tetratelabs/wazero"
+            - pkg: "yukumo-script/cli"
+            - pkg: "yukumo-script/core/internal"
+            - pkg: "yukumo-script/core/api/cliopen"
+            - pkg: "gopkg.in/yaml.v3"
+            - pkg: "github.com/spf13/cobra"
+            - pkg: "github.com/charmbracelet/huh"
+            - pkg: "github.com/charmbracelet/lipgloss"

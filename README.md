@@ -6,21 +6,28 @@ CLI for character/voice management and speech synthesis via AquesTalk WASM (`thi
 
 ## Architecture
 
-Layers (dependencies point downward only):
+Modules (dependencies point downward only):
 
 ```
-cli → service → domain
-              ↘ store
-              ↘ runtime(aq) → aq_wasm.wasm (Yukw) → AquesTalk engines
+cli/cmd/yukumo-script (main)
+  ↓
+cli  ── cobra / huh / lipgloss
+  ↓
+core/api  ── DTO use-case facade + composition root
+  ↓                    ↘
+core/internal/service   runtime/aq → aq_wasm.wasm (Yukw) → AquesTalk
+  ↓
+core/internal/{domain, store}
 ```
 
-| Layer | Responsibility |
+| Module | Responsibility |
 |---|---|
-| `domain` | Pure models, defaults, normalization |
-| `store` | Named byte IO, YAML encode/decode |
+| `core/internal/domain` | Pure models, defaults, normalization |
+| `core/internal/store` | Named byte IO, YAML encode/decode |
+| `core/internal/service` | Use-cases; depends on store/runtime/other services via interfaces |
 | `runtime/aq` | wazero runtime, `aq_*` exports, multi-goroutine pool |
-| `service/*` | Use-cases; depends on store/runtime/other services via interfaces |
-| `cli/*` | cobra commands, huh TUI, audio preview |
+| `core/api` | DTO facade + use-case API for CLI / future GUIs |
+| `cli` | cobra commands, huh TUI, audio preview |
 
 **Yukw**: a Rust compatibility layer that links multiple AquesTalk product WASMs into one `aq_wasm.wasm`, exporting a unified `aq_*` synth/query API plus host heap helpers (`malloc`, `free`, …). This repo’s `runtime/aq` loads that module through wazero.
 
@@ -42,36 +49,39 @@ Yes — `aq.Pool` allows parallel use across goroutines; preview playback can al
 ### Decoupling
 
 - `store.Store` plus `Reader` / `Writer` / `ExistenceChecker` / `Lister` / `Deleter` let CRUD swap backends. Tests use `Memory` (no real FS); production uses `FS`.
-- `service/character/voice` depends only on `Characters` (load/update character) and `PresetCatalog` (ask whether a preset is valid)—not on character disk paths or a global WASM singleton. The same voice logic can wire a real character service + `aq.Pool`, or in-memory fakes in tests.
-- `service/synth` depends on `Config`, `Voices`, and `Engine` only—who supplies config, voices, and synthesis is replaceable. Write policy stays in the service; printing paths and preview stay in the CLI (`runRequest`).
+- `core/internal/service/character/voice` depends only on `Characters` (load/update character) and `PresetCatalog` (ask whether a preset is valid)—not on character disk paths or a global WASM singleton. The same voice logic can wire a real character service + `aq.Pool`, or in-memory fakes in tests.
+- `core/internal/service/synth` depends on `Config`, `Voices`, and `Engine` only—who supplies config, voices, and synthesis is replaceable. Write policy stays in the service; printing paths and preview stay in the CLI (`runRequest`).
 - `cli/setting` describes fields and model get/set; `cli/prompt` asks the user. Config / character / voice params share Ask, Browse, and Normalize—change widgets without touching field tables, and vice versa.
 - `cli/browse` mounts menus on branch commands when `cli.default_interactive=true`; leaf work remains each command’s `RunE`.
+- CLI imports only `core/api`; Go's `internal` rule makes `core/internal/*` unreachable from the CLI module. depguard checks the remaining layer directions.
 
 ## Build & run
 
-Requires `third-party/aq_wasm.wasm` (or `YUKUMO_AQ_WASM`).
+Requires `third-party/aq_wasm.wasm` (or `YUKUMO_AQ_WASM`). Development commands use `just`; `just lint` / `just build` require golangci-lint v2 (`just install-tools`).
 
 ```bash
-go build -o yukumo-script .
-go test ./test/...
+just build          # depguard + staticcheck, then build
+just test           # all modules
+just ci             # replace check + lint + build + test + vet
 
 # Interactive root menu (cli.default_interactive defaults to true)
-go run .
+just run
+# or: go run ./cli/cmd/yukumo-script
 
 # Create character + voice (pick one; do not add the same default voice twice)
 # A: auto default voice (v1) on character add
-go run . config edit characters.init_default_voice true
-go run . character add remilia "example"
+go run ./cli/cmd/yukumo-script config edit characters.init_default_voice true
+go run ./cli/cmd/yukumo-script character add remilia "example"
 # B: add voice manually
-# go run . character add remilia "example"
-# go run . character remilia voice add default 1
+# go run ./cli/cmd/yukumo-script character add remilia "example"
+# go run ./cli/cmd/yukumo-script character remilia voice add default 1
 # Note: with default interactive, voice add opens the param editor; accept defaults to continue.
-# For scripting first: go run . config edit cli.default_interactive false
+# For scripting first: go run ./cli/cmd/yukumo-script config edit cli.default_interactive false
 
-go run . synth -v remilia:default "こんにちは"
-go run . synth -v remilia:default -p "こんにちは"          # preview
-go run . synth -v remilia:default -o /tmp/out.wav "テスト" # explicit output
-go run . synth -P ./remilia.yaml:default "こんにちは"      # override character YAML path
+go run ./cli/cmd/yukumo-script synth -v remilia:default "こんにちは"
+go run ./cli/cmd/yukumo-script synth -v remilia:default -p "こんにちは"          # preview
+go run ./cli/cmd/yukumo-script synth -v remilia:default -o /tmp/out.wav "テスト" # explicit output
+go run ./cli/cmd/yukumo-script synth -P ./remilia.yaml:default "こんにちは"      # override character YAML path
 ```
 
 ## CLI

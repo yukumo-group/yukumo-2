@@ -6,21 +6,28 @@ AquesTalk WASM（`third-party/aq_wasm`）语音合成与角色/音色管理 CLI�
 
 ## 架构
 
-分层（依赖方向只向下）：
+模块（依赖方向只向下）：
 
 ```
-cli → service → domain
-              ↘ store
-              ↘ runtime(aq) → aq_wasm.wasm（Yukw）→ AquesTalk 引擎
+cli/cmd/yukumo-script（main）
+  ↓
+cli  ── cobra / huh / lipgloss
+  ↓
+core/api  ── DTO 用例门面 + 组合根
+  ↓                    ↘
+core/internal/service   runtime/aq → aq_wasm.wasm（Yukw）→ AquesTalk
+  ↓
+core/internal/{domain, store}
 ```
 
-| 层 | 职责 |
+| module | 职责 |
 |---|---|
-| `domain` | 纯数据模型，数据默认值和规范化 |
-| `store` | 通用数据读写，YAML 数据编解码 |
+| `core/internal/domain` | 纯数据模型，数据默认值和规范化 |
+| `core/internal/store` | 通用数据读写，YAML 数据编解码 |
+| `core/internal/service` | 各种业务逻辑实现，通过接口依赖 store/runtime/其它 service |
 | `runtime/aq` | 底层引擎，wazero 实例、`aq_*` 导出、多线程实例池 |
-| `service/*` | 各种业务逻辑实现，通过接口依赖 store/runtime/其它 service |
-| `cli/*` | 交互层，cobra 命令、huh TUI、音频预览 |
+| `core/api` | DTO 门面 + CLI / 未来 GUI 的用例 API |
+| `cli` | 交互层，cobra 命令、huh TUI、音频预览 |
 
 **Yukw**：用 Rust 编写的兼容层，把多个 AquesTalk 产品的 WASM 串成单一模块 `aq_wasm.wasm`，并导出统一的 `aq_*` 合成/查询 API，以及 `malloc` / `free` 等宿主侧内存分配接口。本仓库的 `runtime/aq` 经 wazero 加载该模块。
 
@@ -42,36 +49,39 @@ cli → service → domain
 ### 解耦
 
 - 实现了 `store.Store` 接口及 `Reader`、`Writer`、`ExistenceChecker`、`Lister`、`Deleter` 子接口，使得增删查改可以换不同存储实现。单元测试用 `Memory`，不必碰真实文件系统；生产用 `FS` 输出。
-- `service/character/voice` 只依赖 `Characters`（读改角色）和 `PresetCatalog`（问引擎某 preset 是否合法），不直接依赖 character 的磁盘路径，也不绑定某一个全局 WASM 实例。因此同一套 voice 逻辑既能挂真实角色 service + `aq.Pool`，也能在测试里换成内存角色与假 catalog。
-- `service/synth` 只依赖 `Config`、`Voices`、`Engine` 三个接口：向谁要配置、向谁取音色、用谁合成，都可以替换。输出策略（写不写、写哪）留在 service；终端打印路径与播放预览留在 CLI（`runRequest`），互不拖拽。
+- `core/internal/service/character/voice` 只依赖 `Characters`（读改角色）和 `PresetCatalog`（问引擎某 preset 是否合法），不直接依赖 character 的磁盘路径，也不绑定某一个全局 WASM 实例。因此同一套 voice 逻辑既能挂真实角色 service + `aq.Pool`，也能在测试里换成内存角色与假 catalog。
+- `core/internal/service/synth` 只依赖 `Config`、`Voices`、`Engine` 三个接口：向谁要配置、向谁取音色、用谁合成，都可以替换。输出策略（写不写、写哪）留在 service；终端打印路径与播放预览留在 CLI（`runRequest`），互不拖拽。
 - `cli/setting` 描述「有哪些字段、如何读写模型」；`cli/prompt` 负责「怎么问用户」。config / character / voice param 共用同一套 Ask、Browse、Normalize，改交互控件不必改业务字段表，反之亦然。
 - `cli/browse` 在 `cli.default_interactive=true` 时给「有子命令」的节点挂菜单导航；真正干活的仍是各叶子命令自己的 `RunE`，命令树与交互壳分离。
+- CLI 只 import `core/api`；Go 的 `internal` 规则让 CLI module 无法直接访问 `core/internal/*`，其余方向由 depguard 检查。
 
 ## 构建与运行
 
-需可用的 `third-party/aq_wasm.wasm`（或设 `YUKUMO_AQ_WASM`）。
+需可用的 `third-party/aq_wasm.wasm`（或设 `YUKUMO_AQ_WASM`）。开发命令使用 `just`；`just lint` / `just build` 需要 golangci-lint v2（可用 `just install-tools`）。
 
 ```bash
-go build -o yukumo-script .
-go test ./test/...
+just build          # depguard + staticcheck 通过后再 build
+just test           # 全部 module
+just ci             # replace 检查 + lint + build + test + vet
 
 # 交互根菜单（cli.default_interactive 默认为 true）
-go run .
+just run
+# 或：go run ./cli/cmd/yukumo-script
 
 # 创建角色 + 音色（二选一，勿对同一角色重复加同名 default）
 # A：character add 时自动带 default（v1）
-go run . config edit characters.init_default_voice true
-go run . character add remilia "example"
+go run ./cli/cmd/yukumo-script config edit characters.init_default_voice true
+go run ./cli/cmd/yukumo-script character add remilia "example"
 # B：手动添加音色
-# go run . character add remilia "example"
-# go run . character remilia voice add default 1
+# go run ./cli/cmd/yukumo-script character add remilia "example"
+# go run ./cli/cmd/yukumo-script character remilia voice add default 1
 # 注意：默认 interactive 下，voice add 会进入 param 编辑；确认默认值退出即可。
-# 纯脚本可先：go run . config edit cli.default_interactive false
+# 纯脚本可先：go run ./cli/cmd/yukumo-script config edit cli.default_interactive false
 
-go run . synth -v remilia:default "こんにちは"
-go run . synth -v remilia:default -p "こんにちは"          # 预览播放
-go run . synth -v remilia:default -o /tmp/out.wav "テスト" # 指定输出
-go run . synth -P ./remilia.yaml:default "こんにちは"      # 覆盖角色文件路径
+go run ./cli/cmd/yukumo-script synth -v remilia:default "こんにちは"
+go run ./cli/cmd/yukumo-script synth -v remilia:default -p "こんにちは"          # 预览播放
+go run ./cli/cmd/yukumo-script synth -v remilia:default -o /tmp/out.wav "テスト" # 指定输出
+go run ./cli/cmd/yukumo-script synth -P ./remilia.yaml:default "こんにちは"      # 覆盖角色文件路径
 ```
 
 ## CLI 命令
