@@ -14,3 +14,5 @@ vendor/
 !.golangci.yml
 !**/.golangci.yml
 .dsh-plugins/
+
+/wasmtest/.build/

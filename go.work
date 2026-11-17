@@ -6,4 +6,5 @@ use (
 	./core/api
 	./cli
 	./runtime
+	./wasmtest
 )
