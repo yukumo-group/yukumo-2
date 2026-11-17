@@ -1,11 +1,13 @@
 # Table of contents
 
-* [Overview](README.md)
-* [App & deps](app.md)
-* [Models](models.md)
-* [Config](config.md)
-* [Characters](characters.md)
-* [Voices](voices.md)
-* [Synth](synth.md)
-* [cliopen](cliopen.md)
-* [Errors](errors.md)
+* ```yaml
+  type: builtin:openapi
+  props:
+    models: true
+    downloadLink: true
+  dependencies:
+    spec:
+      ref:
+        kind: openapi
+        spec: gitbook-petstore
+  ```
