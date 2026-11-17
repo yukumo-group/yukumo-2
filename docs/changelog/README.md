@@ -1,5 +1,5 @@
 ---
-description: Release notes for Yukumo Script
+description: New updates and improvements
 icon: clock-rotate-left
 layout:
   width: wide
@@ -25,28 +25,126 @@ layout:
 
 # Changelog
 
+
+
 {% updates format="full" %}
-{% update date="2026-11-16" tags="feature,docs" %}
-## Initial release
+{% update date="2025-12-03" tags="feature,improvement,fix" %}
+## Product update
 
-Yukumo Script ships as a CLI for character/voice management and AquesTalk WASM speech synthesis, with a Go use-case facade for hosts and future GUIs.
+See what’s new and improved in our latest update.
 
-### Highlights
+<div align="left"><figure><img src="https://gitbookio.github.io/onboarding-template-images/placeholder.png" alt=""><figcaption></figcaption></figure></div>
 
-* Interactive and scripted CLI (`config`, `character`, `voice`, `synth`)
-* Layered `core/api` + `core/internal/*` + `runtime/aq` architecture
-* Synth cache via `output_path/index.yaml` with multithread-safe copy-on-hit
-* Docs site: Documentation, API Reference, and Changelog
+### Product feature
 
-<a href="2026/initial-release.md" class="button primary">Read full update</a><a href="https://app.gitbook.com/s/A67wXyFHjvGTd6AJa6xT/" class="button secondary">Documentation</a>
+* Feature description
+* Feature description
+
+### Product feature
+
+* Feature description
+* Feature description
+
+<a href="2026/product-update.md" class="button primary">Read full update</a><a href="https://gitbook.com/" class="button secondary">Documentation</a>
 
 <details>
-<summary>Included</summary>
 
-* Character / voice CRUD with per-version synth params (1 / 2 / 10)
-* Preview playback (`-p`) and explicit output (`-o`)
-* `cliopen.Open` composition root for FS + `aq.Pool`
-* Config keys for paths, cache, write policy, and interactive defaults
+<summary>Improved</summary>
+
+* Product improvement
+* Product improvement
+* Product improvement
+* Product improvement
+* Product improvement
+
 </details>
+
+<details>
+
+<summary>Fixed</summary>
+
+* Product fix
+* Product fix
+* Product fix
+* Product fix
+* Product fix
+
+</details>
+{% endupdate %}
+
+{% update date="2026-05-08" tags="feature,fix" %}
+## Product update
+
+See what’s new and improved in our latest update.
+
+<div align="left"><figure><img src="https://gitbookio.github.io/onboarding-template-images/placeholder.png" alt=""><figcaption></figcaption></figure></div>
+
+### Product feature
+
+* Feature description
+* Feature description
+
+<a href="2026/product-update-1.md" class="button primary">Read full update</a><a href="https://gitbook.com/" class="button secondary">Documentation</a>
+
+<details>
+
+<summary>Fixed</summary>
+
+* Product fix
+* Product fix
+* Product fix
+* Product fix
+* Product fix
+
+</details>
+{% endupdate %}
+
+{% update date="2025-11-18" tags="improvement,fix" %}
+## Product update
+
+See what’s new and improved in our latest update.
+
+<a href="2025/product-update.md" class="button primary">Read full update</a><a href="https://gitbook.com/" class="button secondary">Documentation</a>
+
+<details>
+
+<summary>Improved</summary>
+
+* Product improvement
+* Product improvement
+* Product improvement
+* Product improvement
+* Product improvement
+
+</details>
+
+<details>
+
+<summary>Fixed</summary>
+
+* Product fix
+* Product fix
+* Product fix
+* Product fix
+* Product fix
+
+</details>
+{% endupdate %}
+
+{% update date="2025-06-09" tags="feature" %}
+## Product update
+
+See what’s new and improved in our latest update.
+
+
+
+<div align="left"><figure><img src="https://gitbookio.github.io/onboarding-template-images/placeholder.png" alt=""><figcaption></figcaption></figure></div>
+
+### Product feature
+
+* Feature description
+* Feature description
+
+<a href="2025/product-update-1.md" class="button primary">Read full update</a><a href="https://gitbook.com/" class="button secondary">Documentation</a>
 {% endupdate %}
 {% endupdates %}
