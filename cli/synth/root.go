@@ -91,13 +91,26 @@ func runSynth(cmd *cobra.Command, app *api.App, opts Options, args []string) err
 	}
 
 	req := api.SynthRequest{
-		VoiceRef:      voiceRef,
-		VoicePathSpec: voicePath,
-		Text:          text,
-		Version:       version,
-		SpeedFactor:   speed,
-		Output:        output,
-		Preview:       preview,
+		Text:        text,
+		Version:     version,
+		SpeedFactor: speed,
+		Output:      output,
+		Preview:     preview,
+	}
+	if strings.TrimSpace(voicePath) != "" {
+		yamlPath, voiceName, err := parseVoicePathSpec(voicePath)
+		if err != nil {
+			return err
+		}
+		data, name, base, err := loadVoiceFile(yamlPath, voiceName)
+		if err != nil {
+			return err
+		}
+		req.VoiceFile = data
+		req.VoiceName = name
+		req.VoiceBase = base
+	} else {
+		req.VoiceRef = voiceRef
 	}
 	if cmd.Flags().Changed("reuse-cache") {
 		v, _ := cmd.Flags().GetBool("reuse-cache")

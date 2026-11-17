@@ -7,12 +7,17 @@ import (
 
 	"yukumo-script/cli/action"
 	"yukumo-script/core/api"
+	"yukumo-script/core/api/cliopen"
 )
 
 func newApp(t *testing.T) *api.App {
 	t.Helper()
 	dir := t.TempDir()
-	app, err := api.Open(api.Options{ConfigDir: dir})
+	app, err := cliopen.Open(cliopen.Options{
+		ConfigDir:     dir,
+		CharacterPath: filepath.Join(dir, "characters"),
+		OutputPath:    filepath.Join(dir, "output"),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

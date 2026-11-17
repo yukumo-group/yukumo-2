@@ -72,3 +72,22 @@ func ExpandPath(p string) string {
 	}
 	return filepath.Clean(abs)
 }
+
+// ReadPhont reads a .phont file and rejects empty payloads.
+func ReadPhont(path string) ([]byte, error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return nil, fmt.Errorf("phont path is required")
+	}
+	if !strings.EqualFold(filepath.Ext(path), ".phont") {
+		return nil, fmt.Errorf("phont path must end with .phont")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("phont file is empty")
+	}
+	return data, nil
+}

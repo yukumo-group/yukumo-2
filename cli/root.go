@@ -8,12 +8,13 @@ import (
 	"yukumo-script/cli/prompt"
 	clisynth "yukumo-script/cli/synth"
 	"yukumo-script/core/api"
+	"yukumo-script/core/api/cliopen"
 
 	"github.com/spf13/cobra"
 )
 
 func Execute() error {
-	app, err := api.Open(api.Options{})
+	app, err := cliopen.Open(cliopen.Options{})
 	if err != nil {
 		return err
 	}

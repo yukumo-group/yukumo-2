@@ -2,7 +2,9 @@ package action
 
 import (
 	"context"
+	"strings"
 
+	"yukumo-script/cli/parse"
 	"yukumo-script/cli/schema"
 	"yukumo-script/core/api"
 )
@@ -71,8 +73,18 @@ func ApplyVoiceParam(
 		}
 	}
 	if field == "phont_data" {
-		if err := api.SetPhontPath(p, value); err != nil {
-			return api.Voice{}, EditResult{}, err
+		if strings.TrimSpace(value) == "" {
+			if err := api.SetPhontData(p, nil); err != nil {
+				return api.Voice{}, EditResult{}, err
+			}
+		} else {
+			data, err := parse.ReadPhont(value)
+			if err != nil {
+				return api.Voice{}, EditResult{}, err
+			}
+			if err := api.SetPhontData(p, data); err != nil {
+				return api.Voice{}, EditResult{}, err
+			}
 		}
 	} else {
 		if err := entry.Set(p, value); err != nil {

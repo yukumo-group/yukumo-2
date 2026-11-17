@@ -8,6 +8,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	gopkg.in/yaml.v3 v3.0.1
 	yukumo-script/core/api v0.0.0
+	yukumo-script/core/port v0.0.0
 )
 
 require (
@@ -46,5 +47,6 @@ require (
 replace (
 	yukumo-script/core => ../core
 	yukumo-script/core/api => ../core/api
+	yukumo-script/core/port => ../core/port
 	yukumo-script/runtime => ../runtime
 )

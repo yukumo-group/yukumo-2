@@ -47,7 +47,14 @@ func VoiceParamFields(version int) []Entry[api.SynthParam] {
 				return fmt.Sprintf("(%d bytes)", len(p.PhontData))
 			},
 			Set: func(p *api.SynthParam, v string) error {
-				return api.SetPhontPath(p, v)
+				if strings.TrimSpace(v) == "" {
+					return api.SetPhontData(p, nil)
+				}
+				data, err := parse.ReadPhont(v)
+				if err != nil {
+					return err
+				}
+				return api.SetPhontData(p, data)
 			},
 		})
 	}

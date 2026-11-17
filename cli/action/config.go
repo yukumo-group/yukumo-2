@@ -5,6 +5,7 @@ import (
 
 	"yukumo-script/cli/schema"
 	"yukumo-script/core/api"
+	"yukumo-script/core/api/cliopen"
 )
 
 func ListConfig(_ context.Context, app *api.App) (api.Config, error) {
@@ -44,6 +45,9 @@ func ApplyConfigEdit(_ context.Context, app *api.App, key, raw string, normalize
 		return EditResult{}, err
 	}
 	if err := app.SaveConfig(cfg); err != nil {
+		return EditResult{}, err
+	}
+	if err := cliopen.EnsurePaths(app); err != nil {
 		return EditResult{}, err
 	}
 	return EditResult{Value: entry.Get(cfg), Warning: warning}, nil

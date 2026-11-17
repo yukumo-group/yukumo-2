@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"yukumo-script/cli/parse"
 	"yukumo-script/cli/prompt"
 	"yukumo-script/cli/schema"
 	"yukumo-script/cli/setting"
@@ -164,13 +165,18 @@ func pickPhont(s streams.Streams, p *api.SynthParam) error {
 				}
 				return err
 			}
-			if err := api.SetPhontPath(p, path); err != nil {
+			data, err := parse.ReadPhont(path)
+			if err != nil {
+				_, _ = fmt.Fprintln(s.Err, err)
+				continue
+			}
+			if err := api.SetPhontData(p, data); err != nil {
 				_, _ = fmt.Fprintln(s.Err, err)
 				continue
 			}
 			_, _ = fmt.Fprintf(s.Out, "phont_data: %d bytes\n", len(p.PhontData))
 		case 2:
-			p.PhontData = nil
+			_ = api.SetPhontData(p, nil)
 			_, _ = fmt.Fprintln(s.Out, "phont_data: cleared")
 		}
 	}
