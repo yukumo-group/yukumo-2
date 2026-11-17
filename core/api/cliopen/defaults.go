@@ -40,3 +40,12 @@ func apiDefaults(d domain.Config) api.Config {
 	}
 	return c
 }
+
+// Defaults returns the OS-backed API defaults for CLI embedding/tests.
+func Defaults() (api.Config, error) {
+	d, err := domainDefaults()
+	if err != nil {
+		return api.Config{}, err
+	}
+	return apiDefaults(d), nil
+}
