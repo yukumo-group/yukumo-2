@@ -5,15 +5,7 @@ icon: user
 
 # character
 
-{% tabs %}
-{% tab title="English" %}
 Characters are stored as YAML under `paths.character_path`. Filename is `{Sanitize(name)}.yaml`.
-{% endtab %}
-
-{% tab title="中文" %}
-角色以 YAML 存于 `paths.character_path`；文件名为 `{Sanitize(name)}.yaml`。
-{% endtab %}
-{% endtabs %}
 
 | Command | Behavior |
 | --- | --- |

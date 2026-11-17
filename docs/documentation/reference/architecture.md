@@ -5,15 +5,7 @@ icon: layer-group
 
 # Architecture
 
-{% tabs %}
-{% tab title="English" %}
 Modules (dependencies point downward only):
-{% endtab %}
-
-{% tab title="中文" %}
-模块（依赖方向只向下）：
-{% endtab %}
-{% endtabs %}
 
 ```
 cli/cmd/yukumo-script (main)
@@ -42,23 +34,11 @@ core/internal/{domain, store}
 
 ## Multithreading
 
-{% tabs %}
-{% tab title="English" %}
 `aq.Pool` allows parallel use across goroutines; preview playback can also run in a background goroutine.
 
 * The WASM module is **not** thread-safe: one `Runtime` may be used by only one goroutine at a time.
 * `aq.Pool` creates instances on demand: `Acquire` leases an exclusive `Runtime`, `Release` returns it; `Do` / `Synthesize` / `HasPreset` / `PresetNames` use the same lease path.
 * Interactive `-p` / preview: playback runs in a background goroutine and does not block huh; a new synth stops the previous player process first.
-{% endtab %}
-
-{% tab title="中文" %}
-引擎侧通过 `aq.Pool` 支持多 goroutine 并行；播放预览也可在后台 goroutine 进行。
-
-* WASM 模块本身不线程安全：一个 `Runtime` 同一时刻只能被一个 goroutine 使用。
-* `aq.Pool` 按需创建实例：`Acquire` 借出独占 `Runtime`，用完 `Release`；`Do` / `Synthesize` / `HasPreset` / `PresetNames` 使用同一套租借。
-* 交互模式 `-p` / preview：播放在后台，不阻塞 huh；再次合成会先停掉上一次播放进程。
-{% endtab %}
-{% endtabs %}
 
 ## Decoupling
 

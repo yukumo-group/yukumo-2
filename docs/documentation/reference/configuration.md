@@ -5,19 +5,9 @@ icon: sliders
 
 # Configuration
 
-{% tabs %}
-{% tab title="English" %}
 Config **directory**: `$YUKUMO_CONFIG_DIR` if set, else `{UserConfigDir}/yukumo-script`; file is `config.yaml` therein.
 
 Startup `MkdirAll` on `character_path` / `output_path`; failure (including permission) **panics**. Empty path fields refill defaults. Bool defaults use pointers so missing YAML ≠ explicit `false`.
-{% endtab %}
-
-{% tab title="中文" %}
-配置**目录**为 `$YUKUMO_CONFIG_DIR`（若设置）或 `{UserConfigDir}/yukumo-script`；文件为该目录下的 `config.yaml`。
-
-启动时对 `character_path` / `output_path` 做 `MkdirAll`，失败（含无权限）**panic**；空路径字段回填默认值。布尔缺省用指针区分「未设置」与显式 `false`。
-{% endtab %}
-{% endtabs %}
 
 ## Keys
 

@@ -5,15 +5,7 @@ icon: rocket-launch
 
 # Quickstart
 
-{% tabs %}
-{% tab title="English" %}
 Create a character with a default voice, then synthesize Japanese text. Pick **one** of the character-creation paths below — do not add the same default voice twice.
-{% endtab %}
-
-{% tab title="中文" %}
-创建角色并带上默认音色，然后合成日文文本。下面两条角色创建路径**二选一**，勿对同一角色重复加同名 `default`。
-{% endtab %}
-{% endtabs %}
 
 {% hint style="info" icon="terminal" %}
 Commands below assume [Install & build](install.md) — use `just run …` (or the equivalents noted there).

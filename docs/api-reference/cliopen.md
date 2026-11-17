@@ -18,27 +18,14 @@ func Open(opts Options) (*api.App, error)
 func EnsurePaths(app *api.App) error
 ```
 
-{% stepper %}
-{% step %}
-## Resolve config dir
+### Config directory
 
-`Options.ConfigDir`, else `$YUKUMO_CONFIG_DIR`, else `{UserConfigDir}/yukumo-script`.
-{% endstep %}
+Resolved as `Options.ConfigDir`, else `$YUKUMO_CONFIG_DIR`, else `{UserConfigDir}/yukumo-script`.
 
-{% step %}
-## Wire stores + engine
+### Wiring
 
-FS config/character/artifact stores, `fs.Output`, and `aq.NewPool()` as the engine.
-{% endstep %}
+FS config/character/artifact stores, `fs.Output`, and `aq.NewPool()` as the engine. `Open` then `MkdirAll`s character/output paths and runs `CleanIndex`. Failures close the app/pool and return.
 
-{% step %}
-## Ensure paths & clean index
-
-`MkdirAll` on character/output paths, then `CleanIndex`. Failures close the app/pool and return.
-{% endstep %}
-{% endstepper %}
-
-{% hint style="success" %}
 ```go
 app, err := cliopen.Open(cliopen.Options{})
 if err != nil {
@@ -46,4 +33,3 @@ if err != nil {
 }
 defer app.Close(context.Background())
 ```
-{% endhint %}

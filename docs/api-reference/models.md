@@ -51,20 +51,7 @@ func BaseName(base int) string
 func BaseNames() []string
 ```
 
-{% columns %}
-{% column %}
-### Shared
-
-`preset`, `speed` (50–300)
-{% endcolumn %}
-
-{% column %}
-### Version-specific
-
-* **v2:** `PhontData`
-* **v10:** `Base`, `Volume`, `Pitch`, `Accent`, `Lmd`, `Fsc`
-{% endcolumn %}
-{% endcolumns %}
+<table><thead><tr><th width="140">Field</th><th width="120">Go / YAML</th><th width="100">Versions</th><th width="140">Range / values</th><th>Description</th></tr></thead><tbody><tr><td>Version</td><td><code>Version</code> / <code>version</code></td><td>1, 2, 10</td><td><code>1</code> / <code>2</code> / <code>10</code></td><td>Engine version for this param slot.</td></tr><tr><td>Preset</td><td><code>Preset</code> / <code>preset</code></td><td>1, 2, 10</td><td>engine catalog</td><td>Voice preset id.</td></tr><tr><td>Speed</td><td><code>Speed</code> / <code>speed</code></td><td>1, 2, 10</td><td>50–300</td><td>Preset urgency; multiplied by <code>SpeedFactor</code> at synth time.</td></tr><tr><td>PhontData</td><td><code>PhontData</code> / <code>phont_data</code></td><td>2</td><td>embedded bytes</td><td>Custom phont payload. Use <code>SetPhontData</code> to set or clear.</td></tr><tr><td>Base</td><td><code>Base</code> / <code>base</code></td><td>10</td><td>0–2 → F1E / F2E / M1E</td><td>AquesTalk10 base voice. Labels via <code>BaseName</code> / <code>BaseNames</code>.</td></tr><tr><td>Volume</td><td><code>Volume</code> / <code>volume</code></td><td>10</td><td>0–300</td><td>Volume scale.</td></tr><tr><td>Pitch</td><td><code>Pitch</code> / <code>pitch</code></td><td>10</td><td>20–200</td><td>Pitch scale.</td></tr><tr><td>Accent</td><td><code>Accent</code> / <code>accent</code></td><td>10</td><td>0–200</td><td>Accent strength.</td></tr><tr><td>Lmd</td><td><code>Lmd</code> / <code>lmd</code></td><td>10</td><td>0–200</td><td>Length / duration modifier.</td></tr><tr><td>Fsc</td><td><code>Fsc</code> / <code>fsc</code></td><td>10</td><td>50–200</td><td>Formant shift control.</td></tr></tbody></table>
 
 ## Config
 

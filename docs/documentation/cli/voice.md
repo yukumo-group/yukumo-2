@@ -5,15 +5,7 @@ icon: microphone
 
 # voice
 
-{% tabs %}
-{% tab title="English" %}
 Voice commands hang under `character <name> voice …`. Each voice has at most 3 params with unique versions ∈ {1, 2, 10}.
-{% endtab %}
-
-{% tab title="中文" %}
-音色子命令位于 `character <name> voice …`。同一 voice 最多 3 条 param，版本唯一 ∈ {1, 2, 10}。
-{% endtab %}
-{% endtabs %}
 
 | Verb | Behavior |
 | --- | --- |
@@ -25,26 +17,12 @@ Voice commands hang under `character <name> voice …`. Each voice has at most 3
 | `duplicate [voice] [newName]` | Deep copy; default name via `nameutil` |
 | (verb omitted, interactive) | Voice menu |
 
-## Param fields
+## Synth parameters
 
-{% columns %}
-{% column %}
-### Shared (all versions)
-
-* `preset`
-* `speed` (50–300)
-{% endcolumn %}
-
-{% column %}
-### Version-specific
-
-* **v2:** `phont_data` (file → embed)
-* **v10:** `base` (F1E/F2E/M1E), `volume`, `pitch`, `accent`, `lmd`, `fsc`
-{% endcolumn %}
-{% endcolumns %}
+<table><thead><tr><th width="140">Field</th><th width="100">Versions</th><th width="140">Range / values</th><th>Description</th></tr></thead><tbody><tr><td><code>version</code></td><td>1, 2, 10</td><td><code>1</code> / <code>2</code> / <code>10</code></td><td>Engine version for this param slot. At most one param per version on a voice.</td></tr><tr><td><code>preset</code></td><td>1, 2, 10</td><td>engine catalog</td><td>Voice preset id. Validated through <code>PresetCatalog</code> (WASM).</td></tr><tr><td><code>speed</code></td><td>1, 2, 10</td><td>50–300</td><td>Preset urgency. Effective synth speed is <code>clamp(round(speed × -s), 50, 300)</code>; factor ≤ 0 treated as 1.</td></tr><tr><td><code>phont_data</code></td><td>2</td><td>embedded bytes</td><td>V2-only custom phont. CLI edit picks a file and embeds it.</td></tr><tr><td><code>base</code></td><td>10</td><td>0–2 → F1E / F2E / M1E</td><td>AquesTalk10 base voice (基本素片).</td></tr><tr><td><code>volume</code></td><td>10</td><td>0–300</td><td>Output volume scale.</td></tr><tr><td><code>pitch</code></td><td>10</td><td>20–200</td><td>Pitch scale.</td></tr><tr><td><code>accent</code></td><td>10</td><td>0–200</td><td>Accent strength.</td></tr><tr><td><code>lmd</code></td><td>10</td><td>0–200</td><td>Length / duration modifier.</td></tr><tr><td><code>fsc</code></td><td>10</td><td>50–200</td><td>Formant shift control.</td></tr></tbody></table>
 
 {% hint style="info" icon="shield-check" %}
-Presets are validated via `PresetCatalog` (WASM). `Normalize` clears irrelevant fields and clamps values per version.
+`Normalize` clears fields that do not apply to the selected version and clamps in-range values. Presets are validated via WASM when an engine is available.
 {% endhint %}
 
 ## Examples
@@ -55,11 +33,3 @@ just run character remilia voice add soft 10
 just run character remilia voice edit soft 10 speed 120
 just run character remilia voice duplicate soft soft-copy
 ```
-
-<details>
-<summary>Effective speed at synth time</summary>
-
-`speed` on the voice is that preset’s urgency. Synthesis multiplies by CLI `-s`:
-
-`clamp(round(voice.speed * factor), 50, 300)` — `factor≤0` treated as `1`.
-</details>

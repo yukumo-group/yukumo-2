@@ -5,15 +5,7 @@ icon: waveform-lines
 
 # synth
 
-{% tabs %}
-{% tab title="English" %}
 Synthesize from a configured character (`-v`) or an explicit character YAML (`-P`). Shared flags cover version, speed factor, output path, preview, and cache.
-{% endtab %}
-
-{% tab title="中文" %}
-从配置的角色路径（`-v`）或指定 Character YAML（`-P`）合成。共用标志覆盖版本、语速因子、输出路径、预览与缓存。
-{% endtab %}
-{% endtabs %}
 
 | Command / flags | Behavior |
 | --- | --- |
@@ -29,15 +21,7 @@ Synthesize from a configured character (`-v`) or an explicit character YAML (`-P
 
 ## Version selection
 
-{% tabs %}
-{% tab title="English" %}
 Omit `-V` → first param among **1→2→10**. If none: `params empty` / `definition invalid`.
-{% endtab %}
-
-{% tab title="中文" %}
-`-V` 省略 → voice 内 **1→2→10** 首个 param；皆无则 `params empty` / `definition invalid`。
-{% endtab %}
-{% endtabs %}
 
 ## Cache (`output_path/index.yaml`)
 

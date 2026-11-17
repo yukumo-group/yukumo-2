@@ -13,9 +13,7 @@ func (a *App) UpdateCharacter(oldName string, c Character) error
 func (a *App) DeleteCharacter(name string) error
 ```
 
-{% stepper %}
-{% step %}
-## Add
+### Add
 
 ```go
 err := app.AddCharacter(api.Character{
@@ -23,26 +21,20 @@ err := app.AddCharacter(api.Character{
     Description: "example",
 })
 ```
-{% endstep %}
 
-{% step %}
-## Get / list
+### Get / list
 
 ```go
 c, err := app.GetCharacter("remilia")
 list, err := app.ListCharacters()
 ```
-{% endstep %}
 
-{% step %}
-## Update / delete
+### Update / delete
 
 ```go
 err := app.UpdateCharacter("remilia", c)
 err = app.DeleteCharacter("remilia")
 ```
-{% endstep %}
-{% endstepper %}
 
 {% hint style="warning" %}
 Whether `AddCharacter` auto-creates a default voice depends on `characters.init_default_voice` in config — same rule as the CLI.

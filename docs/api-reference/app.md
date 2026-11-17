@@ -22,25 +22,9 @@ func (a *App) CleanIndex() error
 func (a *App) Close(ctx context.Context) error
 ```
 
-{% stepper %}
-{% step %}
-## Provide stores and defaults
-
-`New` performs **no OS IO**. Hosts supply stores, optional engine/artifacts/outputs, and `Defaults`.
-{% endstep %}
-
-{% step %}
-## Call use cases
-
-Character, voice, config, and synth methods hang off `*App`.
-{% endstep %}
-
-{% step %}
-## Close
+`New` performs **no OS IO**. Hosts supply stores, optional engine/artifacts/outputs, and `Defaults`. Character, voice, config, and synth methods hang off `*App`.
 
 `Close` closes the engine (if `port.Closer`) and flushes stores that implement `port.Flusher`.
-{% endstep %}
-{% endstepper %}
 
 {% hint style="warning" %}
 Missing `ConfigStore` or `CharacterStore` → `New` returns an error.

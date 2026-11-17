@@ -3,21 +3,11 @@ description: CLI docs for character and voice management, plus AquesTalk speech 
 icon: book-open
 ---
 
-# Welcome
+# Documentation
 
-{% tabs %}
-{% tab title="English" %}
 **Yukumo Script** is a CLI for character/voice management and speech synthesis via AquesTalk WASM (`third-party/aq_wasm`).
 
 Use these docs to install the tool, create characters and voices, synthesize audio, and configure paths and cache behavior.
-{% endtab %}
-
-{% tab title="中文" %}
-**Yukumo Script** 是基于 AquesTalk WASM（`third-party/aq_wasm`）的角色/音色管理与语音合成 CLI。
-
-本文档覆盖安装构建、创建角色与音色、合成音频，以及路径与缓存配置。
-{% endtab %}
-{% endtabs %}
 
 <button type="button" class="button primary" data-action="ask" data-icon="gitbook-assistant">Ask a question…</button>
 

@@ -5,15 +5,7 @@ icon: terminal
 
 # CLI overview
 
-{% tabs %}
-{% tab title="English" %}
 With no subcommand and interactive mode on, the root menu opens. Under interactive config/character flows, `get` is **hidden** — use edit/browse instead.
-{% endtab %}
-
-{% tab title="中文" %}
-无显式子命令且 interactive 开启时进入根菜单。`get` 在 interactive 下对 config/character **隐藏**（改走 edit/browse）。
-{% endtab %}
-{% endtabs %}
 
 ## Command groups
 

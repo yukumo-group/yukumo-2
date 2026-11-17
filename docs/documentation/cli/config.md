@@ -5,15 +5,7 @@ icon: gear
 
 # config
 
-{% tabs %}
-{% tab title="English" %}
 Manage settings under `paths.*`, `characters.*`, `synth.*`, and `cli.*`.
-{% endtab %}
-
-{% tab title="中文" %}
-管理 `paths.*` / `characters.*` / `synth.*` / `cli.*` 下的设置项。
-{% endtab %}
-{% endtabs %}
 
 | Command | Behavior |
 | --- | --- |
