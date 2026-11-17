@@ -4,6 +4,7 @@ go 1.27
 
 require (
 	yukumo-script/core v0.0.0
+	yukumo-script/core/port v0.0.0
 	yukumo-script/runtime v0.0.0
 )
 
@@ -15,5 +16,6 @@ require (
 
 replace (
 	yukumo-script/core => ..
+	yukumo-script/core/port => ../port
 	yukumo-script/runtime => ../../runtime
 )

@@ -7,14 +7,16 @@ import (
 )
 
 type SynthRequest struct {
-	VoiceRef      string
-	VoicePathSpec string
-	Text          string
-	Version       int
-	SpeedFactor   float64
-	Output        string
-	Preview       bool
-	ReuseCache    *bool
+	VoiceRef    string // character:voice (mutually exclusive with VoiceFile)
+	VoiceFile   []byte // raw Character YAML bytes
+	VoiceName   string // required with VoiceFile
+	VoiceBase   string // fallback character name when YAML has none
+	Text        string
+	Version     int
+	SpeedFactor float64
+	Output      string
+	Preview     bool
+	ReuseCache  *bool
 }
 
 type SynthResult struct {
@@ -26,14 +28,16 @@ type SynthResult struct {
 
 func (a *App) Synthesize(ctx context.Context, req SynthRequest) (SynthResult, error) {
 	res, err := a.synth.Synthesize(ctx, synth.Request{
-		VoiceRef:      req.VoiceRef,
-		VoicePathSpec: req.VoicePathSpec,
-		Text:          req.Text,
-		Version:       req.Version,
-		SpeedFactor:   req.SpeedFactor,
-		Output:        req.Output,
-		Preview:       req.Preview,
-		ReuseCache:    req.ReuseCache,
+		VoiceRef:    req.VoiceRef,
+		VoiceFile:   req.VoiceFile,
+		VoiceName:   req.VoiceName,
+		VoiceBase:   req.VoiceBase,
+		Text:        req.Text,
+		Version:     req.Version,
+		SpeedFactor: req.SpeedFactor,
+		Output:      req.Output,
+		Preview:     req.Preview,
+		ReuseCache:  req.ReuseCache,
 	})
 	if err != nil {
 		return SynthResult{}, err

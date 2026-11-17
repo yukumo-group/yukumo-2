@@ -1,9 +1,6 @@
 package api
 
-import (
-	"yukumo-script/core/internal/domain"
-	svcvoice "yukumo-script/core/internal/service/character/voice"
-)
+import "yukumo-script/core/internal/domain"
 
 // Character is the UI-facing character model.
 type Character struct {
@@ -88,14 +85,20 @@ func BaseNames() []string {
 	return append([]string(nil), domain.BaseNames...)
 }
 
-func SetPhontPath(p *SynthParam, path string) error {
+// DefaultConfig returns non-OS defaults. Hosts supply Paths.
+func DefaultConfig() Config {
+	return toConfig(domain.DefaultConfig(domain.PathConfig{}))
+}
+
+// SetPhontData copies embedded phont bytes. An empty slice clears the field.
+func SetPhontData(p *SynthParam, data []byte) error {
 	if p == nil {
 		return ErrInvalid
 	}
-	d := fromParam(*p)
-	if err := svcvoice.SetPhontPath(&d, path); err != nil {
-		return err
+	if len(data) == 0 {
+		p.PhontData = nil
+		return nil
 	}
-	*p = toParam(d)
+	p.PhontData = copyBytes(data)
 	return nil
 }

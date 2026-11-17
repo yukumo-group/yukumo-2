@@ -2,70 +2,84 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"yukumo-script/core/internal/service/character"
 	svcvoice "yukumo-script/core/internal/service/character/voice"
 	"yukumo-script/core/internal/service/config"
 	"yukumo-script/core/internal/service/synth"
-	"yukumo-script/core/internal/store"
-	"yukumo-script/runtime/aq"
+	"yukumo-script/core/port"
 )
 
-// Options controls how the application is opened.
-type Options struct {
-	ConfigDir string
+// Deps are the host-supplied ports. ConfigStore and CharacterStore are
+// required; Artifacts, Outputs and Engine are optional.
+type Deps struct {
+	ConfigStore    port.Store
+	CharacterStore port.Store
+	Artifacts      port.ArtifactStore
+	Outputs        port.OutputWriter
+	Engine         port.Engine
+	Defaults       Config
 }
 
-// App is the use-case facade used by CLI and future GUIs.
+// App is the use-case facade used by CLI, wasm hosts and future GUIs.
 type App struct {
-	config *config.Service
-	chars  *character.Service
-	voices *svcvoice.Service
-	synth  *synth.Service
-	pool   *aq.Pool
+	config  *config.Service
+	chars   *character.Service
+	voices  *svcvoice.Service
+	synth   *synth.Service
+	engine  port.Engine
+	stores  []port.Store
 }
 
-// Open wires the filesystem-backed application. A future web adapter can add
-// its own constructor without changing the use-case methods.
-func Open(opts Options) (*App, error) {
-	dir, err := resolveConfigDir(opts.ConfigDir)
-	if err != nil {
-		return nil, err
+// New wires the use cases around host-supplied ports. It performs no OS IO.
+func New(deps Deps) (*App, error) {
+	if deps.ConfigStore == nil {
+		return nil, fmt.Errorf("api: config store is required")
 	}
-	cfgSvc := config.New(store.NewFS(dir))
-	cfgSvc.EnsurePaths()
-
-	pool := aq.NewPool()
-	charSvc := character.New(cfgSvc)
-	voiceSvc := svcvoice.New(charSvc, pool)
-	synthSvc := synth.New(cfgSvc, voiceSvc, aqEngine{pool: pool})
-	if err := synthSvc.CleanIndex(); err != nil {
-		_ = pool.Close(context.Background())
-		return nil, fmt.Errorf("clean synth index: %w", err)
+	if deps.CharacterStore == nil {
+		return nil, fmt.Errorf("api: character store is required")
 	}
-	return &App{config: cfgSvc, chars: charSvc, voices: voiceSvc, synth: synthSvc, pool: pool}, nil
+	cfgSvc := config.New(deps.ConfigStore, fromConfig(deps.Defaults))
+	charSvc := character.New(cfgSvc, deps.CharacterStore)
+	voiceSvc := svcvoice.New(charSvc, deps.Engine)
+	synthSvc := synth.New(cfgSvc, voiceSvc, deps.Engine, deps.Artifacts, deps.Outputs)
+	app := &App{
+		config: cfgSvc,
+		chars:  charSvc,
+		voices: voiceSvc,
+		synth:  synthSvc,
+		engine: deps.Engine,
+		stores: []port.Store{deps.ConfigStore, deps.CharacterStore},
+	}
+	if deps.Artifacts != nil {
+		app.stores = append(app.stores, deps.Artifacts)
+	}
+	return app, nil
 }
 
-func (a *App) Close(ctx context.Context) error {
-	if a == nil || a.pool == nil {
+// CleanIndex drops synth cache entries whose artifact is missing.
+func (a *App) CleanIndex() error {
+	if a == nil || a.synth == nil {
 		return nil
 	}
-	return a.pool.Close(ctx)
+	return a.synth.CleanIndex()
 }
 
-func resolveConfigDir(override string) (string, error) {
-	if override != "" {
-		return override, nil
+// Close closes the engine and flushes stores that implement port.Flusher.
+func (a *App) Close(ctx context.Context) error {
+	if a == nil {
+		return nil
 	}
-	if v := os.Getenv("YUKUMO_CONFIG_DIR"); v != "" {
-		return v, nil
+	var errs []error
+	if c, ok := a.engine.(port.Closer); ok && c != nil {
+		errs = append(errs, c.Close(ctx))
 	}
-	base, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("resolve config dir: %w", err)
+	for _, s := range a.stores {
+		if f, ok := s.(port.Flusher); ok {
+			errs = append(errs, f.Flush(ctx))
+		}
 	}
-	return filepath.Join(base, "yukumo-script"), nil
+	return errors.Join(errs...)
 }

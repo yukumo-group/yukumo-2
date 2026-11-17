@@ -3,7 +3,7 @@ package synth_test
 import (
 	"context"
 
-	"yukumo-script/core/internal/service/synth"
+	"yukumo-script/core/port"
 	"yukumo-script/runtime/aq"
 )
 
@@ -11,7 +11,7 @@ type aqEngine struct {
 	pool *aq.Pool
 }
 
-func (e aqEngine) Synthesize(ctx context.Context, text string, p synth.EngineParam) ([]byte, error) {
+func (e aqEngine) Synthesize(ctx context.Context, text string, p port.EngineParam) ([]byte, error) {
 	return e.pool.Synthesize(ctx, text, aq.Param{
 		Version: int32(p.Version),
 		Preset:  int32(p.Preset),

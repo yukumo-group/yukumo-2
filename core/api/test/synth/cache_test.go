@@ -2,8 +2,6 @@ package synth_test
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"yukumo-script/core/internal/domain"
@@ -30,34 +28,33 @@ func TestTaskHashStableAndDistinct(t *testing.T) {
 	}
 }
 
-func TestReuseCacheCopiesNewFile(t *testing.T) {
+func TestReuseCacheWritesNewArtifact(t *testing.T) {
 	ctx := context.Background()
-	dir := t.TempDir()
-	charsDir := filepath.Join(dir, "characters")
-	outDir := filepath.Join(dir, "out")
-	_ = os.MkdirAll(charsDir, 0o755)
-
-	mem := store.NewMemory()
-	cfgSvc := svcconfig.New(mem)
+	cfgMem := store.NewMemory()
+	charsMem := store.NewMemory()
+	artifacts := store.NewMemory()
+	cfgSvc := svcconfig.New(cfgMem, domain.DefaultConfig(domain.PathConfig{}))
 	if _, err := cfgSvc.Edit(func(c *domain.Config) {
-		c.Paths.CharacterPath = charsDir
-		c.Paths.OutputPath = outDir
 		c.Synth.OutputFormat = "{character}-{voice}"
 		c.Synth.SetAlwaysWrite(true)
 		c.Synth.SetReuseCache(true)
 	}); err != nil {
 		t.Fatal(err)
 	}
-	chars := svccharacter.New(cfgSvc)
+	chars := svccharacter.New(cfgSvc, charsMem)
 	voices := svcvoice.New(chars, allowAllPresets{})
-	_ = chars.Add(domain.Character{Name: "remilia"})
-	_ = voices.Add(ctx, "remilia", domain.Voice{
+	if err := chars.Add(domain.Character{Name: "remilia"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := voices.Add(ctx, "remilia", domain.Voice{
 		Name:   "default",
 		Params: []domain.SynthParam{{Version: domain.Version1, Preset: 0, Speed: 100}},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	pool := aq.NewPool()
 	t.Cleanup(func() { _ = pool.Close(ctx) })
-	svc := synth.New(cfgSvc, voices, aqEngine{pool: pool})
+	svc := synth.New(cfgSvc, voices, aqEngine{pool: pool}, artifacts, nil)
 
 	r1, err := svc.Synthesize(ctx, synth.Request{VoiceRef: "remilia:default", Text: "こんにちは"})
 	if err != nil {
@@ -71,35 +68,30 @@ func TestReuseCacheCopiesNewFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !r2.FromCache || !r2.Wrote || r2.Path == r1.Path {
-		t.Fatalf("second should copy to new path: first=%q second=%+v", r1.Path, r2)
+		t.Fatalf("second should copy to new key: first=%q second=%+v", r1.Path, r2)
 	}
-	if _, err := os.Stat(r1.Path); err != nil {
-		t.Fatal("original cache source should remain", err)
-	}
-	if _, err := os.Stat(r2.Path); err != nil {
-		t.Fatal(err)
+	for _, key := range []string{r1.Path, r2.Path} {
+		ok, err := artifacts.Exists(key)
+		if err != nil || !ok {
+			t.Fatalf("artifact %q missing: %v", key, err)
+		}
 	}
 }
 
 func TestCleanIndexDropsMissing(t *testing.T) {
-	dir := t.TempDir()
-	out := filepath.Join(dir, "out")
-	_ = os.MkdirAll(out, 0o755)
-	idxPath := filepath.Join(out, "index.yaml")
-	if err := os.WriteFile(idxPath, []byte("deadbeef: missing.wav\n"), 0o644); err != nil {
+	mem := store.NewMemory()
+	if err := mem.Write("index.yaml", []byte("deadbeef: missing.wav\n")); err != nil {
 		t.Fatal(err)
 	}
-	if err := synth.CleanIndex(out); err != nil {
+	svc := synth.New(nil, nil, nil, mem, nil)
+	if err := svc.CleanIndex(); err != nil {
 		t.Fatal(err)
 	}
-	data, err := os.ReadFile(idxPath)
+	data, err := mem.Read("index.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(data) > 5 && string(data) != "{}\n" && string(data) != "{}\n\n" {
-		// empty map marshals as "{}\n"
-		if string(data) != "{}\n" {
-			t.Fatalf("expected cleaned index, got %q", data)
-		}
+	if string(data) != "{}\n" {
+		t.Fatalf("expected cleaned index, got %q", data)
 	}
 }
