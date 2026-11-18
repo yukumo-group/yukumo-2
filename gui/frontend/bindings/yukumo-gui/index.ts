@@ -5,3 +5,7 @@ import * as App from "./app.js";
 export {
     App
 };
+
+export {
+    SynthInput
+} from "./models.js";
