@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import Hint from '../ui/Hint.vue';
 
 export type TimelineKnobUnit = 'percent' | 'db';
 
@@ -39,11 +40,6 @@ const LINE_R = 32;
 const pressed = ref(false);
 const hoverShow = ref(false);
 const tooltipShow = computed(() => pressed.value || hoverShow.value);
-
-function onTooltipShow(show: boolean): void {
-  if (!show && pressed.value) return;
-  hoverShow.value = show;
-}
 
 /** CSS-like angles: 0 = up, positive clockwise. */
 function polar(deg: number, radius: number): { x: number; y: number } {
@@ -179,18 +175,20 @@ function onDblClick(e: MouseEvent): void {
 </script>
 
 <template>
-  <var-tooltip
-    class="knob-tooltip"
-    :style="{
-      display: 'flex',
-      width: `${size}px`,
-      height: `${size}px`,
-    }"
-    :content="tooltipContent"
-    placement="top"
-    :show="tooltipShow"
-    @update:show="onTooltipShow"
+  <Hint
+    :text="tooltipContent"
+    position="above"
+    :force-open="tooltipShow"
+    v-slot="{ id }"
   >
+    <span
+      :id="id"
+      class="knob-tooltip"
+      :style="{
+        width: `${size}px`,
+        height: `${size}px`,
+      }"
+    >
     <button
       type="button"
       class="group relative flex size-full cursor-ns-resize items-center justify-center touch-none text-primary"
@@ -249,7 +247,8 @@ function onDblClick(e: MouseEvent): void {
         </g>
       </svg>
     </button>
-  </var-tooltip>
+    </span>
+  </Hint>
 </template>
 
 <style scoped>

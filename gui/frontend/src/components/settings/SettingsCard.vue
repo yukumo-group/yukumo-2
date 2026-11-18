@@ -1,7 +1,7 @@
 <template>
-  <var-paper class="settings-card overflow-hidden rounded-2xl" :elevation="1">
+  <m3e-card class="settings-card overflow-hidden rounded-2xl" variant="elevated">
     <slot />
-  </var-paper>
+  </m3e-card>
 </template>
 
 <style scoped>
@@ -15,7 +15,7 @@
   top: 0;
   right: 1rem;
   left: 1rem;
-  border-top: 1px solid var(--color-on-surface-variant);
+  border-top: 1px solid var(--md-sys-color-on-surface-variant);
   opacity: 0.2;
   pointer-events: none;
 }

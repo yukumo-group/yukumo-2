@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n';
 import type { TimelineClipSpeaker } from '../../types/timeline';
 import { User } from '@lucide/vue';
+import Hint from '../ui/Hint.vue';
 
 defineProps<{
   speaker: TimelineClipSpeaker;
@@ -15,11 +16,13 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <var-tooltip
-    :content="t('pages.generate.timeline.defaultSpeaker')"
-    placement="bottom"
+  <Hint
+    :text="t('pages.generate.timeline.defaultSpeaker')"
+    position="below"
+    v-slot="{ id }"
   >
     <button
+      :id="id"
       type="button"
       class="inline-flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-surface-container-high"
       :aria-label="t('pages.generate.timeline.defaultSpeaker')"
@@ -34,5 +37,5 @@ const { t } = useI18n();
         />
       </span>
     </button>
-  </var-tooltip>
+  </Hint>
 </template>

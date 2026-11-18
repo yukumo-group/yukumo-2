@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Plus } from '@lucide/vue';
-import { Snackbar } from '@varlet/ui';
 import { useI18n } from 'vue-i18n';
+import { notify } from '../ui/notify';
 import CharacterCard from '../components/profiles/CharacterCard.vue';
 import CharacterWizardDialog from '../components/profiles/CharacterWizardDialog.vue';
 import type { Character } from '../backend/types';
@@ -19,10 +19,7 @@ onMounted(() => {
 });
 
 function reportError(cause: unknown): void {
-  Snackbar({
-    content: cause instanceof Error ? cause.message : String(cause),
-    type: 'error',
-  });
+  notify(cause instanceof Error ? cause.message : String(cause));
 }
 
 function openCreate(): void {
@@ -41,23 +38,23 @@ function openEdit(character: Character): void {
     class="relative flex w-full max-w-3xl flex-col gap-6 px-6 pt-8 pb-8 text-left sm:px-6"
   >
     <header class="flex items-center justify-between gap-4">
-      <h1 class="min-w-0 font-bold tracking-wide text-text text-3xl">
+      <h1 class="min-w-0 font-bold tracking-wide text-on-surface text-3xl">
         {{ t('pages.profiles.title') }}
       </h1>
-      <var-button
+      <m3e-button
         class="shrink-0"
-        type="primary"
+        variant="filled"
         :aria-label="t('pages.profiles.createAriaLabel')"
         @click="openCreate"
       >
-        <Plus :size="18" aria-hidden="true" class="mr-2" />
+        <Plus slot="icon" :size="18" aria-hidden="true" />
         {{ t('pages.profiles.create') }}
-      </var-button>
+      </m3e-button>
     </header>
 
     <p
       v-if="error"
-      class="rounded-lg bg-danger/15 px-4 py-3 text-sm text-danger"
+      class="rounded-lg bg-error/15 px-4 py-3 text-sm text-error"
       role="alert"
     >
       {{ error }}
@@ -67,7 +64,7 @@ function openEdit(character: Character): void {
       v-if="!loading && characters.length === 0"
       class="flex flex-col items-start gap-3 rounded-2xl bg-surface-container px-4 py-6"
     >
-      <p class="text-text">{{ t('pages.profiles.empty') }}</p>
+      <p class="text-on-surface">{{ t('pages.profiles.empty') }}</p>
       <p class="text-sm text-on-surface-variant">
         {{ t('pages.profiles.emptyHint') }}
       </p>

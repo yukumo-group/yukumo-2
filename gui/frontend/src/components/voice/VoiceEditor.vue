@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Plus, Trash2 } from '@lucide/vue';
 import EngineBadge from '../profiles/EngineBadge.vue';
@@ -25,6 +26,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const nameId = useId();
 
 const missingVersions = computed(() => {
   const present = new Set(voiceVersions(props.modelValue));
@@ -35,8 +37,10 @@ function update(next: Voice): void {
   emit('update:modelValue', next);
 }
 
-function onNameInput(value: string): void {
-  update({ ...props.modelValue, name: value });
+function onNameInput(event: Event): void {
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
+  update({ ...props.modelValue, name: input.value });
 }
 
 function onParamChange(
@@ -66,20 +70,21 @@ function onBlur(): void {
 <template>
   <div class="flex flex-col gap-3 rounded-xl border border-outline/30 p-3">
     <div class="flex items-center gap-2">
-      <var-input
-        :model-value="modelValue.name"
-        size="small"
-        variant="outlined"
-        :placeholder="t('pages.profiles.wizard.voiceName')"
-        :aria-label="t('pages.profiles.wizard.voiceName')"
-        @update:model-value="onNameInput"
-        @blur="onBlur"
-      />
-      <var-button
+      <m3e-form-field class="min-w-0 flex-1">
+        <label slot="label" :for="nameId">
+          {{ t('pages.profiles.wizard.voiceName') }}
+        </label>
+        <input
+          :id="nameId"
+          :value="modelValue.name"
+          :aria-label="t('pages.profiles.wizard.voiceName')"
+          @input="onNameInput"
+          @blur="onBlur"
+        />
+      </m3e-form-field>
+      <m3e-icon-button
         v-if="removable"
-        size="small"
-        text
-        type="danger"
+        class="tone-error"
         :aria-label="t('pages.profiles.wizard.removeVoice')"
         @click="removeVoice"
       >
@@ -87,7 +92,7 @@ function onBlur(): void {
           :size="16"
           aria-hidden="true"
         />
-      </var-button>
+      </m3e-icon-button>
     </div>
 
     <div
@@ -96,13 +101,11 @@ function onBlur(): void {
       class="flex flex-col gap-2 rounded-lg bg-surface-container-low p-3"
     >
       <div class="flex items-center justify-between gap-2">
-        <span class="flex items-center gap-2 text-sm font-medium text-text">
+        <span class="flex items-center gap-2 text-sm font-medium text-on-surface">
           <EngineBadge :version="param.version" />
         </span>
-        <var-button
+        <m3e-icon-button
           v-if="modelValue.params.length > 1"
-          size="small"
-          text
           :aria-label="t('pages.profiles.wizard.removeParam')"
           @click="removeVersion(param.version)"
         >
@@ -110,7 +113,7 @@ function onBlur(): void {
             :size="14"
             aria-hidden="true"
           />
-        </var-button>
+        </m3e-icon-button>
       </div>
       <SynthParamForm
         :model-value="param"
@@ -125,20 +128,16 @@ function onBlur(): void {
       <span class="text-sm text-on-surface-variant">
         {{ t('pages.profiles.wizard.addParam') }}
       </span>
-      <var-button
+      <m3e-button
         v-for="version in missingVersions"
         :key="version"
         size="small"
-        outlined
+        variant="outlined"
         @click="addParam(version)"
       >
-        <Plus
-          :size="14"
-          aria-hidden="true"
-          class="mr-1"
-        />
+        <Plus slot="icon" :size="14" aria-hidden="true" />
         <EngineBadge :version="version" />
-      </var-button>
+      </m3e-button>
     </div>
   </div>
 </template>

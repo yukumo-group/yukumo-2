@@ -3,6 +3,8 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ChartGantt, Code, FolderTree, Magnet, Pause, Play, Square, Timer } from '@lucide/vue';
 import cookieMaskUrl from '../assets/images/4-sided cookie.svg';
+import Hint from '../components/ui/Hint.vue';
+import type { TooltipPosition } from '@m3e/web/tooltip';
 import GenerateWorkspace from '../components/generate/GenerateWorkspace.vue';
 import {
   cycleRightPanel,
@@ -30,7 +32,9 @@ const playPetalStyle = {
   maskImage: `url("${cookieMaskUrl}")`,
 };
 
-const tooltipPlacement = computed(() => (isSmUp.value ? 'bottom' : 'top'));
+const tooltipPlacement = computed<TooltipPosition>(() =>
+  isSmUp.value ? 'below' : 'above',
+);
 
 const rightPanelIcon = computed(() =>
   rightPanel.value === 'code' ? Code : ChartGantt,
@@ -84,7 +88,7 @@ onUnmounted(() => {
     >
       <div class="flex min-w-0 items-center justify-center px-2 sm:justify-start">
         <time
-          class="font-mono text-text text-2xl tabular-nums tracking-tight sm:text-3xl"
+          class="font-mono text-on-surface text-2xl tabular-nums tracking-tight sm:text-3xl"
           :aria-label="t('pages.generate.elapsedTimeAriaLabel')"
         >
           {{ elapsedLabel }}
@@ -92,12 +96,13 @@ onUnmounted(() => {
       </div>
 
       <div class="flex items-center justify-center gap-2">
-        <var-tooltip
-          :content="playButtonLabel"
-          :placement="tooltipPlacement"
+        <Hint
+          :text="playButtonLabel"
+          :position="tooltipPlacement"
+          v-slot="{ id }"
         >
           <button
-            v-ripple="{ color: 'var(--color-on-primary)' }"
+            :id="id"
             type="button"
             class="play-petal inline-flex size-14 shrink-0 items-center justify-center bg-primary text-on-primary transition-opacity hover:opacity-90"
             :style="playPetalStyle"
@@ -116,13 +121,15 @@ onUnmounted(() => {
               aria-hidden="true"
             />
           </button>
-        </var-tooltip>
+        </Hint>
 
-        <var-tooltip
-          :content="t('pages.generate.stop')"
-          :placement="tooltipPlacement"
+        <Hint
+          :text="t('pages.generate.stop')"
+          :position="tooltipPlacement"
+          v-slot="{ id }"
         >
           <button
+            :id="id"
             type="button"
             class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary transition-opacity hover:opacity-90"
             :aria-label="t('pages.generate.stop')"
@@ -130,53 +137,53 @@ onUnmounted(() => {
           >
             <Square class="size-3.5 fill-current" aria-hidden="true" />
           </button>
-        </var-tooltip>
+        </Hint>
       </div>
 
       <div class="flex min-w-0 items-center justify-end">
         <div
           class="grid auto-cols-min grid-flow-col grid-rows-[auto_auto] items-center justify-items-center"
         >
-          <var-tooltip
-            :content="t('pages.generate.snapPlayhead')"
-            :placement="tooltipPlacement"
+          <Hint
+            :text="t('pages.generate.snapPlayhead')"
+            :position="tooltipPlacement"
+            v-slot="{ id }"
           >
-            <var-button
-              text
-              round
-              :type="snapPlayheadEnabled ? 'primary' : undefined"
+            <m3e-icon-button
+              :id="id"
+              :variant="snapPlayheadEnabled ? 'filled' : 'standard'"
               :aria-pressed="snapPlayheadEnabled"
               :aria-label="t('pages.generate.snapPlayhead')"
               @click="toggleSnapPlayhead"
             >
               <Timer :size="20" aria-hidden="true" />
-            </var-button>
-          </var-tooltip>
+            </m3e-icon-button>
+          </Hint>
 
-          <var-tooltip
-            :content="t('pages.generate.snapClips')"
-            :placement="tooltipPlacement"
+          <Hint
+            :text="t('pages.generate.snapClips')"
+            :position="tooltipPlacement"
+            v-slot="{ id }"
           >
-            <var-button
-              text
-              round
-              :type="snapClipsEnabled ? 'primary' : undefined"
+            <m3e-icon-button
+              :id="id"
+              :variant="snapClipsEnabled ? 'filled' : 'standard'"
               :aria-pressed="snapClipsEnabled"
               :aria-label="t('pages.generate.snapClips')"
               @click="toggleSnapClips"
             >
               <Magnet :size="20" aria-hidden="true" />
-            </var-button>
-          </var-tooltip>
+            </m3e-icon-button>
+          </Hint>
 
-          <var-tooltip
-            :content="rightPanelLabel"
-            :placement="tooltipPlacement"
+          <Hint
+            :text="rightPanelLabel"
+            :position="tooltipPlacement"
+            v-slot="{ id }"
           >
-            <var-button
-              text
-              round
-              type="primary"
+            <m3e-icon-button
+              :id="id"
+              variant="filled"
               :aria-label="rightPanelLabel"
               @click="cycleRightPanel"
             >
@@ -185,24 +192,24 @@ onUnmounted(() => {
                 :size="20"
                 aria-hidden="true"
               />
-            </var-button>
-          </var-tooltip>
+            </m3e-icon-button>
+          </Hint>
 
-          <var-tooltip
-            :content="t('pages.generate.toggleFileTree')"
-            :placement="tooltipPlacement"
+          <Hint
+            :text="t('pages.generate.toggleFileTree')"
+            :position="tooltipPlacement"
+            v-slot="{ id }"
           >
-            <var-button
-              text
-              round
-              :type="showFileTree ? 'primary' : undefined"
+            <m3e-icon-button
+              :id="id"
+              :variant="showFileTree ? 'filled' : 'standard'"
               :aria-pressed="showFileTree"
               :aria-label="t('pages.generate.toggleFileTree')"
               @click="toggleFileTree"
             >
               <FolderTree :size="20" aria-hidden="true" />
-            </var-button>
-          </var-tooltip>
+            </m3e-icon-button>
+          </Hint>
         </div>
       </div>
     </div>
@@ -219,12 +226,5 @@ onUnmounted(() => {
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
-}
-</style>
-
-<style>
-/* Teleported popovers; allow hover/click to reach stacked toolbar controls underneath */
-.var-tooltip__tooltip {
-  pointer-events: none;
 }
 </style>

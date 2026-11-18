@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Dialog } from '@varlet/ui';
+import { useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Plus } from '@lucide/vue';
+import type { M3eStepperElement } from '@m3e/web/stepper';
+import { confirmDialog } from '../../ui/confirm';
 import VoiceEditor from '../voice/VoiceEditor.vue';
 import {
   createDefaultVoice,
@@ -12,10 +14,6 @@ import type { Character, Voice } from '../../backend/types';
 import { useCharacters } from '../../store/useCharacters';
 
 type WizardStepKind = 'basics' | 'voices';
-
-interface SwipeExpose {
-  to: (index: number) => void;
-}
 
 const props = defineProps<{
   show: boolean;
@@ -28,9 +26,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { addCharacter, updateCharacter, deleteCharacter } = useCharacters();
+const nameId = useId();
+const descriptionId = useId();
 
-const swipeRef = ref<SwipeExpose | null>(null);
-const swipeSession = ref(0);
 const stepIndex = ref(0);
 const error = ref('');
 const saving = ref(false);
@@ -62,7 +60,6 @@ function cloneVoice(voice: Voice): Voice {
 function hydrate(): void {
   error.value = '';
   stepIndex.value = 0;
-  swipeSession.value += 1;
   if (!props.character) {
     name.value = '';
     description.value = '';
@@ -90,9 +87,17 @@ function cancel(): void {
 }
 
 function goTo(index: number): void {
-  const next = Math.max(0, Math.min(index, stepKinds.value.length - 1));
-  stepIndex.value = next;
-  swipeRef.value?.to(next);
+  stepIndex.value = Math.max(0, Math.min(index, stepKinds.value.length - 1));
+}
+
+function onStepChange(event: Event): void {
+  const stepper = event.currentTarget as M3eStepperElement;
+  const next = stepper.selectedIndex;
+  if (next < 0) return;
+  onClickStep(next);
+  if (stepIndex.value !== next) {
+    stepper.moveTo(stepIndex.value);
+  }
 }
 
 function validateKind(kind: WizardStepKind | undefined): boolean {
@@ -207,17 +212,17 @@ async function onDelete(): Promise<void> {
   const character = props.character;
   if (!character) return;
 
-  const result = await Dialog({
+  const confirmed = await confirmDialog({
     title: t('pages.profiles.wizard.deleteConfirmTitle'),
     message: t('pages.profiles.wizard.deleteConfirmMessage', {
       name: character.name,
     }),
-    confirmButtonText: t('pages.profiles.wizard.deleteConfirm'),
-    cancelButtonText: t('pages.profiles.wizard.deleteCancel'),
-    confirmButtonProps: { type: 'danger' },
+    confirmText: t('pages.profiles.wizard.deleteConfirm'),
+    cancelText: t('pages.profiles.wizard.deleteCancel'),
+    danger: true,
   });
 
-  if (result !== 'confirm') return;
+  if (!confirmed) return;
   try {
     await deleteCharacter(character.name);
     setShow(false);
@@ -232,183 +237,123 @@ function clearError(): void {
 </script>
 
 <template>
-  <var-dialog
-    :show="show"
-    dialog-class="character-wizard-dialog"
-    width="36rem"
-    :title="
-      isEdit
-        ? t('pages.profiles.wizard.editTitle')
-        : t('pages.profiles.wizard.createTitle')
-    "
-    :confirm-button="false"
-    :cancel-button="false"
-    :close-on-click-overlay="true"
-    :close-on-key-escape="true"
-    @update:show="setShow"
+  <m3e-dialog
+    class="character-wizard-dialog"
+    .open="show"
+    @closed="setShow(false)"
   >
-    <div class="flex flex-col gap-3 text-left">
-      <var-steps
-        :active="stepIndex"
-        @click-step="onClickStep"
+    <span slot="header">
+      {{
+        isEdit
+          ? t('pages.profiles.wizard.editTitle')
+          : t('pages.profiles.wizard.createTitle')
+      }}
+    </span>
+    <m3e-stepper class="text-left" @change="onStepChange">
+      <m3e-step
+        v-for="(kind, index) in stepKinds"
+        :key="kind"
+        :for="`wizard-${kind}`"
+        .selected="stepIndex === index"
       >
-        <var-step
-          v-for="kind in stepKinds"
-          :key="kind"
-        >
-          {{ t(stepLabelKey[kind]) }}
-        </var-step>
-      </var-steps>
-
-      <p
-        v-if="error"
-        class="rounded-lg bg-danger/15 px-3 py-2 text-base font-medium text-danger"
-        role="alert"
-      >
-        {{ error }}
-      </p>
-
-      <var-swipe
-        :key="swipeSession"
-        ref="swipeRef"
-        class="wizard-swipe"
-        :loop="false"
-        :touchable="false"
-        :indicator="false"
-        :initial-index="stepIndex"
-      >
-        <var-swipe-item
-          v-for="kind in stepKinds"
-          :key="kind"
-        >
-          <div class="wizard-pane">
-            <template v-if="kind === 'basics'">
-              <var-input
-                v-model="name"
-                size="small"
-                variant="outlined"
-                :placeholder="t('pages.profiles.wizard.namePlaceholder')"
-                :aria-label="t('pages.profiles.wizard.namePlaceholder')"
-                @update:model-value="clearError"
-              />
-              <var-input
-                v-model="description"
-                size="small"
-                variant="outlined"
-                textarea
-                :rows="3"
-                :placeholder="t('pages.profiles.wizard.descriptionPlaceholder')"
-                :aria-label="t('pages.profiles.wizard.descriptionPlaceholder')"
-              />
-            </template>
-
-            <template v-else>
-              <div class="flex items-center justify-between gap-2">
-                <p class="text-base font-medium text-text">
-                  {{ t('pages.profiles.wizard.voices') }}
-                </p>
-                <var-button
-                  size="small"
-                  outlined
-                  @click="addVoice"
-                >
-                  <Plus
-                    :size="14"
-                    aria-hidden="true"
-                    class="mr-1"
-                  />
-                  {{ t('pages.profiles.wizard.addVoice') }}
-                </var-button>
-              </div>
-              <div
-                v-if="voices.length === 0"
-                class="rounded-lg bg-surface-container px-3 py-4 text-sm text-on-surface-variant"
-              >
-                {{ t('pages.profiles.wizard.noVoices') }}
-              </div>
-              <VoiceEditor
-                v-for="(voice, index) in voices"
-                :key="index"
-                :model-value="voice"
-                removable
-                @update:model-value="updateVoice(index, $event)"
-                @remove="removeVoice(index)"
-              />
-            </template>
-          </div>
-        </var-swipe-item>
-      </var-swipe>
-    </div>
-
-    <template #actions="{ slotClass }">
-      <div :class="[slotClass, 'flex w-full items-center gap-2']">
-        <var-button
-          v-if="isEdit"
-          type="danger"
-          text
-          @click="onDelete"
-        >
-          {{ t('pages.profiles.wizard.delete') }}
-        </var-button>
-        <div class="ml-auto flex gap-2">
-          <var-button
-            text
-            @click="cancel"
-          >
-            {{ t('pages.profiles.wizard.cancel') }}
-          </var-button>
-          <var-button
-            v-if="!isEdit"
-            text
-            :disabled="stepIndex === 0"
-            @click="goBack"
-          >
-            {{ t('pages.profiles.wizard.back') }}
-          </var-button>
-          <var-button
-            type="primary"
-            :loading="saving"
-            @click="onPrimaryAction"
-          >
-            {{
-              !isEdit && !isLast
-                ? t('pages.profiles.wizard.next')
-                : t('pages.profiles.wizard.save')
-            }}
-          </var-button>
+        {{ t(stepLabelKey[kind]) }}
+      </m3e-step>
+      <m3e-step-panel id="wizard-basics">
+        <m3e-form-field>
+          <label slot="label" :for="nameId">
+            {{ t('pages.profiles.wizard.namePlaceholder') }}
+          </label>
+          <input
+            :id="nameId"
+            v-model="name"
+            :aria-label="t('pages.profiles.wizard.namePlaceholder')"
+            @input="clearError"
+          />
+        </m3e-form-field>
+        <m3e-form-field>
+          <label slot="label" :for="descriptionId">
+            {{ t('pages.profiles.wizard.descriptionPlaceholder') }}
+          </label>
+          <textarea
+            :id="descriptionId"
+            v-model="description"
+            rows="3"
+            :aria-label="t('pages.profiles.wizard.descriptionPlaceholder')"
+          />
+        </m3e-form-field>
+      </m3e-step-panel>
+      <m3e-step-panel id="wizard-voices">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-base font-medium text-on-surface">
+            {{ t('pages.profiles.wizard.voices') }}
+          </p>
+          <m3e-button size="small" variant="outlined" @click="addVoice">
+            <Plus slot="icon" :size="14" aria-hidden="true" />
+            {{ t('pages.profiles.wizard.addVoice') }}
+          </m3e-button>
         </div>
+        <div
+          v-if="voices.length === 0"
+          class="rounded-lg bg-surface-container px-3 py-4 text-sm text-on-surface-variant"
+        >
+          {{ t('pages.profiles.wizard.noVoices') }}
+        </div>
+        <VoiceEditor
+          v-for="(voice, index) in voices"
+          :key="index"
+          :model-value="voice"
+          removable
+          @update:model-value="updateVoice(index, $event)"
+          @remove="removeVoice(index)"
+        />
+      </m3e-step-panel>
+    </m3e-stepper>
+    <p
+      v-if="error"
+      class="rounded-lg bg-error/15 px-3 py-2 text-base font-medium text-error"
+      role="alert"
+    >
+      {{ error }}
+    </p>
+    <div slot="actions" class="flex w-full items-center gap-2">
+      <m3e-button
+        v-if="isEdit"
+        class="tone-error"
+        variant="text"
+        @click="onDelete"
+      >
+        {{ t('pages.profiles.wizard.delete') }}
+      </m3e-button>
+      <div class="ml-auto flex gap-2">
+        <m3e-button variant="text" @click="cancel">
+          {{ t('pages.profiles.wizard.cancel') }}
+        </m3e-button>
+        <m3e-button
+          v-if="!isEdit"
+          variant="text"
+          .disabled="stepIndex === 0"
+          @click="goBack"
+        >
+          {{ t('pages.profiles.wizard.back') }}
+        </m3e-button>
+        <m3e-button
+          variant="filled"
+          .disabled="saving"
+          @click="onPrimaryAction"
+        >
+          {{
+            !isEdit && !isLast
+              ? t('pages.profiles.wizard.next')
+              : t('pages.profiles.wizard.save')
+          }}
+        </m3e-button>
       </div>
-    </template>
-  </var-dialog>
+    </div>
+  </m3e-dialog>
 </template>
-
-<style scoped>
-.wizard-swipe {
-  height: 26rem;
-}
-
-.wizard-pane {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  gap: 0.75rem;
-  overflow-y: auto;
-  padding: 0.5rem 1rem 0.75rem;
-}
-</style>
 
 <style>
 .character-wizard-dialog {
-  max-width: min(36rem, 92vw);
-  --dialog-actions-padding: 0 24px 24px;
-}
-
-.character-wizard-dialog .var-dialog__message {
-  max-height: min(36rem, 75vh);
-  overflow: auto;
-}
-
-.character-wizard-dialog .var-steps {
-  overflow-x: auto;
+  --m3e-dialog-max-width: min(36rem, 92vw);
 }
 </style>

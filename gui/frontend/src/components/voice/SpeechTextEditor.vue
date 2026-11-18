@@ -59,7 +59,7 @@ const editorOptions: MonacoEditor.IStandaloneEditorConstructionOptions = {
         </span>
       </template>
       <template #failure>
-        <span class="p-3 text-danger text-sm">
+        <span class="p-3 text-error text-sm">
           {{ t('pages.utilities.quickGenerate.editorLoadFailed') }}
         </span>
       </template>

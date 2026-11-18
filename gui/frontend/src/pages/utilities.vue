@@ -9,7 +9,7 @@ const { t } = useI18n();
   <section
     class="flex w-full max-w-5xl flex-col gap-6 px-6 pt-8 pb-8 text-left sm:px-6"
   >
-    <h1 class="font-bold tracking-wide text-text text-3xl">
+    <h1 class="font-bold tracking-wide text-on-surface text-3xl">
       {{ t('pages.utilities.title') }}
     </h1>
 

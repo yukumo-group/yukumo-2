@@ -39,10 +39,10 @@ function setShow(value: boolean): void {
   emit('update:show', value);
 }
 
-function onSlider(value: number | number[]): void {
-  const n = Array.isArray(value) ? value[0] : value;
-  if (typeof n !== 'number') return;
-  index.value = clampIndex(n);
+function onSlider(event: Event): void {
+  const thumb = event.target as HTMLElement & { value?: number };
+  if (typeof thumb.value !== 'number') return;
+  index.value = clampIndex(thumb.value);
 }
 
 function onConfirm(): void {
@@ -53,23 +53,18 @@ function onConfirm(): void {
 </script>
 
 <template>
-  <var-dialog
-    :show="show"
-    dialog-class="timeline-clip-split-dialog"
-    width="32rem"
-    :title="t('pages.generate.timeline.splitDialogTitle')"
-    :confirm-button="false"
-    :cancel-button="false"
-    :close-on-click-overlay="true"
-    :close-on-key-escape="true"
-    @update:show="setShow"
+  <m3e-dialog
+    class="timeline-clip-split-dialog"
+    .open="show"
+    @closed="setShow(false)"
   >
+    <span slot="header">{{ t('pages.generate.timeline.splitDialogTitle') }}</span>
     <div class="flex flex-col gap-4 text-left">
       <p class="text-sm text-on-surface-variant">
         {{ t('pages.generate.timeline.splitDialogHint') }}
       </p>
       <div
-        class="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-surface-container px-3 py-2 text-sm text-text"
+        class="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-surface-container px-3 py-2 text-sm text-on-surface"
         :aria-label="t('pages.generate.timeline.splitPreviewAriaLabel')"
       >
         <span>{{ leftText }}</span>
@@ -79,38 +74,30 @@ function onConfirm(): void {
         >|</span>
         <span>{{ rightText }}</span>
       </div>
-      <var-slider
-        :model-value="index"
-        :min="1"
-        :max="maxIndex"
-        :step="1"
-        :disabled="!canSplit"
-        :label="true"
-        @update:model-value="onSlider"
-      />
+      <m3e-slider
+        .min="1"
+        .max="maxIndex"
+        .step="1"
+        labelled
+        .disabled="!canSplit"
+        @input="onSlider"
+      >
+        <m3e-slider-thumb .value="index" />
+      </m3e-slider>
     </div>
-    <template #actions="{ slotClass }">
-      <div :class="[slotClass, 'flex w-full justify-end gap-2']">
-        <var-button
-          text
-          @click="setShow(false)"
-        >
-          {{ t('pages.generate.timeline.dialogCancel') }}
-        </var-button>
-        <var-button
-          type="primary"
-          :disabled="!canSplit"
-          @click="onConfirm"
-        >
-          {{ t('pages.generate.timeline.splitConfirm') }}
-        </var-button>
-      </div>
-    </template>
-  </var-dialog>
+    <div slot="actions" class="flex w-full justify-end gap-2">
+      <m3e-button variant="text" @click="setShow(false)">
+        {{ t('pages.generate.timeline.dialogCancel') }}
+      </m3e-button>
+      <m3e-button variant="filled" .disabled="!canSplit" @click="onConfirm">
+        {{ t('pages.generate.timeline.splitConfirm') }}
+      </m3e-button>
+    </div>
+  </m3e-dialog>
 </template>
 
 <style>
 .timeline-clip-split-dialog {
-  max-width: min(32rem, 92vw);
+  --m3e-dialog-max-width: min(32rem, 92vw);
 }
 </style>

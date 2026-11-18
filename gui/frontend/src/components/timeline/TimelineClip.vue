@@ -163,9 +163,9 @@ onUnmounted(clearResizing);
     :class="[
       bodyCursorClass,
       blocked
-        ? 'border border-danger bg-danger/80'
+        ? 'border border-error bg-error/80'
         : editMode === 'delete' && hovered
-          ? 'border border-danger bg-danger/40'
+          ? 'border border-error bg-error/40'
           : ['border', CLIP_COLOR_BODY[clip.color]],
       selected && !blocked
         ? 'ring-2 ring-primary ring-offset-1 ring-offset-body'
@@ -235,7 +235,7 @@ onUnmounted(clearResizing);
           v-if="editing"
           ref="inputRef"
           v-model="draft"
-          class="min-w-0 flex-1 bg-transparent py-0 text-sm text-text outline-none"
+          class="min-w-0 flex-1 bg-transparent py-0 text-sm text-on-surface outline-none"
           :aria-label="t('pages.generate.timeline.clipEditText')"
           @pointerdown.stop
           @keydown="onEditKeydown"
@@ -246,9 +246,9 @@ onUnmounted(clearResizing);
           class="min-w-0 flex-1 truncate py-0.5 leading-tight text-md"
           :class="
             blocked
-              ? 'text-on-danger'
+              ? 'text-on-error'
               : clip.text.trim()
-                ? 'text-text'
+                ? 'text-on-surface'
                 : 'text-on-surface-variant'
           "
         >

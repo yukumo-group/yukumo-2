@@ -113,7 +113,7 @@ const emit = defineEmits<{
       class="pointer-events-none absolute z-20 rounded-md border"
       :class="
         addPreviewInvalid
-          ? 'border-danger bg-danger/25'
+          ? 'border-error bg-error/25'
           : 'border-primary/60 bg-primary/20'
       "
       :style="addPreviewStyle"
@@ -122,7 +122,7 @@ const emit = defineEmits<{
     <div
       v-if="splitPreviewStyle"
       class="pointer-events-none absolute z-20 w-0.5 -translate-x-1/2"
-      :class="splitPreviewStyle.valid ? 'bg-primary' : 'bg-danger'"
+      :class="splitPreviewStyle.valid ? 'bg-primary' : 'bg-error'"
       :style="{
         left: splitPreviewStyle.left,
         top: splitPreviewStyle.top,
@@ -147,7 +147,7 @@ const emit = defineEmits<{
   />
   <div
     v-if="deleteMarqueeStyle"
-    class="pointer-events-none absolute z-30 border border-danger bg-danger/15"
+    class="pointer-events-none absolute z-30 border border-error bg-error/15"
     :style="deleteMarqueeStyle"
     aria-hidden="true"
   />

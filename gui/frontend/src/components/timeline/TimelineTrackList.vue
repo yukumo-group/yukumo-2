@@ -91,17 +91,16 @@ const { t } = useI18n();
       </div>
     </div>
     <div class="shrink-0 border-t border-outline/30 p-1">
-      <var-button
-        block
+      <m3e-button
+        class="w-full"
         size="small"
-        text
-        type="primary"
+        variant="text"
         :aria-label="t('pages.generate.timeline.addTrack')"
         @click="emit('add-track')"
       >
-        <Plus :size="16" class="mr-1" aria-hidden="true" />
+        <Plus slot="icon" :size="16" aria-hidden="true" />
         {{ t('pages.generate.timeline.addTrack') }}
-      </var-button>
+      </m3e-button>
     </div>
   </div>
 </template>

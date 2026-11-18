@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n';
 import { BetweenVerticalStart, MousePointer2, PenLine, Trash2 } from '@lucide/vue';
 import type { TimelineEditMode } from '../../types/timeline';
+import Hint from '../ui/Hint.vue';
 
 defineProps<{
   modelValue: TimelineEditMode;
@@ -56,13 +57,15 @@ const tools: {
     role="radiogroup"
     :aria-label="t('pages.generate.timeline.editModeToolbar')"
   >
-    <var-tooltip
+    <Hint
       v-for="tool in tools"
       :key="tool.id"
-      :content="t(tool.labelKey)"
-      placement="bottom"
+      :text="t(tool.labelKey)"
+      position="below"
+      v-slot="{ id }"
     >
       <button
+        :id="id"
         type="button"
         role="radio"
         class="inline-flex size-8 items-center justify-center rounded-full transition-colors"
@@ -78,6 +81,6 @@ const tools: {
       >
         <component :is="tool.icon" :size="16" aria-hidden="true" />
       </button>
-    </var-tooltip>
+    </Hint>
   </div>
 </template>

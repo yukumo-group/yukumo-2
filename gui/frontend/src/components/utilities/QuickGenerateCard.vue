@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Play, RotateCcw, Save } from '@lucide/vue';
-import { Snackbar } from '@varlet/ui';
+import type { M3eSelectElement } from '@m3e/web/select';
+import { notify } from '../../ui/notify';
 import SettingsCard from '../settings/SettingsCard.vue';
 import VersionSelectLabel from '../profiles/VersionSelectLabel.vue';
 import SynthParamForm from '../voice/SynthParamForm.vue';
@@ -26,6 +27,8 @@ const CUSTOM_SOURCE = '__custom__';
 const DEFAULT_VERSIONS = [1, 2, 10] as const;
 
 const { t } = useI18n();
+const versionSelectId = useId();
+const sourceSelectId = useId();
 const { characters, ensureLoaded } = useCharacters();
 
 const version = ref<AquesTalkVersion>(2);
@@ -92,12 +95,16 @@ watch(characters, () => {
 });
 
 function reportError(cause: unknown): void {
-  Snackbar({
-    content: t('pages.utilities.quickGenerate.failed', {
+  notify(
+    t('pages.utilities.quickGenerate.failed', {
       error: cause instanceof Error ? cause.message : String(cause),
     }),
-    type: 'error',
-  });
+  );
+}
+
+function selectString(event: Event): string | null {
+  const select = event.currentTarget as M3eSelectElement;
+  return typeof select.value === 'string' ? select.value : null;
 }
 
 function cloneVoice(value: Voice): Voice {
@@ -107,14 +114,17 @@ function cloneVoice(value: Voice): Voice {
   };
 }
 
-function onVersionChange(value: string | number): void {
+function onVersionChange(event: Event): void {
+  const value = selectString(event);
+  if (value === null) return;
   const next = Number(value);
   if (!isAquesTalkVersion(next)) return;
   version.value = next;
 }
 
-function onSourceChange(value: string | number): void {
-  const next = String(value);
+function onSourceChange(event: Event): void {
+  const next = selectString(event);
+  if (next === null) return;
   source.value = next;
   if (next === CUSTOM_SOURCE) {
     voice.value = createDefaultVoice('custom', DEFAULT_VERSIONS);
@@ -183,7 +193,7 @@ function onReset(): void {
   <SettingsCard>
     <div class="flex flex-col gap-4 p-4 sm:p-5">
       <header class="flex flex-col gap-1">
-        <h2 class="font-bold text-text text-xl">
+        <h2 class="font-bold text-on-surface text-xl">
           {{ t('pages.utilities.quickGenerate.title') }}
         </h2>
         <p class="text-sm text-on-surface-variant">
@@ -201,53 +211,55 @@ function onReset(): void {
           class="flex w-full shrink-0 flex-col gap-3 sm:w-80 sm:border-r sm:border-outline/30 sm:pr-4"
           :aria-label="t('pages.utilities.quickGenerate.configAriaLabel')"
         >
-          <var-select
-            :model-value="version"
-            size="small"
-            variant="outlined"
-            :placeholder="t('pages.utilities.quickGenerate.version')"
-            @update:model-value="onVersionChange"
-          >
-            <template #selected>
+          <m3e-form-field>
+            <label slot="label" :for="versionSelectId">
+              {{ t('pages.utilities.quickGenerate.version') }}
+            </label>
+            <m3e-select
+              :id="versionSelectId"
+              .value="String(version)"
+              @change="onVersionChange"
+            >
               <VersionSelectLabel
+                slot="value"
                 :version="version"
                 :label="t(versionLabelKey[version])"
               />
-            </template>
-            <var-option
-              v-for="item in ([1, 2, 10] as const)"
-              :key="item"
-              :value="item"
-              :label="t(versionLabelKey[item])"
-            >
-              <VersionSelectLabel
-                :version="item"
-                :label="t(versionLabelKey[item])"
-              />
-            </var-option>
-          </var-select>
+              <m3e-option
+                v-for="item in ([1, 2, 10] as const)"
+                :key="item"
+                :value="String(item)"
+              >
+                <VersionSelectLabel
+                  :version="item"
+                  :label="t(versionLabelKey[item])"
+                />
+              </m3e-option>
+            </m3e-select>
+          </m3e-form-field>
 
-          <var-select
-            :model-value="source"
-            size="small"
-            variant="outlined"
-            :placeholder="t('pages.utilities.quickGenerate.voiceSource')"
-            @update:model-value="onSourceChange"
-          >
-            <template #selected>
-              <span class="truncate">{{ selectedSourceLabel }}</span>
-            </template>
-            <var-option
-              :value="CUSTOM_SOURCE"
-              :label="t('pages.utilities.quickGenerate.customVoice')"
-            />
-            <var-option
-              v-for="option in voiceOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-            />
-          </var-select>
+          <m3e-form-field>
+            <label slot="label" :for="sourceSelectId">
+              {{ t('pages.utilities.quickGenerate.voiceSource') }}
+            </label>
+            <m3e-select
+              :id="sourceSelectId"
+              .value="source"
+              @change="onSourceChange"
+            >
+              <span slot="value" class="truncate">{{ selectedSourceLabel }}</span>
+              <m3e-option :value="CUSTOM_SOURCE">
+                {{ t('pages.utilities.quickGenerate.customVoice') }}
+              </m3e-option>
+              <m3e-option
+                v-for="option in voiceOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </m3e-option>
+            </m3e-select>
+          </m3e-form-field>
 
           <div class="flex max-h-96 flex-col gap-3 overflow-y-auto sm:max-h-none">
             <SynthParamForm
@@ -271,45 +283,30 @@ function onReset(): void {
           />
 
           <div class="flex flex-wrap items-center gap-2">
-            <var-button
-              type="primary"
-              :loading="busy === 'preview'"
-              :disabled="actionsDisabled"
+            <m3e-button
+              variant="filled"
+              .disabled="actionsDisabled || busy === 'preview'"
               @click="onPreview"
             >
-              <Play
-                :size="18"
-                aria-hidden="true"
-                class="mr-2"
-              />
+              <Play slot="icon" :size="18" aria-hidden="true" />
               {{ t('pages.utilities.quickGenerate.preview') }}
-            </var-button>
-            <var-button
-              type="primary"
-              outlined
-              :loading="busy === 'save'"
-              :disabled="actionsDisabled"
+            </m3e-button>
+            <m3e-button
+              variant="outlined"
+              .disabled="actionsDisabled || busy === 'save'"
               @click="onSave"
             >
-              <Save
-                :size="18"
-                aria-hidden="true"
-                class="mr-2"
-              />
+              <Save slot="icon" :size="18" aria-hidden="true" />
               {{ t('pages.utilities.quickGenerate.save') }}
-            </var-button>
+            </m3e-button>
             <div class="grow" />
-            <var-button
-              tonal
+            <m3e-button
+              variant="tonal"
               @click="onReset"
             >
-              <RotateCcw
-                :size="18"
-                aria-hidden="true"
-                class="mr-2"
-              />
+              <RotateCcw slot="icon" :size="18" aria-hidden="true" />
               {{ t('pages.utilities.quickGenerate.reset') }}
-            </var-button>
+            </m3e-button>
           </div>
         </div>
       </div>

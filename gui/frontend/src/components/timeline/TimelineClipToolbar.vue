@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { BetweenVerticalStart, Copy, Scissors, Trash2, Type, User } from '@lucide/vue';
+import Hint from '../ui/Hint.vue';
 import type {
   TimelineClip,
   TimelineClipColor,
@@ -29,6 +30,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const colorTriggerId = useId();
+const colorMenuId = useId();
 
 const first = computed(() => props.clips[0] ?? null);
 
@@ -53,16 +56,8 @@ const COLOR_LABEL_KEY: Record<
   danger: 'pages.generate.timeline.clipColors.danger',
 };
 
-function onColorSelect(value: unknown): void {
-  if (
-    value === 'primary' ||
-    value === 'info' ||
-    value === 'warning' ||
-    value === 'success' ||
-    value === 'danger'
-  ) {
-    emit('color', value);
-  }
+function onColorSelect(value: TimelineClipColor): void {
+  emit('color', value);
 }
 </script>
 
@@ -74,11 +69,13 @@ function onColorSelect(value: unknown): void {
     :aria-label="t('pages.generate.timeline.clipToolbar')"
     @pointerdown.stop
   >
-    <var-tooltip
-      :content="t('pages.generate.timeline.clipVoice')"
-      placement="top"
+    <Hint
+      :text="t('pages.generate.timeline.clipVoice')"
+      position="above"
+      v-slot="{ id }"
     >
       <button
+        :id="id"
         type="button"
         class="inline-flex size-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container"
         :aria-label="t('pages.generate.timeline.clipVoice')"
@@ -93,13 +90,15 @@ function onColorSelect(value: unknown): void {
           />
         </span>
       </button>
-    </var-tooltip>
+    </Hint>
 
-    <var-tooltip
-      :content="t('pages.generate.timeline.clipContent')"
-      placement="top"
+    <Hint
+      :text="t('pages.generate.timeline.clipContent')"
+      position="above"
+      v-slot="{ id }"
     >
       <button
+        :id="id"
         type="button"
         class="inline-flex size-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container disabled:opacity-40"
         :aria-label="t('pages.generate.timeline.clipContent')"
@@ -111,13 +110,15 @@ function onColorSelect(value: unknown): void {
           aria-hidden="true"
         />
       </button>
-    </var-tooltip>
+    </Hint>
 
-    <var-tooltip
-      :content="t('pages.generate.timeline.clipSplit')"
-      placement="top"
+    <Hint
+      :text="t('pages.generate.timeline.clipSplit')"
+      position="above"
+      v-slot="{ id }"
     >
       <button
+        :id="id"
         type="button"
         class="inline-flex size-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container disabled:opacity-40"
         :aria-label="t('pages.generate.timeline.clipSplit')"
@@ -129,33 +130,32 @@ function onColorSelect(value: unknown): void {
           aria-hidden="true"
         />
       </button>
-    </var-tooltip>
+    </Hint>
 
-    <var-menu-select
-      class="inline-flex shrink-0"
-      :model-value="first.color"
-      size="mini"
-      placement="top"
-      popover-class="timeline-clip-color-menu"
-      close-on-select
-      @update:model-value="onColorSelect"
-    >
+    <span class="inline-flex shrink-0">
       <button
+        :id="colorTriggerId"
         type="button"
         class="inline-flex size-8 items-center justify-center rounded-full hover:bg-surface-container"
         :aria-label="t('pages.generate.timeline.clipColor')"
-        :aria-haspopup="true"
+        aria-haspopup="menu"
       >
         <span
           class="size-4 rounded-full ring-1 ring-outline/40"
           :class="CLIP_COLOR_SWATCH[first.color]"
         />
+        <m3e-menu-trigger :for="colorMenuId" />
       </button>
-      <template #options>
-        <var-menu-option
+      <m3e-menu
+        :id="colorMenuId"
+        class="timeline-clip-color-menu"
+        position-x="before"
+        position-y="above"
+      >
+        <m3e-menu-item
           v-for="color in TIMELINE_CLIP_COLORS"
           :key="color"
-          :value="color"
+          @click="onColorSelect(color)"
         >
           <span class="flex items-center gap-2">
             <span
@@ -164,9 +164,9 @@ function onColorSelect(value: unknown): void {
             />
             <span>{{ t(COLOR_LABEL_KEY[color]) }}</span>
           </span>
-        </var-menu-option>
-      </template>
-    </var-menu-select>
+        </m3e-menu-item>
+      </m3e-menu>
+    </span>
 
     <div class="mx-1.5 flex items-center gap-2.5">
       <TimelineKnob
@@ -194,7 +194,7 @@ function onColorSelect(value: unknown): void {
       type="button"
       class="inline-flex size-8 shrink-0 items-center justify-center rounded-md font-bold text-[11px] hover:bg-surface-container"
       :class="
-        allMuted ? 'bg-danger/15 text-danger' : 'text-on-surface-variant'
+        allMuted ? 'bg-error/15 text-error' : 'text-on-surface-variant'
       "
       :aria-label="
         allMuted
@@ -207,11 +207,13 @@ function onColorSelect(value: unknown): void {
       M
     </button>
 
-    <var-tooltip
-      :content="t('pages.generate.timeline.clipCopy')"
-      placement="top"
+    <Hint
+      :text="t('pages.generate.timeline.clipCopy')"
+      position="above"
+      v-slot="{ id }"
     >
       <button
+        :id="id"
         type="button"
         class="inline-flex size-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container"
         :aria-label="t('pages.generate.timeline.clipCopy')"
@@ -222,13 +224,15 @@ function onColorSelect(value: unknown): void {
           aria-hidden="true"
         />
       </button>
-    </var-tooltip>
+    </Hint>
 
-    <var-tooltip
-      :content="t('pages.generate.timeline.clipCut')"
-      placement="top"
+    <Hint
+      :text="t('pages.generate.timeline.clipCut')"
+      position="above"
+      v-slot="{ id }"
     >
       <button
+        :id="id"
         type="button"
         class="inline-flex size-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container"
         :aria-label="t('pages.generate.timeline.clipCut')"
@@ -239,15 +243,17 @@ function onColorSelect(value: unknown): void {
           aria-hidden="true"
         />
       </button>
-    </var-tooltip>
+    </Hint>
 
-    <var-tooltip
-      :content="t('pages.generate.timeline.clipDelete')"
-      placement="top"
+    <Hint
+      :text="t('pages.generate.timeline.clipDelete')"
+      position="above"
+      v-slot="{ id }"
     >
       <button
+        :id="id"
         type="button"
-        class="inline-flex size-8 items-center justify-center rounded-full text-danger hover:bg-danger/15"
+        class="inline-flex size-8 items-center justify-center rounded-full text-error hover:bg-error/15"
         :aria-label="t('pages.generate.timeline.clipDelete')"
         @click="emit('delete')"
       >
@@ -256,16 +262,12 @@ function onColorSelect(value: unknown): void {
           aria-hidden="true"
         />
       </button>
-    </var-tooltip>
+    </Hint>
   </div>
 </template>
 
 <style>
 .timeline-clip-color-menu {
-  --menu-select-menu-background-color: var(--color-body);
-}
-
-.timeline-clip-color-menu .var-menu-select__menu {
   overflow: hidden;
 }
 </style>

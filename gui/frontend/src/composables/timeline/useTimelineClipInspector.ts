@@ -1,5 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import { Dialog } from '@varlet/ui';
+import { confirmDialog } from '../../ui/confirm';
 import type { ComposerTranslation } from 'vue-i18n';
 import { snapClipsEnabled } from '../timelineSession';
 import { snapTimeToRuler } from '../timelineGrid';
@@ -165,16 +165,16 @@ export function useTimelineClipInspector(options: {
     if (ids.length === 0 || deleteConfirmPending) return;
     deleteConfirmPending = true;
     try {
-      const result = await Dialog({
+      const confirmed = await confirmDialog({
         title: t('pages.generate.timeline.deleteConfirmTitle'),
         message: t('pages.generate.timeline.deleteConfirmMessage', {
           n: ids.length,
         }),
-        confirmButtonText: t('pages.generate.timeline.deleteConfirm'),
-        cancelButtonText: t('pages.generate.timeline.deleteCancel'),
-        confirmButtonProps: { type: 'danger' },
+        confirmText: t('pages.generate.timeline.deleteConfirm'),
+        cancelText: t('pages.generate.timeline.deleteCancel'),
+        danger: true,
       });
-      if (result !== 'confirm') return;
+      if (!confirmed) return;
       const idSet = new Set(ids);
       options.removeClips(ids);
       selection.setSelection(

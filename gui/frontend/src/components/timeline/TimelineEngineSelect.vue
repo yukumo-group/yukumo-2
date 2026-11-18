@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { AquesTalkVersion } from '../../backend/types';
 import EngineBadge from '../profiles/EngineBadge.vue';
@@ -21,26 +22,18 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const triggerId = useId();
+const menuId = useId();
 
-function onSelect(value: unknown): void {
-  const n = typeof value === 'string' ? Number(value) : value;
-  if (n !== 1 && n !== 2 && n !== 10) return;
-  emit('update:modelValue', n);
+function selectVersion(version: AquesTalkVersion): void {
+  emit('update:modelValue', version);
 }
 </script>
 
 <template>
-  <var-menu-select
-    class="inline-flex shrink-0"
-    :model-value="modelValue"
-    size="mini"
-    placement="bottom-start"
-    popover-class="timeline-engine-menu"
-    close-on-select
-    @update:model-value="onSelect"
-    @pointerdown.stop
-  >
+  <span class="inline-flex shrink-0" @pointerdown.stop>
     <button
+      :id="triggerId"
       type="button"
       class="inline-flex shrink-0 items-center rounded-sm hover:opacity-80"
       :aria-label="
@@ -48,31 +41,33 @@ function onSelect(value: unknown): void {
           engine: t(versionLabelKey[props.modelValue]),
         })
       "
-      :aria-haspopup="true"
+      aria-haspopup="menu"
     >
       <EngineBadge :version="modelValue" />
+      <m3e-menu-trigger :for="menuId" />
     </button>
-    <template #options>
-      <var-menu-option
+    <m3e-menu
+      :id="menuId"
+      class="timeline-engine-menu"
+      position-x="before"
+      position-y="below"
+    >
+      <m3e-menu-item
         v-for="version in ENGINE_VERSIONS"
         :key="version"
-        :value="version"
+        @click="selectVersion(version)"
       >
         <VersionSelectLabel
           :version="version"
           :label="t(versionLabelKey[version])"
         />
-      </var-menu-option>
-    </template>
-  </var-menu-select>
+      </m3e-menu-item>
+    </m3e-menu>
+  </span>
 </template>
 
 <style>
 .timeline-engine-menu {
-  --menu-select-menu-background-color: var(--color-body);
-}
-
-.timeline-engine-menu .var-menu-select__menu {
   overflow: hidden;
 }
 </style>

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FileAudio, Trash2 } from '@lucide/vue';
-import { Snackbar } from '@varlet/ui';
+import type { M3eSelectElement } from '@m3e/web/select';
+import { notify } from '../../ui/notify';
 import EngineBadge from '../profiles/EngineBadge.vue';
 import { usePresetCatalog } from '../../backend/presets';
 import type { SynthParam } from '../../backend/types';
@@ -18,6 +20,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const presetSelectId = useId();
+const baseSelectId = useId();
 const { ensure, presetNames, presetLabel } = usePresetCatalog();
 
 const loadingPresets = ref(false);
@@ -57,12 +61,23 @@ function patch(part: Partial<SynthParam>): void {
   emit('update:modelValue', { ...props.modelValue, ...part });
 }
 
-function onPresetChange(value: string | number): void {
-  patch({ preset: Number(value) });
+function selectedNumber(event: Event): number | null {
+  const select = event.currentTarget as M3eSelectElement;
+  if (typeof select.value !== 'string' || select.value === '') return null;
+  const next = Number(select.value);
+  return Number.isFinite(next) ? next : null;
 }
 
-function onBaseChange(value: string | number): void {
-  patch({ base: Number(value) });
+function onPresetChange(event: Event): void {
+  const next = selectedNumber(event);
+  if (next === null) return;
+  patch({ preset: next });
+}
+
+function onBaseChange(event: Event): void {
+  const next = selectedNumber(event);
+  if (next === null) return;
+  patch({ base: next });
 }
 
 async function loadPresets(version: number): Promise<void> {
@@ -70,10 +85,7 @@ async function loadPresets(version: number): Promise<void> {
   try {
     await ensure(version);
   } catch (cause) {
-    Snackbar({
-      content: cause instanceof Error ? cause.message : String(cause),
-      type: 'error',
-    });
+    notify(cause instanceof Error ? cause.message : String(cause));
   } finally {
     loadingPresets.value = false;
   }
@@ -92,10 +104,7 @@ async function onPhontChange(event: Event): Promise<void> {
     const bytes = new Uint8Array(await file.arrayBuffer());
     patch({ phontData: bytesToBase64(bytes) });
   } catch (cause) {
-    Snackbar({
-      content: cause instanceof Error ? cause.message : String(cause),
-      type: 'error',
-    });
+    notify(cause instanceof Error ? cause.message : String(cause));
   }
 }
 
@@ -123,20 +132,24 @@ watch(() => props.modelValue.version, loadPresets, { immediate: true });
       </span>
     </div>
 
-    <var-select
-      :model-value="modelValue.preset"
-      size="small"
-      variant="outlined"
-      :placeholder="t('pages.profiles.wizard.preset')"
-      @update:model-value="onPresetChange"
-    >
-      <var-option
-        v-for="option in presetOptions"
-        :key="option.value"
-        :value="option.value"
-        :label="option.label"
-      />
-    </var-select>
+    <m3e-form-field>
+      <label slot="label" :for="presetSelectId">
+        {{ t('pages.profiles.wizard.preset') }}
+      </label>
+      <m3e-select
+        :id="presetSelectId"
+        .value="String(modelValue.preset)"
+        @change="onPresetChange"
+      >
+        <m3e-option
+          v-for="option in presetOptions"
+          :key="option.value"
+          :value="String(option.value)"
+        >
+          {{ option.label }}
+        </m3e-option>
+      </m3e-select>
+    </m3e-form-field>
 
     <SliderField
       :model-value="modelValue.speed"
@@ -150,33 +163,28 @@ watch(() => props.modelValue.version, loadPresets, { immediate: true });
       v-if="modelValue.version === 2"
       class="flex flex-col gap-1.5"
     >
-      <p class="text-sm font-medium text-text">
+      <p class="text-sm font-medium text-on-surface">
         {{ t('pages.profiles.wizard.phont') }}
       </p>
       <div class="flex items-center gap-2">
-        <var-button
+        <m3e-button
           size="small"
-          outlined
+          variant="outlined"
           @click="openPhontPicker"
         >
-          <FileAudio
-            :size="16"
-            aria-hidden="true"
-            class="mr-1.5"
-          />
+          <FileAudio slot="icon" :size="16" aria-hidden="true" />
           {{ t('pages.profiles.wizard.phontChoose') }}
-        </var-button>
-        <var-button
+        </m3e-button>
+        <m3e-icon-button
           v-if="modelValue.phontData"
-          size="small"
-          text
+          :aria-label="t('pages.profiles.wizard.phontChoose')"
           @click="clearPhont"
         >
           <Trash2
             :size="16"
             aria-hidden="true"
           />
-        </var-button>
+        </m3e-icon-button>
         <span
           v-if="phontName"
           class="truncate text-sm text-on-surface-variant"
@@ -194,26 +202,26 @@ watch(() => props.modelValue.version, loadPresets, { immediate: true });
     </div>
 
     <template v-if="customPreset">
-      <var-select
-        :model-value="modelValue.base"
-        size="small"
-        variant="outlined"
-        :placeholder="t('pages.profiles.wizard.bas')"
-        @update:model-value="onBaseChange"
-      >
-        <var-option
-          :value="0"
-          :label="t('pages.profiles.wizard.basF1E')"
-        />
-        <var-option
-          :value="1"
-          :label="t('pages.profiles.wizard.basF2E')"
-        />
-        <var-option
-          :value="2"
-          :label="t('pages.profiles.wizard.basM1E')"
-        />
-      </var-select>
+      <m3e-form-field>
+        <label slot="label" :for="baseSelectId">
+          {{ t('pages.profiles.wizard.bas') }}
+        </label>
+        <m3e-select
+          :id="baseSelectId"
+          .value="String(modelValue.base)"
+          @change="onBaseChange"
+        >
+          <m3e-option value="0">
+            {{ t('pages.profiles.wizard.basF1E') }}
+          </m3e-option>
+          <m3e-option value="1">
+            {{ t('pages.profiles.wizard.basF2E') }}
+          </m3e-option>
+          <m3e-option value="2">
+            {{ t('pages.profiles.wizard.basM1E') }}
+          </m3e-option>
+        </m3e-select>
+      </m3e-form-field>
       <SliderField
         :model-value="modelValue.volume"
         :label="t('pages.profiles.wizard.vol')"

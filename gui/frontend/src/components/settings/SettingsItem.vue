@@ -10,7 +10,7 @@ defineProps<{
     class="settings-item flex items-center justify-between gap-3 px-4 py-3"
   >
     <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-      <p class="truncate font-semibold text-text text-base">
+      <p class="truncate font-semibold text-on-surface text-base">
         {{ title }}
       </p>
       <p

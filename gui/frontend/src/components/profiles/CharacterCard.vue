@@ -43,15 +43,14 @@ const engines = computed(() => {
 <template>
   <component
     :is="interactive ? 'button' : 'article'"
-    class="character-card relative flex flex-col overflow-hidden rounded-2xl bg-surface-container text-left text-text"
+    class="character-card relative flex flex-col overflow-hidden rounded-2xl bg-surface-container text-left text-on-surface"
     :type="interactive ? 'button' : undefined"
     :aria-label="interactive ? ariaLabel : undefined"
-    v-ripple="interactive ? { color: 'var(--color-primary)' } : false"
     @click="interactive ? emit('select') : undefined"
   >
-    <var-paper
+    <m3e-card
       class="flex h-full flex-col overflow-hidden rounded-2xl"
-      :elevation="1"
+      variant="elevated"
     >
       <div
         class="character-thumb relative flex shrink-0 items-center justify-center bg-surface-container-high text-on-surface-variant"
@@ -70,7 +69,7 @@ const engines = computed(() => {
       </div>
 
       <div class="flex flex-1 flex-col gap-1 p-3 pt-2">
-        <h2 class="truncate font-bold text-text text-base">
+        <h2 class="truncate font-bold text-on-surface text-base">
           {{ character.name }}
         </h2>
         <p
@@ -83,7 +82,7 @@ const engines = computed(() => {
           {{ t('pages.profiles.voiceCount', { n: character.voices.length }) }}
         </p>
       </div>
-    </var-paper>
+    </m3e-card>
   </component>
 </template>
 
@@ -103,38 +102,30 @@ button.character-card {
   cursor: pointer;
 }
 
-button.character-card :deep(.var-paper)::after {
+button.character-card :deep(m3e-card)::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
   border-radius: inherit;
   pointer-events: none;
-  background: hsla(var(--hsl-text), 0.08);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
   opacity: 0;
   transition: opacity 120ms ease;
 }
 
-button.character-card:hover :deep(.var-paper)::after {
+button.character-card:hover :deep(m3e-card)::after {
   opacity: 1;
 }
 
-button.character-card:focus-visible :deep(.var-paper)::after,
-button.character-card:active :deep(.var-paper)::after {
-  background: hsla(var(--hsl-text), 0.12);
+button.character-card:focus-visible :deep(m3e-card)::after,
+button.character-card:active :deep(m3e-card)::after {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
   opacity: 1;
-}
-
-button.character-card:hover :deep(.var-paper),
-button.character-card:focus-visible :deep(.var-paper) {
-  box-shadow:
-    0 2px 4px -1px var(--shadow-key-umbra-opacity),
-    0 6px 20px -2px var(--shadow-key-penumbra-opacity),
-    0 12px 32px -6px var(--shadow-key-ambient-opacity);
 }
 
 button.character-card:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--md-sys-color-primary);
   outline-offset: 2px;
 }
 </style>

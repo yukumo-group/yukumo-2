@@ -35,42 +35,29 @@ function onConfirm(): void {
 </script>
 
 <template>
-  <var-dialog
-    :show="show"
-    dialog-class="timeline-clip-content-dialog"
-    width="36rem"
-    :title="t('pages.generate.timeline.contentDialogTitle')"
-    :confirm-button="false"
-    :cancel-button="false"
-    :close-on-click-overlay="true"
-    :close-on-key-escape="true"
-    @update:show="setShow"
+  <m3e-dialog
+    class="timeline-clip-content-dialog"
+    .open="show"
+    @closed="setShow(false)"
   >
+    <span slot="header">{{ t('pages.generate.timeline.contentDialogTitle') }}</span>
     <SpeechTextEditor
       v-model="draft"
       :ariaLabel="t('pages.utilities.quickGenerate.editorAriaLabel')"
     />
-    <template #actions="{ slotClass }">
-      <div :class="[slotClass, 'flex w-full justify-end gap-2']">
-        <var-button
-          text
-          @click="setShow(false)"
-        >
-          {{ t('pages.generate.timeline.dialogCancel') }}
-        </var-button>
-        <var-button
-          type="primary"
-          @click="onConfirm"
-        >
-          {{ t('pages.generate.timeline.dialogApply') }}
-        </var-button>
-      </div>
-    </template>
-  </var-dialog>
+    <div slot="actions" class="flex w-full justify-end gap-2">
+      <m3e-button variant="text" @click="setShow(false)">
+        {{ t('pages.generate.timeline.dialogCancel') }}
+      </m3e-button>
+      <m3e-button variant="filled" @click="onConfirm">
+        {{ t('pages.generate.timeline.dialogApply') }}
+      </m3e-button>
+    </div>
+  </m3e-dialog>
 </template>
 
 <style>
 .timeline-clip-content-dialog {
-  max-width: min(36rem, 92vw);
+  --m3e-dialog-max-width: min(36rem, 92vw);
 }
 </style>

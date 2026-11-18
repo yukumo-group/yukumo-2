@@ -70,7 +70,7 @@ const knobSize = computed(() => (inline.value ? 22 : 24));
         @update:model-value="emit('updateEngine', $event)"
       />
       <span
-        class="min-w-0 truncate font-semibold text-text leading-tight"
+        class="min-w-0 truncate font-semibold text-on-surface leading-tight"
         :class="inline ? 'flex-1 text-xs' : 'text-md'"
         :title="track.name"
       >
@@ -107,7 +107,7 @@ const knobSize = computed(() => (inline.value ? 22 : 24));
         class="inline-flex size-6 shrink-0 items-center justify-center rounded-md font-bold text-[11px] hover:bg-surface-container-high"
         :class="
           track.muted
-            ? 'bg-danger/15 text-danger'
+            ? 'bg-error/15 text-error'
             : 'text-on-surface-variant'
         "
         :aria-label="track.muted ? unmuteLabel : muteLabel"

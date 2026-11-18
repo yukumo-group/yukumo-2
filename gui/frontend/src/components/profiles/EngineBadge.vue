@@ -11,11 +11,11 @@ const { t } = useI18n();
 
 const safeVersion = computed(() => (isAquesTalkVersion(props.version) ? props.version : 1));
 
-const badgeType = computed(() => {
+const tone = computed(() => {
   const map = {
-    1: 'success',
-    2: 'warning',
-    10: 'danger',
+    1: 'primary',
+    2: 'tertiary',
+    10: 'error',
   } as const;
   return map[safeVersion.value];
 });
@@ -31,26 +31,32 @@ const labelKey = computed(() => {
 </script>
 
 <template>
-  <var-badge
-    v-bind="$attrs"
+  <m3e-badge
     class="engine-badge"
-    :type="badgeType"
-    :value="t(labelKey)"
-  />
+    :data-tone="tone"
+    size="medium"
+  >
+    {{ t(labelKey) }}
+  </m3e-badge>
 </template>
 
 <style scoped>
 .engine-badge {
-  --badge-content-font-size: 0.75rem;
-  --badge-content-padding: 2px 6px;
-  box-shadow: 0 1px 3px hsla(var(--hsl-text), 0.2);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-sys-color-on-surface) 20%, transparent);
 }
 
-.engine-badge :deep(.var-badge__content),
-.engine-badge :deep(.var-badge--right-top) {
-  position: static;
-  top: auto;
-  right: auto;
-  transform: none;
+.engine-badge[data-tone='primary'] {
+  --m3e-badge-container-color: var(--md-sys-color-primary);
+  --m3e-badge-color: var(--md-sys-color-on-primary);
+}
+
+.engine-badge[data-tone='tertiary'] {
+  --m3e-badge-container-color: var(--md-sys-color-tertiary);
+  --m3e-badge-color: var(--md-sys-color-on-tertiary);
+}
+
+.engine-badge[data-tone='error'] {
+  --m3e-badge-container-color: var(--md-sys-color-error);
+  --m3e-badge-color: var(--md-sys-color-on-error);
 }
 </style>

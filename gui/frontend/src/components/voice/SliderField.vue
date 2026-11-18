@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { M3eSliderThumbElement } from '@m3e/web/slider';
+
 withDefaults(
   defineProps<{
     label: string;
@@ -15,8 +17,11 @@ withDefaults(
 
 const model = defineModel<number>({ required: true });
 
-function onSliderUpdate(value: number | number[]): void {
-  model.value = Array.isArray(value) ? (value[0] ?? 0) : value;
+function onSliderUpdate(event: Event): void {
+  const thumb = event.target as M3eSliderThumbElement;
+  if (typeof thumb.value === 'number') {
+    model.value = thumb.value;
+  }
 }
 </script>
 
@@ -26,7 +31,7 @@ function onSliderUpdate(value: number | number[]): void {
     class="flex min-w-0 flex-1 flex-col items-center gap-1"
   >
     <span
-      class="max-w-full truncate text-center text-xs font-medium text-text"
+      class="max-w-full truncate text-center text-xs font-medium text-on-surface"
       :title="label"
     >
       {{ label }}
@@ -35,14 +40,16 @@ function onSliderUpdate(value: number | number[]): void {
       {{ model }}
     </span>
     <div class="flex h-44 w-full items-stretch justify-center py-1">
-      <var-slider
-        :model-value="model"
-        direction="vertical"
-        :min="min"
-        :max="max"
-        :step="step ?? 1"
-        @update:model-value="onSliderUpdate"
-      />
+      <m3e-slider
+        orientation="vertical"
+        .min="min"
+        .max="max"
+        .step="step ?? 1"
+        :aria-label="label"
+        @input="onSliderUpdate"
+      >
+        <m3e-slider-thumb .value="model" />
+      </m3e-slider>
     </div>
   </div>
   <div
@@ -55,13 +62,15 @@ function onSliderUpdate(value: number | number[]): void {
         {{ model }}
       </span>
     </div>
-    <var-slider
-      :model-value="model"
-      :min="min"
-      :max="max"
-      :step="step ?? 1"
-      @update:model-value="onSliderUpdate"
-    />
+    <m3e-slider
+      .min="min"
+      .max="max"
+      .step="step ?? 1"
+      :aria-label="label"
+      @input="onSliderUpdate"
+    >
+      <m3e-slider-thumb .value="model" />
+    </m3e-slider>
     <p
       v-if="hint"
       class="text-sm text-on-surface-variant"
