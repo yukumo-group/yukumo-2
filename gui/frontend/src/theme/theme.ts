@@ -1,9 +1,9 @@
 import { computed, ref, type Ref } from 'vue';
-import { StyleProvider } from '@varlet/ui';
+import type { M3eThemeElement } from '@m3e/web/theme';
 import {
   DEFAULT_THEME_HUE,
-  buildThemeVars,
   normalizeHue,
+  sourceHexForHue,
 } from './dynamicColor';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
@@ -25,6 +25,7 @@ let initialized = false;
 
 export const themePreference = computed(() => preference.value);
 export const themeHue = computed(() => hue.value);
+export const sourceHex = computed(() => sourceHexForHue(hue.value));
 
 export const resolvedTheme = computed<ResolvedTheme>(() =>
   resolveTheme(preference.value, systemDark.value),
@@ -100,10 +101,20 @@ function resolveTheme(
   return mode;
 }
 
+function themeElement(): M3eThemeElement | null {
+  const el = document.getElementById('app');
+  return el instanceof HTMLElement && el.tagName === 'M3E-THEME'
+    ? (el as M3eThemeElement)
+    : null;
+}
+
 function applyResolvedTheme(theme: ResolvedTheme, themeHueValue: number): void {
-  StyleProvider(buildThemeVars(themeHueValue, theme));
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
+  const el = themeElement();
+  if (!el) return;
+  el.color = sourceHexForHue(themeHueValue);
+  el.scheme = theme;
 }
 
 async function transitionTheme(
@@ -134,10 +145,11 @@ async function transitionTheme(
   root.classList.add('theme-rippling');
 
   try {
-    const transition = startViewTransition(() => {
-      applyResolvedTheme(theme, hue.value);
-    });
-    await transition.finished;
+  const transition = startViewTransition(() => {
+    applyResolvedTheme(theme, hue.value);
+    return themeElement()?.updateComplete;
+  });
+  await transition.finished;
   } finally {
     root.classList.remove('theme-rippling');
     root.style.removeProperty('--theme-ripple-x');

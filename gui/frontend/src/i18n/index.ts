@@ -1,9 +1,5 @@
 import { computed, ref, type Ref } from 'vue';
 import { createI18n } from 'vue-i18n';
-import { Locale } from '@varlet/ui';
-import enUS from '@varlet/ui/es/locale/en-US';
-import jaJP from '@varlet/ui/es/locale/ja-JP';
-import zhCN from '@varlet/ui/es/locale/zh-CN';
 
 import enUSMessages from './messages/en-US';
 import jaJPMessages from './messages/ja-JP';
@@ -34,10 +30,6 @@ export const i18n = createI18n({
     'zh-CN': zhCNMessages,
   },
 });
-
-Locale.add('en-US', enUS);
-Locale.add('ja-JP', jaJP);
-Locale.add('zh-CN', zhCN);
 
 let initialized = false;
 
@@ -85,7 +77,6 @@ function resolveLocale(mode: LocalePreference): AppLocale {
 
 function applyLocale(locale: AppLocale): void {
   i18n.global.locale.value = locale;
-  Locale.use(locale);
   document.documentElement.lang = locale;
 }
 

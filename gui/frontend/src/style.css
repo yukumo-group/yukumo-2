@@ -1,20 +1,51 @@
 @import 'tailwindcss';
-@config '../tailwind.config.js';
+
+@theme {
+  --color-primary: var(--md-sys-color-primary);
+  --color-on-primary: var(--md-sys-color-on-primary);
+  --color-primary-container: var(--md-sys-color-primary-container);
+  --color-on-primary-container: var(--md-sys-color-on-primary-container);
+  --color-secondary: var(--md-sys-color-secondary);
+  --color-on-secondary: var(--md-sys-color-on-secondary);
+  --color-secondary-container: var(--md-sys-color-secondary-container);
+  --color-on-secondary-container: var(--md-sys-color-on-secondary-container);
+  --color-tertiary: var(--md-sys-color-tertiary);
+  --color-on-tertiary: var(--md-sys-color-on-tertiary);
+  --color-error: var(--md-sys-color-error);
+  --color-on-error: var(--md-sys-color-on-error);
+  --color-error-container: var(--md-sys-color-error-container);
+  --color-on-error-container: var(--md-sys-color-on-error-container);
+  --color-surface: var(--md-sys-color-surface);
+  --color-on-surface: var(--md-sys-color-on-surface);
+  --color-surface-variant: var(--md-sys-color-surface-variant);
+  --color-on-surface-variant: var(--md-sys-color-on-surface-variant);
+  --color-outline: var(--md-sys-color-outline);
+  --color-outline-variant: var(--md-sys-color-outline-variant);
+  --color-surface-container-lowest: var(--md-sys-color-surface-container-lowest);
+  --color-surface-container-low: var(--md-sys-color-surface-container-low);
+  --color-surface-container: var(--md-sys-color-surface-container);
+  --color-surface-container-high: var(--md-sys-color-surface-container-high);
+  --color-surface-container-highest: var(--md-sys-color-surface-container-highest);
+  --color-inverse-surface: var(--md-sys-color-inverse-surface);
+  --color-inverse-on-surface: var(--md-sys-color-inverse-on-surface);
+  --color-background: var(--md-sys-color-background);
+  --color-on-background: var(--md-sys-color-on-background);
+}
 
 html {
   margin: 0;
   padding: 0;
   text-align: left;
-  color: var(--color-text, #2c3e50);
-  background-color: var(--color-body, #faf7ff);
+  color: var(--md-sys-color-on-surface, #2c3e50);
+  background-color: var(--md-sys-color-surface, #faf7ff);
   overflow-x: hidden;
 }
 
 body {
   margin: 0;
   padding: 0;
-  color: var(--color-text, #2c3e50);
-  background-color: var(--color-body, #faf7ff);
+  color: var(--md-sys-color-on-surface, #2c3e50);
+  background-color: var(--md-sys-color-surface, #faf7ff);
   font-family:
     'Nunito',
     -apple-system,
@@ -75,26 +106,23 @@ html.theme-rippling::view-transition-new(root) {
   overflow: hidden;
 }
 
-/* Light scheme: expand low elevations so soft opacities still read (esp. cards). */
-[data-theme='light'] .var-elevation--1 {
-  box-shadow:
-    0 1px 2px 0 var(--shadow-key-umbra-opacity),
-    0 4px 16px -2px var(--shadow-key-penumbra-opacity),
-    0 10px 28px -6px var(--shadow-key-ambient-opacity);
+.tone-error {
+  --md-sys-color-primary: var(--md-sys-color-error);
+  --md-sys-color-on-primary: var(--md-sys-color-on-error);
+  --md-sys-color-primary-container: var(--md-sys-color-error-container);
+  --md-sys-color-on-primary-container: var(--md-sys-color-on-error-container);
 }
 
-[data-theme='light'] .var-elevation--2 {
-  box-shadow:
-    0 2px 4px -1px var(--shadow-key-umbra-opacity),
-    0 6px 20px -2px var(--shadow-key-penumbra-opacity),
-    0 12px 32px -6px var(--shadow-key-ambient-opacity);
+m3e-menu-trigger {
+  display: contents;
 }
 
-[data-theme='light'] .var-elevation--3 {
-  box-shadow:
-    0 3px 6px -2px var(--shadow-key-umbra-opacity),
-    0 8px 24px -2px var(--shadow-key-penumbra-opacity),
-    0 14px 36px -6px var(--shadow-key-ambient-opacity);
+m3e-split-pane {
+  --m3e-split-pane-drag-handle-container-width: 8px;
+}
+
+m3e-split-pane.split-collapsed {
+  --m3e-split-pane-drag-handle-container-width: 0px;
 }
 
 /* Enter-only page change: fade + slide in from the right (no leave animation).
