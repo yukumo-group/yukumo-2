@@ -2,6 +2,7 @@ package synth_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"yukumo-script/core/internal/domain"
@@ -93,5 +94,47 @@ func TestSynthesizePreviewSkipWrite(t *testing.T) {
 	}
 	if len(keys) != 0 {
 		t.Fatalf("artifact store should be empty, got %v", keys)
+	}
+}
+
+func TestSynthesizeInlineVoiceNoWrite(t *testing.T) {
+	ctx := context.Background()
+	svc, artifacts := newSynthService(t, true)
+	res, err := svc.Synthesize(ctx, synth.Request{
+		Voice: &domain.Voice{
+			Name:   "inline",
+			Params: []domain.SynthParam{{Version: domain.Version1, Preset: 0, Speed: 100}},
+		},
+		Text:    "こんにちは",
+		NoWrite: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Wrote || res.Path != "" || res.FromCache {
+		t.Fatalf("no-write should return bytes only: %+v", res)
+	}
+	if len(res.WAV) < 44 || string(res.WAV[:4]) != "RIFF" {
+		t.Fatalf("bad wav: len=%d", len(res.WAV))
+	}
+	keys, err := artifacts.List("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(keys) != 0 {
+		t.Fatalf("artifact store should stay empty, got %v", keys)
+	}
+}
+
+func TestSynthesizeRejectsAmbiguousVoice(t *testing.T) {
+	ctx := context.Background()
+	svc, _ := newSynthService(t, true)
+	_, err := svc.Synthesize(ctx, synth.Request{
+		VoiceRef: "remilia:default",
+		Voice:    &domain.Voice{Name: "inline"},
+		Text:     "あ",
+	})
+	if !errors.Is(err, domain.ErrInvalid) {
+		t.Fatalf("expected invalid request, got %v", err)
 	}
 }

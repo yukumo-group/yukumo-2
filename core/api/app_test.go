@@ -2,6 +2,8 @@ package api_test
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"yukumo-script/core/api"
@@ -47,5 +49,34 @@ func TestNewRequiresStores(t *testing.T) {
 	}
 	if _, err := api.New(api.Deps{ConfigStore: store.NewMemory()}); err == nil {
 		t.Fatal("expected character store error")
+	}
+}
+
+func TestCharacterJSONContract(t *testing.T) {
+	data, err := json.Marshal(api.Character{
+		Name:        "remilia",
+		Description: "example",
+		Voices: []api.Voice{{
+			Name:   "default",
+			Params: []api.SynthParam{{Version: api.Version1, Preset: 0, Speed: 100}},
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(data)
+	for _, want := range []string{
+		`"name":"remilia"`,
+		`"description":"example"`,
+		`"voices":[`,
+		`"params":[`,
+		`"version":1`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("json %s missing %s", got, want)
+		}
+	}
+	if strings.Contains(got, `"Name"`) || strings.Contains(got, `"PhontData"`) {
+		t.Fatalf("json should use camelCase: %s", got)
 	}
 }

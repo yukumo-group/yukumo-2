@@ -31,15 +31,17 @@ func New(cfg Config, voices Voices, engine port.Synthesizer, artifacts port.Arti
 }
 
 type Request struct {
-	VoiceRef    string // "character:voice" (mutually exclusive with VoiceFile)
-	VoiceFile   []byte // raw Character YAML bytes
-	VoiceName   string // required with VoiceFile
-	VoiceBase   string // fallback character name when the YAML has none
+	VoiceRef    string        // "character:voice" (mutually exclusive with Voice/VoiceFile)
+	VoiceFile   []byte        // raw Character YAML bytes
+	Voice       *domain.Voice // inline voice (mutually exclusive with VoiceRef/VoiceFile)
+	VoiceName   string        // voice name fallback for VoiceFile / inline Voice
+	VoiceBase   string        // fallback character name when the character has none
 	Text        string
 	Version     int     // 0 = auto 1→2→10
 	SpeedFactor float64 // default 1.0
 	Output      string  // explicit -o path
 	Preview     bool
+	NoWrite     bool  // return bytes only: no output target, no cache
 	ReuseCache  *bool // nil → use config synth.reuse_cache
 }
 
@@ -64,8 +66,12 @@ func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
 	}
 	hasRef := strings.TrimSpace(req.VoiceRef) != ""
 	hasFile := req.VoiceFile != nil
-	if hasRef == hasFile {
-		return Result{}, fmt.Errorf("%w: provide exactly one of voice or voice file", domain.ErrInvalid)
+	hasInline := req.Voice != nil
+	if countTrue(hasRef, hasFile, hasInline) != 1 {
+		return Result{}, fmt.Errorf("%w: provide exactly one of voice, inline voice, or voice file", domain.ErrInvalid)
+	}
+	if req.NoWrite && strings.TrimSpace(req.Output) != "" {
+		return Result{}, fmt.Errorf("%w: no_write cannot be combined with output", domain.ErrInvalid)
 	}
 
 	var (
@@ -73,13 +79,29 @@ func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
 		voice               domain.Voice
 		fileBytes           []byte
 	)
-	if hasFile {
+	switch {
+	case hasFile:
 		c, v, raw, err := LoadVoiceBytes(req.VoiceFile, req.VoiceName, req.VoiceBase)
 		if err != nil {
 			return Result{}, err
 		}
 		charName, voiceName, voice, fileBytes = c.Name, v.Name, v, raw
-	} else {
+	case hasInline:
+		v := *req.Voice
+		v.Name = strings.TrimSpace(v.Name)
+		if v.Name == "" {
+			v.Name = strings.TrimSpace(req.VoiceName)
+		}
+		if v.Name == "" {
+			return Result{}, fmt.Errorf("%w: inline voice name is required", domain.ErrInvalid)
+		}
+		v.Normalize()
+		charName = strings.TrimSpace(req.VoiceBase)
+		if charName == "" {
+			charName = "character"
+		}
+		voiceName, voice = v.Name, v
+	default:
 		var err error
 		charName, voiceName, err = ParseVoiceRef(req.VoiceRef)
 		if err != nil {
@@ -102,18 +124,24 @@ func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
 	speed := effectiveSpeed(p.Speed, factor)
 	hash := TaskHash(text, speed, p, fileBytes)
 
-	cfg, err := s.config.Get()
-	if err != nil {
-		return Result{}, err
-	}
-	reuse := cfg.Synth.CacheReuse()
-	if req.ReuseCache != nil {
-		reuse = *req.ReuseCache
-	}
+	var (
+		reuse  bool
+		target target
+	)
+	if !req.NoWrite {
+		cfg, err := s.config.Get()
+		if err != nil {
+			return Result{}, err
+		}
+		reuse = cfg.Synth.CacheReuse()
+		if req.ReuseCache != nil {
+			reuse = *req.ReuseCache
+		}
 
-	target, err := s.resolveTarget(cfg, req, charName, voiceName)
-	if err != nil {
-		return Result{}, err
+		target, err = s.resolveTarget(cfg, req, charName, voiceName)
+		if err != nil {
+			return Result{}, err
+		}
 	}
 
 	if reuse && s.artifacts != nil {
@@ -215,6 +243,16 @@ func effectiveSpeed(base int, factor float64) int {
 		return 300
 	}
 	return v
+}
+
+func countTrue(flags ...bool) int {
+	n := 0
+	for _, flag := range flags {
+		if flag {
+			n++
+		}
+	}
+	return n
 }
 
 func toEngineParam(p domain.SynthParam, speed int) port.EngineParam {

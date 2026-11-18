@@ -4,58 +4,58 @@ import "yukumo-script/core/internal/domain"
 
 // Character is the UI-facing character model.
 type Character struct {
-	Name        string  `yaml:"name"`
-	Description string  `yaml:"description,omitempty"`
-	Voices      []Voice `yaml:"voices,omitempty"`
+	Name        string  `json:"name" yaml:"name"`
+	Description string  `json:"description" yaml:"description,omitempty"`
+	Voices      []Voice `json:"voices" yaml:"voices,omitempty"`
 }
 
 // Voice is the UI-facing voice model.
 type Voice struct {
-	Name   string       `yaml:"name"`
-	Params []SynthParam `yaml:"params,omitempty"`
+	Name   string       `json:"name" yaml:"name"`
+	Params []SynthParam `json:"params" yaml:"params,omitempty"`
 }
 
 // SynthParam is the UI-facing synthesis parameter model.
 type SynthParam struct {
-	Version   int    `yaml:"version"`
-	Preset    int    `yaml:"preset"`
-	Speed     int    `yaml:"speed"`
-	PhontData []byte `yaml:"phont_data,omitempty"`
-	Base      int    `yaml:"base,omitempty"`
-	Volume    int    `yaml:"volume,omitempty"`
-	Pitch     int    `yaml:"pitch,omitempty"`
-	Accent    int    `yaml:"accent,omitempty"`
-	Lmd       int    `yaml:"lmd,omitempty"`
-	Fsc       int    `yaml:"fsc,omitempty"`
+	Version   int    `json:"version" yaml:"version"`
+	Preset    int    `json:"preset" yaml:"preset"`
+	Speed     int    `json:"speed" yaml:"speed"`
+	PhontData []byte `json:"phontData,omitempty" yaml:"phont_data,omitempty"`
+	Base      int    `json:"base" yaml:"base,omitempty"`
+	Volume    int    `json:"volume" yaml:"volume,omitempty"`
+	Pitch     int    `json:"pitch" yaml:"pitch,omitempty"`
+	Accent    int    `json:"accent" yaml:"accent,omitempty"`
+	Lmd       int    `json:"lmd" yaml:"lmd,omitempty"`
+	Fsc       int    `json:"fsc" yaml:"fsc,omitempty"`
 }
 
 // Config is the UI-facing configuration model. Booleans are effective values;
 // SaveConfig writes them back as explicit values.
 type Config struct {
-	Characters CharacterConfig `yaml:"characters"`
-	Paths      PathConfig      `yaml:"paths"`
-	CLI        CLIConfig       `yaml:"cli"`
-	Synth      SynthConfig     `yaml:"synth"`
+	Characters CharacterConfig `json:"characters" yaml:"characters"`
+	Paths      PathConfig      `json:"paths" yaml:"paths"`
+	CLI        CLIConfig       `json:"cli" yaml:"cli"`
+	Synth      SynthConfig     `json:"synth" yaml:"synth"`
 }
 
 type CharacterConfig struct {
-	InitDefaultVoice bool `yaml:"init_default_voice"`
+	InitDefaultVoice bool `json:"initDefaultVoice" yaml:"init_default_voice"`
 }
 
 type PathConfig struct {
-	CharacterPath string `yaml:"character_path"`
-	OutputPath    string `yaml:"output_path"`
+	CharacterPath string `json:"characterPath" yaml:"character_path"`
+	OutputPath    string `json:"outputPath" yaml:"output_path"`
 }
 
 type CLIConfig struct {
-	DefaultInteractive bool `yaml:"default_interactive"`
-	WithAccessibility  bool `yaml:"with_accessibility"`
+	DefaultInteractive bool `json:"defaultInteractive" yaml:"default_interactive"`
+	WithAccessibility  bool `json:"withAccessibility" yaml:"with_accessibility"`
 }
 
 type SynthConfig struct {
-	OutputFormat string `yaml:"output_format"`
-	AlwaysWrite  bool   `yaml:"always_write"`
-	ReuseCache   bool   `yaml:"reuse_cache"`
+	OutputFormat string `json:"outputFormat" yaml:"output_format"`
+	AlwaysWrite  bool   `json:"alwaysWrite" yaml:"always_write"`
+	ReuseCache   bool   `json:"reuseCache" yaml:"reuse_cache"`
 }
 
 const (
