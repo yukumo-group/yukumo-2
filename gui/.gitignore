@@ -13,3 +13,5 @@ build/android/gen/
 conf.ini
 runtime/
 *.log
+
+build/linux/yukumo-gui.desktop

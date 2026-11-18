@@ -13,6 +13,9 @@ vendor/
 !.github/**
 !.golangci.yml
 !**/.golangci.yml
+!/gui/**/*.yaml
+!/gui/**/*.yml
 .dsh-plugins/
 
 /wasmtest/.build/
+.tmp
