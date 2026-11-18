@@ -2,10 +2,9 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { editor as MonacoEditor } from 'monaco-editor';
-import SplitPane from '../split/SplitPane.vue';
 import TimelineEditor from '../timeline/TimelineEditor.vue';
+import { useM3eSplit } from '../../composables/useM3eSplit';
 import {
-  FILE_TREE_WIDTH_DEFAULT,
   FILE_TREE_WIDTH_MAX,
   FILE_TREE_WIDTH_MIN,
   fileTreeWidth,
@@ -17,7 +16,16 @@ import { resolvedTheme } from '../../theme/theme';
 const { t } = useI18n();
 
 const script = ref('');
-const mainRowRef = ref<HTMLElement | null>(null);
+
+const { splitRef, onSplitInput, onSplitChange } = useM3eSplit({
+  open: showFileTree,
+  size: fileTreeWidth,
+  side: 'start',
+  orientation: 'horizontal',
+  minPx: FILE_TREE_WIDTH_MIN,
+  maxPx: FILE_TREE_WIDTH_MAX,
+  reservePx: 160,
+});
 
 const monacoTheme = computed(() =>
   resolvedTheme.value === 'dark' ? 'vs-dark' : 'vs',
@@ -34,25 +42,24 @@ const editorOptions: MonacoEditor.IStandaloneEditorConstructionOptions = {
 </script>
 
 <template>
-  <div
-    ref="mainRowRef"
-    class="flex min-h-0 min-w-0 flex-1"
+  <m3e-split-pane
+    ref="splitRef"
+    class="h-full min-h-0 min-w-0 flex-1"
+    :class="{ 'split-collapsed': !showFileTree }"
+    orientation="horizontal"
+    .disabled="!showFileTree"
+    :label="t('pages.generate.resizeFileTree')"
+    @input="onSplitInput"
+    @change="onSplitChange"
   >
-    <SplitPane
-      v-model:size="fileTreeWidth"
-      v-model:open="showFileTree"
-      orientation="vertical"
-      side="start"
-      :min="FILE_TREE_WIDTH_MIN"
-      :max="FILE_TREE_WIDTH_MAX"
-      :default-size="FILE_TREE_WIDTH_DEFAULT"
-      :container-el="mainRowRef"
-      :resize-label="t('pages.generate.resizeFileTree')"
-      :panel-label="t('pages.generate.fileTreeAriaLabel')"
-    >
-      <aside class="h-full min-h-0 overflow-hidden rounded-xl bg-surface-container" />
-    </SplitPane>
+    <aside
+      slot="start"
+      class="h-full min-h-0 overflow-hidden rounded-xl bg-surface-container"
+      :aria-hidden="!showFileTree"
+      :aria-label="t('pages.generate.fileTreeAriaLabel')"
+    />
 
+    <div slot="end" class="flex h-full w-full min-h-0 min-w-0 overflow-hidden">
     <div
       v-show="rightPanel === 'code'"
       class="min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border-2 border-outline/40 bg-surface-container"
@@ -72,7 +79,7 @@ const editorOptions: MonacoEditor.IStandaloneEditorConstructionOptions = {
           </span>
         </template>
         <template #failure>
-          <span class="text-danger text-sm">
+          <span class="text-error text-sm">
             {{ t('pages.generate.editorLoadFailed') }}
           </span>
         </template>
@@ -87,5 +94,6 @@ const editorOptions: MonacoEditor.IStandaloneEditorConstructionOptions = {
     >
       <TimelineEditor />
     </aside>
-  </div>
+    </div>
+  </m3e-split-pane>
 </template>

@@ -1,12 +1,12 @@
 import { ref, watch } from 'vue';
-import { clampSplitSize } from '../components/split/splitTypes';
+import { clampSplitSize } from './splitSize';
 
 export const TERMINAL_HEIGHT_MIN = 96;
 export const TERMINAL_HEIGHT_MAX = 480;
 export const TERMINAL_HEIGHT_DEFAULT = 220;
 
 /** Leaves room for the page when clamping against the layout. */
-const MAIN_PANE_MIN = 160;
+export const TERMINAL_MAIN_RESERVE = 160;
 
 interface TerminalUiState {
   showTerminal: boolean;
@@ -30,7 +30,7 @@ export function clampTerminalHeight(
     TERMINAL_HEIGHT_MIN,
     TERMINAL_HEIGHT_MAX,
     workspaceHeightPx,
-    MAIN_PANE_MIN,
+    TERMINAL_MAIN_RESERVE,
   );
 }
 

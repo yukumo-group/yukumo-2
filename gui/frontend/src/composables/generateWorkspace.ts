@@ -1,5 +1,5 @@
 import { ref, watch } from 'vue';
-import { clampSplitSize } from '../components/split/splitTypes';
+import { clampSplitSize } from './splitSize';
 
 export type RightPanel = 'code' | 'timeline';
 
