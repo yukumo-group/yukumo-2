@@ -15,7 +15,13 @@ export default defineConfig({
     VueRouter({
       routesFolder: 'src/pages',
     }),
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.startsWith('m3e-'),
+        },
+      },
+    }),
     tailwindcss(),
     wails('./bindings'),
   ],
