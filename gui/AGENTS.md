@@ -27,7 +27,7 @@ The application serves as a graphical interface for the `yukumo-script` library.
 | `vite` | ^7.0.0 | Frontend build tool & dev server |
 | `@vitejs/plugin-vue` | ^6.0.0 | Vite plugin for Vue SFC support |
 | `vue-router` | ^5.0.0 | File-based routing (hash history for Wails) |
-| `@m3e/web` | local v2.13.0 (`gui/m3e`, `link:../m3e/packages/web`) | Material 3 custom elements (`m3e-*`). Bind properties with `.` and listen to DOM events. Do not use Vue `v-model`. Edit `gui/m3e/packages/web/src`, then rebuild with `npm run build --workspace=@m3e/web` from `gui/m3e`. |
+| `@m3e/web` | submodule v2.13.0 (`gui/m3e`, `link:../m3e/packages/web`) | Material 3 custom elements (`m3e-*`). Bind properties with `.` and listen to DOM events. Do not use Vue `v-model`. `gui/m3e` is the `yukumo` branch of [yukumo-group/m3e](https://github.com/yukumo-group/m3e), forked from matraic/m3e. Edit `gui/m3e/packages/web/src`, then rebuild with `npm run build --workspace=@m3e/web` from `gui/m3e`. |
 | `@lucide/vue` | ^1.0.0 | Tree-shakable Lucide icons for Vue |
 | `vue-i18n` | ^11.0.0 | Application UI internationalization (EN / JA / zh-CN) |
 | `yukumo-script/core/api` | local (`../core/api`) | Core use-case facade used by the Wails service |
@@ -70,7 +70,7 @@ yukumo-gui/
 │   ├── android/            # Android build assets
 │   └── ios/                # iOS build assets
 │
-├── m3e/                    # Local checkout of matraic/m3e v2.13.0 (branch `yukumo`). `@m3e/web` is `packages/web`.
+├── m3e/                    # Submodule: yukumo-group/m3e branch `yukumo` (fork of matraic/m3e v2.13.0). `@m3e/web` is `packages/web`.
 ├── frontend/               # Frontend (Vue 3 + Vite)
 │   ├── index.html          # HTML entry point
 │   ├── package.json        # pnpm dependencies
