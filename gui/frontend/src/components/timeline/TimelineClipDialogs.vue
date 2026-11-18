@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { AquesTalkVersion } from '../../types/profile';
 import type { TimelineClipSpeaker } from '../../types/timeline';
 import TimelineClipContentDialog from './TimelineClipContentDialog.vue';
 import TimelineClipSplitDialog from './TimelineClipSplitDialog.vue';
@@ -7,7 +6,6 @@ import TimelineClipVoiceDialog from './TimelineClipVoiceDialog.vue';
 
 defineProps<{
   voiceShow: boolean;
-  voiceEngine: AquesTalkVersion;
   voiceSpeaker: TimelineClipSpeaker;
   voiceTitle: string;
   contentShow: boolean;
@@ -30,7 +28,6 @@ const emit = defineEmits<{
 <template>
   <TimelineClipVoiceDialog
     :show="voiceShow"
-    :version="voiceEngine"
     :speaker="voiceSpeaker"
     :title="voiceTitle"
     @update:show="emit('update:voiceShow', $event)"

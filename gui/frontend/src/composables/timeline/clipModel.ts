@@ -1,14 +1,8 @@
-import { createDefaultAquesTalk10 } from '../aquestalkPresets';
-import type {
-  AquesTalkVersion,
-  CharacterProfile,
-} from '../../types/profile';
 import {
-  CUSTOM_PROFILE_ID,
-  createDefaultAquesTalk1,
-  createDefaultAquesTalk2,
-  profileSupportsEngine,
-} from '../../types/profile';
+  createDefaultVoice,
+  voiceSupportsVersion,
+} from '../../backend/params';
+import type { AquesTalkVersion } from '../../backend/types';
 import {
   TIMELINE_CLIP_MIN_DURATION_SEC,
   type TimelineClip,
@@ -18,10 +12,8 @@ import {
 
 export function createDefaultSpeaker(): TimelineClipSpeaker {
   return {
-    profileId: CUSTOM_PROFILE_ID,
-    aquestalk1: createDefaultAquesTalk1(),
-    aquestalk2: createDefaultAquesTalk2(),
-    aquestalk10: createDefaultAquesTalk10(),
+    characterName: null,
+    voice: createDefaultVoice('custom', [1, 2, 10]),
   };
 }
 
@@ -29,22 +21,19 @@ export function cloneSpeaker(
   speaker: TimelineClipSpeaker,
 ): TimelineClipSpeaker {
   return {
-    profileId: speaker.profileId,
-    aquestalk1: { ...speaker.aquestalk1 },
-    aquestalk2: { ...speaker.aquestalk2 },
-    aquestalk10: { ...speaker.aquestalk10 },
+    characterName: speaker.characterName,
+    voice: {
+      name: speaker.voice.name,
+      params: speaker.voice.params.map((param) => ({ ...param })),
+    },
   };
 }
 
 export function speakerSupportsEngine(
   speaker: TimelineClipSpeaker,
   engine: AquesTalkVersion,
-  profiles: readonly CharacterProfile[],
 ): boolean {
-  if (speaker.profileId === CUSTOM_PROFILE_ID) return true;
-  const profile = profiles.find((item) => item.id === speaker.profileId);
-  if (!profile) return false;
-  return profileSupportsEngine(profile, engine);
+  return voiceSupportsVersion(speaker.voice, engine);
 }
 
 export function clipPayload(clip: TimelineClip): TimelineClipInsert {

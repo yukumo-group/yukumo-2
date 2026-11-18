@@ -5,7 +5,6 @@ import type { TimelineViewport } from '../useTimelineViewport';
 import type { TimelineClip, TimelineTrack } from '../../types/timeline';
 import type { TimelineSelection } from './useTimelineSelection';
 import type { TimelineEdgeScroll } from './useTimelineEdgeScroll';
-import { characterProfiles } from '../useCharacterProfiles';
 import { speakerSupportsEngine } from './clipModel';
 
 interface ClipDragOrigin {
@@ -91,13 +90,12 @@ function placementsEngineIncompatible(
   allClips: TimelineClip[],
   tracks: TimelineTrack[],
 ): boolean {
-  const profiles = characterProfiles.value;
   for (const [clipId, placement] of proposed) {
     const clip = allClips.find((item) => item.id === clipId);
     const track = tracks[placement.trackIndex];
     if (!clip || !track) return true;
     if (
-      !speakerSupportsEngine(clip.speaker, track.engine, profiles)
+      !speakerSupportsEngine(clip.speaker, track.engine)
     ) {
       return true;
     }

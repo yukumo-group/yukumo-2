@@ -2,15 +2,13 @@
 import { computed } from 'vue';
 import { User } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
-import type { CharacterProfile } from '../../types/profile';
+import type { Character } from '../../backend/types';
+import { voiceVersions } from '../../backend/params';
 import EngineBadge from './EngineBadge.vue';
 
 const props = withDefaults(
   defineProps<{
-    profile: Pick<
-      CharacterProfile,
-      'name' | 'description' | 'imageDataUrl' | 'version'
-    >;
+    character: Pick<Character, 'name' | 'description' | 'voices'>;
     interactive?: boolean;
   }>(),
   {
@@ -25,8 +23,21 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const ariaLabel = computed(() =>
-  t('pages.profiles.cardAriaLabel', { name: props.profile.name }),
+  t('pages.profiles.cardAriaLabel', { name: props.character.name }),
 );
+
+const engines = computed(() => {
+  const seen = new Set<number>();
+  const versions: number[] = [];
+  for (const voice of props.character.voices) {
+    for (const version of voiceVersions(voice)) {
+      if (seen.has(version)) continue;
+      seen.add(version);
+      versions.push(version);
+    }
+  }
+  return versions;
+});
 </script>
 
 <template>
@@ -38,37 +49,38 @@ const ariaLabel = computed(() =>
     v-ripple="interactive ? { color: 'var(--color-primary)' } : false"
     @click="interactive ? emit('select') : undefined"
   >
-    <var-paper class="flex h-full flex-col overflow-hidden rounded-2xl" :elevation="1">
+    <var-paper
+      class="flex h-full flex-col overflow-hidden rounded-2xl"
+      :elevation="1"
+    >
       <div
-        class="character-thumb relative shrink-0 overflow-hidden bg-surface-container-high"
+        class="character-thumb relative flex shrink-0 items-center justify-center bg-surface-container-high text-on-surface-variant"
       >
-        <img
-          v-if="profile.imageDataUrl"
-          :src="profile.imageDataUrl"
-          alt=""
-          class="absolute inset-0 size-full object-cover"
-        />
+        <User :size="40" aria-hidden="true" />
         <div
-          v-else
-          class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-on-surface-variant"
+          v-if="engines.length > 0"
+          class="pointer-events-none absolute top-2 left-2 flex flex-wrap gap-1"
         >
-          <User :size="40" aria-hidden="true" />
-          <span class="text-sm opacity-80">{{ t('pages.profiles.noImage') }}</span>
-        </div>
-        <div class="pointer-events-none absolute top-1 left-3 z-10">
-          <EngineBadge :version="profile.version" />
+          <EngineBadge
+            v-for="version in engines"
+            :key="version"
+            :version="version"
+          />
         </div>
       </div>
 
       <div class="flex flex-1 flex-col gap-1 p-3 pt-2">
         <h2 class="truncate font-bold text-text text-base">
-          {{ profile.name }}
+          {{ character.name }}
         </h2>
         <p
-          v-if="profile.description"
+          v-if="character.description"
           class="line-clamp-2 text-sm leading-snug text-on-surface-variant"
         >
-          {{ profile.description }}
+          {{ character.description }}
+        </p>
+        <p class="truncate text-xs text-on-surface-variant">
+          {{ t('pages.profiles.voiceCount', { n: character.voices.length }) }}
         </p>
       </div>
     </var-paper>

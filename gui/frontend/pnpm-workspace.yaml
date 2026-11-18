@@ -1,0 +1,10 @@
+# Allow esbuild postinstall scripts (required by Vite).
+allowBuilds:
+  esbuild: true
+  vue-demi: true
+
+# Varlet's api-farmer / openapi-typescript still peer on TypeScript 5.
+# Stay on TS 6 for vue-tsc (see AGENTS.md).
+peerDependencyRules:
+  allowedVersions:
+    typescript: '6'

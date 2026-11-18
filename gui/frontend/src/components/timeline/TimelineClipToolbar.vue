@@ -7,8 +7,6 @@ import type {
   TimelineClipColor,
 } from '../../types/timeline';
 import { TIMELINE_CLIP_COLORS } from '../../types/timeline';
-import { CUSTOM_PROFILE_ID } from '../../types/profile';
-import { characterProfiles } from '../../composables/useCharacterProfiles';
 import { CLIP_COLOR_SWATCH } from '../../composables/timeline/clipAppearance';
 import TimelineKnob from './TimelineKnob.vue';
 
@@ -39,15 +37,6 @@ const canContent = computed(() => props.clips.length === 1);
 const allMuted = computed(
   () => props.clips.length > 0 && props.clips.every((clip) => clip.muted),
 );
-
-const avatarUrl = computed(() => {
-  const id = first.value?.speaker.profileId;
-  if (!id || id === CUSTOM_PROFILE_ID) return null;
-  return (
-    characterProfiles.value.find((profile) => profile.id === id)
-      ?.imageDataUrl ?? null
-  );
-});
 
 const COLOR_LABEL_KEY: Record<
   TimelineClipColor,
@@ -98,14 +87,7 @@ function onColorSelect(value: unknown): void {
         <span
           class="flex size-6 items-center justify-center overflow-hidden rounded-full bg-surface-container text-on-surface-variant"
         >
-          <img
-            v-if="avatarUrl"
-            :src="avatarUrl"
-            alt=""
-            class="size-full object-cover"
-          />
           <User
-            v-else
             :size="14"
             aria-hidden="true"
           />

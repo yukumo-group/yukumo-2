@@ -2,30 +2,16 @@
 import { computed, ref, watch } from 'vue';
 import { Dialog } from '@varlet/ui';
 import { useI18n } from 'vue-i18n';
-import { createDefaultAquesTalk10 } from '../../composables/aquestalkPresets';
+import { Plus } from '@lucide/vue';
+import VoiceEditor from '../voice/VoiceEditor.vue';
 import {
-  createProfile,
-  removeProfile,
-  updateProfile,
-} from '../../composables/useCharacterProfiles';
-import type {
-  AquesTalk1Config,
-  AquesTalk10Config,
-  AquesTalk2Config,
-  AquesTalkVersion,
-  CharacterProfile,
-} from '../../types/profile';
-import {
-  createDefaultAquesTalk1,
-  createDefaultAquesTalk2,
-} from '../../types/profile';
-import WizardAt1Step from './wizard/WizardAt1Step.vue';
-import WizardAt2Step from './wizard/WizardAt2Step.vue';
-import WizardAt10Step from './wizard/WizardAt10Step.vue';
-import WizardBasicsStep from './wizard/WizardBasicsStep.vue';
-import WizardImageStep from './wizard/WizardImageStep.vue';
+  createDefaultVoice,
+  normalizeVoice,
+} from '../../backend/params';
+import type { Character, Voice } from '../../backend/types';
+import { useCharacters } from '../../store/useCharacters';
 
-type WizardStepKind = 'basics' | 'voice' | 'image';
+type WizardStepKind = 'basics' | 'voices';
 
 interface SwipeExpose {
   to: (index: number) => void;
@@ -33,7 +19,7 @@ interface SwipeExpose {
 
 const props = defineProps<{
   show: boolean;
-  profile: CharacterProfile | null;
+  character: Character | null;
 }>();
 
 const emit = defineEmits<{
@@ -41,69 +27,59 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { addCharacter, updateCharacter, deleteCharacter } = useCharacters();
 
 const swipeRef = ref<SwipeExpose | null>(null);
 const swipeSession = ref(0);
 const stepIndex = ref(0);
 const error = ref('');
+const saving = ref(false);
 const name = ref('');
 const description = ref('');
-const imageDataUrl = ref<string | null>(null);
-const version = ref<AquesTalkVersion>(2);
-const at1 = ref<AquesTalk1Config>(createDefaultAquesTalk1());
-const at2 = ref<AquesTalk2Config>(createDefaultAquesTalk2());
-const at10 = ref<AquesTalk10Config>(createDefaultAquesTalk10());
+const voices = ref<Voice[]>([]);
 
-const isEdit = computed(() => props.profile !== null);
-
-const stepKinds = computed<WizardStepKind[]>(() => ['basics', 'voice', 'image']);
-
+const isEdit = computed(() => props.character !== null);
+const stepKinds = computed<WizardStepKind[]>(() => ['basics', 'voices']);
 const currentKind = computed(
   () => stepKinds.value[stepIndex.value] ?? 'basics',
 );
-
 const isLast = computed(
   () => stepIndex.value >= stepKinds.value.length - 1,
 );
 
 const stepLabelKey: Record<WizardStepKind, string> = {
   basics: 'pages.profiles.wizard.steps.basics',
-  voice: 'pages.profiles.wizard.steps.voice',
-  image: 'pages.profiles.wizard.steps.image',
+  voices: 'pages.profiles.wizard.steps.voice',
 };
+
+function cloneVoice(voice: Voice): Voice {
+  return {
+    name: voice.name,
+    params: (voice.params ?? []).map((param) => ({ ...param })),
+  };
+}
+
+function hydrate(): void {
+  error.value = '';
+  stepIndex.value = 0;
+  swipeSession.value += 1;
+  if (!props.character) {
+    name.value = '';
+    description.value = '';
+    voices.value = [createDefaultVoice('default', [1])];
+    return;
+  }
+  name.value = props.character.name;
+  description.value = props.character.description;
+  voices.value = props.character.voices.map(cloneVoice);
+}
 
 watch(
   () => props.show,
   (open) => {
-    if (!open) return;
-    hydrate();
-    stepIndex.value = 0;
-    error.value = '';
-    swipeSession.value += 1;
+    if (open) hydrate();
   },
 );
-
-function hydrate(): void {
-  const profile = props.profile;
-  if (!profile) {
-    name.value = '';
-    description.value = '';
-    imageDataUrl.value = null;
-    version.value = 2;
-    Object.assign(at1.value, createDefaultAquesTalk1());
-    Object.assign(at2.value, createDefaultAquesTalk2());
-    Object.assign(at10.value, createDefaultAquesTalk10());
-    return;
-  }
-
-  name.value = profile.name;
-  description.value = profile.description;
-  imageDataUrl.value = profile.imageDataUrl;
-  version.value = profile.version;
-  Object.assign(at1.value, profile.aquestalk1 ?? createDefaultAquesTalk1());
-  Object.assign(at2.value, profile.aquestalk2 ?? createDefaultAquesTalk2());
-  Object.assign(at10.value, profile.aquestalk10 ?? createDefaultAquesTalk10());
-}
 
 function setShow(value: boolean): void {
   emit('update:show', value);
@@ -126,18 +102,38 @@ function validateKind(kind: WizardStepKind | undefined): boolean {
       error.value = t('pages.profiles.wizard.nameRequired');
       return false;
     }
+    return true;
   }
-  if (kind === 'voice') {
-    if (version.value === 1 && !at1.value.voiceId.trim()) {
-      error.value = t('pages.profiles.wizard.voiceIdRequired');
+  if (voices.value.length === 0) {
+    error.value = t('pages.profiles.wizard.voicesRequired');
+    return false;
+  }
+  const seen = new Set<string>();
+  for (const voice of voices.value) {
+    const voiceName = voice.name.trim();
+    if (!voiceName) {
+      error.value = t('pages.profiles.wizard.voiceNameRequired');
       return false;
     }
-    if (version.value === 2 && !at2.value.phontName.trim()) {
-      error.value = t('pages.profiles.wizard.phontNameRequired');
+    if (seen.has(voiceName)) {
+      error.value = t('pages.profiles.wizard.duplicateVoice', {
+        name: voiceName,
+      });
+      return false;
+    }
+    seen.add(voiceName);
+    if (voice.params.length === 0) {
+      error.value = t('pages.profiles.wizard.paramsRequired', {
+        name: voiceName,
+      });
       return false;
     }
   }
   return true;
+}
+
+function validateAll(): boolean {
+  return stepKinds.value.every((kind) => validateKind(kind));
 }
 
 function onClickStep(index: number): void {
@@ -162,53 +158,59 @@ function onPrimaryAction(): void {
     goTo(stepIndex.value + 1);
     return;
   }
-  onSave();
+  void onSave();
 }
 
-function onSave(): void {
-  for (const kind of stepKinds.value) {
-    if (!validateKind(kind)) {
-      goTo(stepKinds.value.indexOf(kind));
-      return;
+function addVoice(): void {
+  const index = voices.value.length + 1;
+  voices.value = [
+    ...voices.value,
+    createDefaultVoice(index === 1 ? 'default' : `voice-${index}`, [1]),
+  ];
+}
+
+function removeVoice(index: number): void {
+  voices.value = voices.value.filter((_, i) => i !== index);
+}
+
+function updateVoice(index: number, voice: Voice): void {
+  voices.value = voices.value.map((item, i) => (i === index ? voice : item));
+}
+
+async function onSave(): Promise<void> {
+  if (!validateAll()) {
+    goTo(stepKinds.value.findIndex((kind) => !validateKind(kind)));
+    return;
+  }
+  saving.value = true;
+  error.value = '';
+  try {
+    const next: Character = {
+      name: name.value.trim(),
+      description: description.value.trim(),
+      voices: voices.value.map(normalizeVoice),
+    };
+    if (props.character) {
+      await updateCharacter(props.character.name, next);
+    } else {
+      await addCharacter(next);
     }
+    setShow(false);
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    saving.value = false;
   }
-  save();
-}
-
-function save(): void {
-  const selectedVersion = version.value;
-  const draft = {
-    name: name.value.trim(),
-    description: description.value.trim(),
-    imageDataUrl: imageDataUrl.value,
-    version: selectedVersion,
-    aquestalk1:
-      selectedVersion === 1
-        ? { ...at1.value, voiceId: at1.value.voiceId.trim() }
-        : undefined,
-    aquestalk2:
-      selectedVersion === 2
-        ? { ...at2.value, phontName: at2.value.phontName.trim() }
-        : undefined,
-    aquestalk10: selectedVersion === 10 ? { ...at10.value } : undefined,
-  };
-
-  if (props.profile) {
-    updateProfile(props.profile.id, draft);
-  } else {
-    createProfile(draft);
-  }
-  setShow(false);
 }
 
 async function onDelete(): Promise<void> {
-  const profile = props.profile;
-  if (!profile) return;
+  const character = props.character;
+  if (!character) return;
 
   const result = await Dialog({
     title: t('pages.profiles.wizard.deleteConfirmTitle'),
     message: t('pages.profiles.wizard.deleteConfirmMessage', {
-      name: profile.name,
+      name: character.name,
     }),
     confirmButtonText: t('pages.profiles.wizard.deleteConfirm'),
     cancelButtonText: t('pages.profiles.wizard.deleteCancel'),
@@ -216,8 +218,12 @@ async function onDelete(): Promise<void> {
   });
 
   if (result !== 'confirm') return;
-  removeProfile(profile.id);
-  setShow(false);
+  try {
+    await deleteCharacter(character.name);
+    setShow(false);
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : String(cause);
+  }
 }
 
 function clearError(): void {
@@ -276,32 +282,59 @@ function clearError(): void {
           :key="kind"
         >
           <div class="wizard-pane">
-            <WizardBasicsStep
-              v-if="kind === 'basics'"
-              v-model:name="name"
-              v-model:description="description"
-              v-model:version="version"
-              @clear-error="clearError"
-            />
-            <WizardAt1Step
-              v-else-if="kind === 'voice' && version === 1"
-              v-model="at1"
-              @clear-error="clearError"
-            />
-            <WizardAt2Step
-              v-else-if="kind === 'voice' && version === 2"
-              v-model="at2"
-              @clear-error="clearError"
-            />
-            <WizardAt10Step
-              v-else-if="kind === 'voice' && version === 10"
-              v-model="at10"
-            />
-            <WizardImageStep
-              v-else-if="kind === 'image'"
-              v-model="imageDataUrl"
-              :active="currentKind === 'image'"
-            />
+            <template v-if="kind === 'basics'">
+              <var-input
+                v-model="name"
+                size="small"
+                variant="outlined"
+                :placeholder="t('pages.profiles.wizard.namePlaceholder')"
+                :aria-label="t('pages.profiles.wizard.namePlaceholder')"
+                @update:model-value="clearError"
+              />
+              <var-input
+                v-model="description"
+                size="small"
+                variant="outlined"
+                textarea
+                :rows="3"
+                :placeholder="t('pages.profiles.wizard.descriptionPlaceholder')"
+                :aria-label="t('pages.profiles.wizard.descriptionPlaceholder')"
+              />
+            </template>
+
+            <template v-else>
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-base font-medium text-text">
+                  {{ t('pages.profiles.wizard.voices') }}
+                </p>
+                <var-button
+                  size="small"
+                  outlined
+                  @click="addVoice"
+                >
+                  <Plus
+                    :size="14"
+                    aria-hidden="true"
+                    class="mr-1"
+                  />
+                  {{ t('pages.profiles.wizard.addVoice') }}
+                </var-button>
+              </div>
+              <div
+                v-if="voices.length === 0"
+                class="rounded-lg bg-surface-container px-3 py-4 text-sm text-on-surface-variant"
+              >
+                {{ t('pages.profiles.wizard.noVoices') }}
+              </div>
+              <VoiceEditor
+                v-for="(voice, index) in voices"
+                :key="index"
+                :model-value="voice"
+                removable
+                @update:model-value="updateVoice(index, $event)"
+                @remove="removeVoice(index)"
+              />
+            </template>
           </div>
         </var-swipe-item>
       </var-swipe>
@@ -334,6 +367,7 @@ function clearError(): void {
           </var-button>
           <var-button
             type="primary"
+            :loading="saving"
             @click="onPrimaryAction"
           >
             {{
@@ -350,7 +384,7 @@ function clearError(): void {
 
 <style scoped>
 .wizard-swipe {
-  height: 14rem;
+  height: 26rem;
 }
 
 .wizard-pane {
@@ -370,7 +404,7 @@ function clearError(): void {
 }
 
 .character-wizard-dialog .var-dialog__message {
-  max-height: min(32rem, 70vh);
+  max-height: min(36rem, 75vh);
   overflow: auto;
 }
 

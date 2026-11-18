@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AquesTalkVersion } from '../../types/profile';
+import type { AquesTalkVersion } from '../../backend/types';
 import EngineBadge from './EngineBadge.vue';
 
 defineProps<{

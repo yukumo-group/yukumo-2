@@ -1,38 +1,39 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Play, RotateCcw, Save } from '@lucide/vue';
 import { Snackbar } from '@varlet/ui';
 import SettingsCard from '../settings/SettingsCard.vue';
 import VersionSelectLabel from '../profiles/VersionSelectLabel.vue';
-import VoiceConfigPanel from '../voice/VoiceConfigPanel.vue';
+import SynthParamForm from '../voice/SynthParamForm.vue';
 import SpeechTextEditor from '../voice/SpeechTextEditor.vue';
-import { createDefaultAquesTalk10 } from '../../composables/aquestalkPresets';
+import { getBackend } from '../../backend';
 import {
-  useYukumoJsTalk,
-  type YukumoJsTalkInput,
-} from '../../composables/useYukumoJsTalk';
-import type {
-  AquesTalk1Config,
-  AquesTalk10Config,
-  AquesTalk2Config,
-  AquesTalkVersion,
-} from '../../types/profile';
-import {
-  CUSTOM_PROFILE_ID,
-  createDefaultAquesTalk1,
-  createDefaultAquesTalk2,
-} from '../../types/profile';
+  createDefaultParam,
+  createDefaultVoice,
+  normalizeVoice,
+  paramForVersion,
+  upsertParam,
+  voiceSupportsVersion,
+  voiceVersions,
+} from '../../backend/params';
+import type { AquesTalkVersion, Voice } from '../../backend/types';
+import { isAquesTalkVersion } from '../../backend/types';
+import { downloadWav, wavFilename } from '../../backend/wav';
+import { useCharacters } from '../../store/useCharacters';
+
+const CUSTOM_SOURCE = '__custom__';
+const DEFAULT_VERSIONS = [1, 2, 10] as const;
 
 const { t } = useI18n();
-const { busy, preview, save, stopPlayback } = useYukumoJsTalk();
+const { characters, ensureLoaded } = useCharacters();
 
 const version = ref<AquesTalkVersion>(2);
-const profileId = ref(CUSTOM_PROFILE_ID);
+const source = ref(CUSTOM_SOURCE);
+const voice = ref<Voice>(createDefaultVoice('custom', DEFAULT_VERSIONS));
 const text = ref('');
-const at1 = ref<AquesTalk1Config>(createDefaultAquesTalk1());
-const at2 = ref<AquesTalk2Config>(createDefaultAquesTalk2());
-const at10 = ref<AquesTalk10Config>(createDefaultAquesTalk10());
+const busy = ref<'preview' | 'save' | null>(null);
+
 
 const versionLabelKey: Record<AquesTalkVersion, string> = {
   1: 'pages.utilities.quickGenerate.versions.at1',
@@ -40,64 +41,141 @@ const versionLabelKey: Record<AquesTalkVersion, string> = {
   10: 'pages.utilities.quickGenerate.versions.at10',
 };
 
-const selectedVersionLabel = computed(() => t(versionLabelKey[version.value]));
-
-const canGenerate = computed(() => text.value.trim().length > 0);
-const actionsDisabled = computed(
-  () => !canGenerate.value || busy.value != null,
+const voiceOptions = computed(() =>
+  characters.value.flatMap((character) =>
+    character.voices.map((item) => ({
+      value: `${character.name}:${item.name}`,
+      label: `${character.name} / ${item.name}`,
+      voice: item,
+    })),
+  ),
 );
 
-function talkInput(): YukumoJsTalkInput {
-  return {
-    version: version.value,
-    text: text.value,
-    at1: at1.value,
-    at2: at2.value,
-    at10: at10.value,
-  };
-}
+const selectedSourceLabel = computed(() => {
+  if (source.value === CUSTOM_SOURCE) {
+    return t('pages.utilities.quickGenerate.customVoice');
+  }
+  return (
+    voiceOptions.value.find((option) => option.value === source.value)?.label ??
+    t('pages.utilities.quickGenerate.customVoice')
+  );
+});
 
-function reportError(error: unknown): void {
+const activeParam = computed(() => paramForVersion(voice.value, version.value));
+const canGenerate = computed(
+  () => text.value.trim().length > 0 && activeParam.value !== undefined,
+);
+const actionsDisabled = computed(
+  () => !canGenerate.value || busy.value !== null,
+);
+
+onMounted(() => {
+  void ensureLoaded().catch(reportError);
+});
+
+onBeforeUnmount(() => {
+  void getBackend().stopPlayback();
+});
+
+watch(version, (next) => {
+  if (paramForVersion(voice.value, next)) return;
+  voice.value = upsertParam(voice.value, createDefaultParam(next));
+});
+
+watch(characters, () => {
+  if (
+    source.value !== CUSTOM_SOURCE &&
+    !voiceOptions.value.some((option) => option.value === source.value)
+  ) {
+    source.value = CUSTOM_SOURCE;
+  }
+});
+
+function reportError(cause: unknown): void {
   Snackbar({
     content: t('pages.utilities.quickGenerate.failed', {
-      error: error instanceof Error ? error.message : String(error),
+      error: cause instanceof Error ? cause.message : String(cause),
     }),
     type: 'error',
   });
 }
 
+function cloneVoice(value: Voice): Voice {
+  return {
+    name: value.name,
+    params: value.params.map((param) => ({ ...param })),
+  };
+}
+
 function onVersionChange(value: string | number): void {
-  const n = typeof value === 'string' ? Number(value) : value;
-  if (n !== 1 && n !== 2 && n !== 10) return;
-  version.value = n;
+  const next = Number(value);
+  if (!isAquesTalkVersion(next)) return;
+  version.value = next;
+}
+
+function onSourceChange(value: string | number): void {
+  const next = String(value);
+  source.value = next;
+  if (next === CUSTOM_SOURCE) {
+    voice.value = createDefaultVoice('custom', DEFAULT_VERSIONS);
+    return;
+  }
+  const option = voiceOptions.value.find((item) => item.value === next);
+  if (!option) return;
+  const nextVoice = cloneVoice(option.voice);
+  if (!voiceSupportsVersion(nextVoice, version.value)) {
+    const available = voiceVersions(nextVoice);
+    version.value = available[0] ?? version.value;
+  }
+  voice.value = nextVoice;
+}
+
+function onParamChange(value: Voice['params'][number]): void {
+  voice.value = upsertParam(voice.value, value);
+}
+
+async function synthesize(): Promise<Uint8Array> {
+  const param = activeParam.value;
+  if (!param) throw new Error(t('pages.utilities.quickGenerate.noParam'));
+  return getBackend().synthesize({
+    voice: normalizeVoice(voice.value),
+    text: text.value.trim(),
+    version: version.value,
+  });
 }
 
 async function onPreview(): Promise<void> {
   if (actionsDisabled.value) return;
+  busy.value = 'preview';
   try {
-    await preview(talkInput());
-  } catch (error) {
-    reportError(error);
+    const wav = await synthesize();
+    await getBackend().playWav(wav);
+  } catch (cause) {
+    reportError(cause);
+  } finally {
+    busy.value = null;
   }
 }
 
 async function onSave(): Promise<void> {
   if (actionsDisabled.value) return;
+  busy.value = 'save';
   try {
-    await save(talkInput());
-  } catch (error) {
-    reportError(error);
+    const wav = await synthesize();
+    downloadWav(wav, wavFilename(text.value));
+  } catch (cause) {
+    reportError(cause);
+  } finally {
+    busy.value = null;
   }
 }
 
 function onReset(): void {
-  stopPlayback();
+  void getBackend().stopPlayback();
   text.value = '';
-  if (profileId.value === CUSTOM_PROFILE_ID) {
-    at1.value = createDefaultAquesTalk1();
-    at2.value = createDefaultAquesTalk2();
-    at10.value = createDefaultAquesTalk10();
-  }
+  version.value = 2;
+  source.value = CUSTOM_SOURCE;
+  voice.value = createDefaultVoice('custom', DEFAULT_VERSIONS);
 }
 </script>
 
@@ -111,13 +189,16 @@ function onReset(): void {
         <p class="text-sm text-on-surface-variant">
           {{ t('pages.utilities.quickGenerate.description') }}
         </p>
+        <p class="text-xs text-on-surface-variant">
+          {{ t('pages.utilities.quickGenerate.inputHint') }}
+        </p>
       </header>
 
       <div
         class="flex min-h-0 flex-col gap-4 sm:flex-row sm:items-stretch"
       >
         <aside
-          class="flex w-full shrink-0 flex-col gap-3 sm:w-72 sm:border-r sm:border-outline/30 sm:pr-4"
+          class="flex w-full shrink-0 flex-col gap-3 sm:w-80 sm:border-r sm:border-outline/30 sm:pr-4"
           :aria-label="t('pages.utilities.quickGenerate.configAriaLabel')"
         >
           <var-select
@@ -130,45 +211,57 @@ function onReset(): void {
             <template #selected>
               <VersionSelectLabel
                 :version="version"
-                :label="selectedVersionLabel"
+                :label="t(versionLabelKey[version])"
               />
             </template>
             <var-option
-              :value="1"
-              :label="t('pages.utilities.quickGenerate.versions.at1')"
+              v-for="item in ([1, 2, 10] as const)"
+              :key="item"
+              :value="item"
+              :label="t(versionLabelKey[item])"
             >
               <VersionSelectLabel
-                :version="1"
-                :label="t('pages.utilities.quickGenerate.versions.at1')"
-              />
-            </var-option>
-            <var-option
-              :value="2"
-              :label="t('pages.utilities.quickGenerate.versions.at2')"
-            >
-              <VersionSelectLabel
-                :version="2"
-                :label="t('pages.utilities.quickGenerate.versions.at2')"
-              />
-            </var-option>
-            <var-option
-              :value="10"
-              :label="t('pages.utilities.quickGenerate.versions.at10')"
-            >
-              <VersionSelectLabel
-                :version="10"
-                :label="t('pages.utilities.quickGenerate.versions.at10')"
+                :version="item"
+                :label="t(versionLabelKey[item])"
               />
             </var-option>
           </var-select>
 
-          <VoiceConfigPanel
-            :version="version"
-            v-model:profile-id="profileId"
-            v-model:at1="at1"
-            v-model:at2="at2"
-            v-model:at10="at10"
-          />
+          <var-select
+            :model-value="source"
+            size="small"
+            variant="outlined"
+            :placeholder="t('pages.utilities.quickGenerate.voiceSource')"
+            @update:model-value="onSourceChange"
+          >
+            <template #selected>
+              <span class="truncate">{{ selectedSourceLabel }}</span>
+            </template>
+            <var-option
+              :value="CUSTOM_SOURCE"
+              :label="t('pages.utilities.quickGenerate.customVoice')"
+            />
+            <var-option
+              v-for="option in voiceOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+            />
+          </var-select>
+
+          <div class="flex max-h-96 flex-col gap-3 overflow-y-auto sm:max-h-none">
+            <SynthParamForm
+              v-if="activeParam"
+              :model-value="activeParam"
+              @update:model-value="onParamChange"
+            />
+            <p
+              v-else
+              class="text-sm text-on-surface-variant"
+            >
+              {{ t('pages.utilities.quickGenerate.noParam') }}
+            </p>
+          </div>
         </aside>
 
         <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-3">

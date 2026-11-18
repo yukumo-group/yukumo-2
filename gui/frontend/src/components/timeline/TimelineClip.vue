@@ -4,9 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { User } from '@lucide/vue';
 import type { TimelineClip, TimelineEditMode } from '../../types/timeline';
 import { TIMELINE_CLIP_RESIZE_HANDLE_PX } from '../../types/timeline';
-import { CUSTOM_PROFILE_ID } from '../../types/profile';
 import type { ClipResizeEdge } from '../../composables/timeline/useTimelineClipResize';
-import { characterProfiles } from '../../composables/useCharacterProfiles';
 import {
   CLIP_COLOR_BODY,
   CLIP_COLOR_HANDLE,
@@ -40,14 +38,6 @@ const resizingEdge = ref<ClipResizeEdge | null>(null);
 const editing = ref(false);
 const draft = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
-
-const profile = computed(() => {
-  const id = props.clip.speaker.profileId;
-  if (!id || id === CUSTOM_PROFILE_ID) return null;
-  return characterProfiles.value.find((item) => item.id === id) ?? null;
-});
-
-const avatarUrl = computed(() => profile.value?.imageDataUrl ?? null);
 
 const displayText = computed(
   () => props.clip.text.trim() || t('pages.generate.timeline.emptyClip'),
@@ -236,14 +226,7 @@ onUnmounted(clearResizing);
         <div
           class="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-container-high text-on-surface-variant"
         >
-          <img
-            v-if="avatarUrl"
-            :src="avatarUrl"
-            alt=""
-            class="size-full object-cover"
-          />
           <User
-            v-else
             :size="16"
             aria-hidden="true"
           />

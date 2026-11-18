@@ -1,9 +1,4 @@
-import type {
-  AquesTalk1Config,
-  AquesTalk10Config,
-  AquesTalk2Config,
-  AquesTalkVersion,
-} from './profile';
+import type { AquesTalkVersion, Voice } from '../backend/types';
 
 export interface TimelineTrack {
   id: string;
@@ -33,10 +28,8 @@ export const TIMELINE_CLIP_COLORS: TimelineClipColor[] = [
 ];
 
 export interface TimelineClipSpeaker {
-  profileId: string;
-  aquestalk1: AquesTalk1Config;
-  aquestalk2: AquesTalk2Config;
-  aquestalk10: AquesTalk10Config;
+  characterName: string | null;
+  voice: Voice;
 }
 
 export interface TimelineClip {

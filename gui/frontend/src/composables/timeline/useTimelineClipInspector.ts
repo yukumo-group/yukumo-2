@@ -9,7 +9,6 @@ import {
   isValidClipTimeSplit,
   splitIndexFromTime,
 } from './clipModel';
-import type { AquesTalkVersion } from '../../types/profile';
 import type {
   TimelineClip,
   TimelineClipSpeaker,
@@ -61,18 +60,6 @@ export function useTimelineClipInspector(options: {
   });
 
   const firstSelectedClip = computed(() => selectedClips.value[0] ?? null);
-
-  const voiceEngine = computed<AquesTalkVersion>(() => {
-    if (voiceDialogTarget.value === 'default') {
-      return options.tracks.value[0]?.engine ?? 2;
-    }
-    const clip = firstSelectedClip.value;
-    if (!clip) return options.tracks.value[0]?.engine ?? 2;
-    return (
-      options.tracks.value.find((track) => track.id === clip.trackId)?.engine ??
-      2
-    );
-  });
 
   const voiceSpeaker = computed<TimelineClipSpeaker>(() => {
     if (voiceDialogTarget.value === 'default') {
@@ -267,7 +254,6 @@ export function useTimelineClipInspector(options: {
     showClipToolbar,
     voiceDialogShow,
     contentDialogShow,
-    voiceEngine,
     voiceSpeaker,
     voiceDialogTitle,
     splitDialogShow,

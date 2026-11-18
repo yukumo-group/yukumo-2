@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import type { AquesTalkVersion } from '../../types/profile';
+import type { AquesTalkVersion } from '../../backend/types';
 import EngineBadge from '../profiles/EngineBadge.vue';
 import VersionSelectLabel from '../profiles/VersionSelectLabel.vue';
 

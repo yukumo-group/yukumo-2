@@ -23,8 +23,7 @@
     "motion-v": "^2.3.0",
     "vue": "^3.5.0",
     "vue-i18n": "^11.4.8",
-    "vue-router": "^5.2.0",
-    "yukumo.js": "file:../yukumo-js"
+    "vue-router": "^5.2.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

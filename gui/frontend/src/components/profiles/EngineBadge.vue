@@ -1,30 +1,32 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { AquesTalkVersion } from '../../types/profile';
+import { isAquesTalkVersion } from '../../backend/types';
 
 const props = defineProps<{
-  version: AquesTalkVersion;
+  version: number;
 }>();
 
 const { t } = useI18n();
 
+const safeVersion = computed(() => (isAquesTalkVersion(props.version) ? props.version : 1));
+
 const badgeType = computed(() => {
-  const map: Record<AquesTalkVersion, 'success' | 'warning' | 'danger'> = {
+  const map = {
     1: 'success',
     2: 'warning',
     10: 'danger',
-  };
-  return map[props.version];
+  } as const;
+  return map[safeVersion.value];
 });
 
 const labelKey = computed(() => {
-  const map: Record<AquesTalkVersion, string> = {
+  const map = {
     1: 'pages.profiles.engines.at1',
     2: 'pages.profiles.engines.at2',
     10: 'pages.profiles.engines.at10',
-  };
-  return map[props.version];
+  } as const;
+  return map[safeVersion.value];
 });
 </script>
 

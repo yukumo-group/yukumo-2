@@ -1,24 +1,37 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { Plus } from '@lucide/vue';
+import { Snackbar } from '@varlet/ui';
 import { useI18n } from 'vue-i18n';
 import CharacterCard from '../components/profiles/CharacterCard.vue';
 import CharacterWizardDialog from '../components/profiles/CharacterWizardDialog.vue';
-import { characterProfiles } from '../composables/useCharacterProfiles';
-import type { CharacterProfile } from '../types/profile';
+import type { Character } from '../backend/types';
+import { useCharacters } from '../store/useCharacters';
 
 const { t } = useI18n();
+const { characters, loading, error, ensureLoaded } = useCharacters();
 
 const wizardOpen = ref(false);
-const editing = ref<CharacterProfile | null>(null);
+const editing = ref<Character | null>(null);
+
+onMounted(() => {
+  void ensureLoaded().catch(reportError);
+});
+
+function reportError(cause: unknown): void {
+  Snackbar({
+    content: cause instanceof Error ? cause.message : String(cause),
+    type: 'error',
+  });
+}
 
 function openCreate(): void {
   editing.value = null;
   wizardOpen.value = true;
 }
 
-function openEdit(profile: CharacterProfile): void {
-  editing.value = profile;
+function openEdit(character: Character): void {
+  editing.value = character;
   wizardOpen.value = true;
 }
 </script>
@@ -42,8 +55,16 @@ function openEdit(profile: CharacterProfile): void {
       </var-button>
     </header>
 
+    <p
+      v-if="error"
+      class="rounded-lg bg-danger/15 px-4 py-3 text-sm text-danger"
+      role="alert"
+    >
+      {{ error }}
+    </p>
+
     <div
-      v-if="characterProfiles.length === 0"
+      v-if="!loading && characters.length === 0"
       class="flex flex-col items-start gap-3 rounded-2xl bg-surface-container px-4 py-6"
     >
       <p class="text-text">{{ t('pages.profiles.empty') }}</p>
@@ -57,16 +78,16 @@ function openEdit(profile: CharacterProfile): void {
       class="character-grid"
     >
       <CharacterCard
-        v-for="profile in characterProfiles"
-        :key="profile.id"
-        :profile="profile"
-        @select="openEdit(profile)"
+        v-for="character in characters"
+        :key="character.name"
+        :character="character"
+        @select="openEdit(character)"
       />
     </div>
 
     <CharacterWizardDialog
       v-model:show="wizardOpen"
-      :profile="editing"
+      :character="editing"
     />
   </section>
 </template>

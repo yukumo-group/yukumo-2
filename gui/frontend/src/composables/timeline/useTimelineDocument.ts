@@ -8,7 +8,7 @@ import {
   timelinePlayback,
 } from '../timelineSession';
 import { snapTimeToRuler } from '../timelineGrid';
-import type { AquesTalkVersion } from '../../types/profile';
+import type { AquesTalkVersion } from '../../backend/types';
 import {
   TIMELINE_CLIP_MIN_DURATION_SEC,
   type TimelineClip,
@@ -17,7 +17,6 @@ import {
   type TimelineClipSpeaker,
   type TimelineTrack,
 } from '../../types/timeline';
-import { characterProfiles } from '../useCharacterProfiles';
 import {
   clipPayload,
   cloneSpeaker,
@@ -158,7 +157,7 @@ export function useTimelineDocument(t: ComposerTranslation) {
     const engine = trackEngine(clip.trackId);
     if (engine === null) return;
     if (
-      speakerSupportsEngine(clip.speaker, engine, characterProfiles.value)
+      speakerSupportsEngine(clip.speaker, engine)
     ) {
       return;
     }

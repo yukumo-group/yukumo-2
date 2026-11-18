@@ -179,7 +179,6 @@ const {
   showClipToolbar,
   voiceDialogShow,
   contentDialogShow,
-  voiceEngine,
   voiceSpeaker,
   voiceDialogTitle,
   splitDialogShow,
@@ -496,7 +495,6 @@ defineExpose({
 
     <TimelineClipDialogs
       :voice-show="voiceDialogShow"
-      :voice-engine="voiceEngine"
       :voice-speaker="voiceSpeaker"
       :voice-title="voiceDialogTitle"
       :content-show="contentDialogShow"

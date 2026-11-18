@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { AquesTalkVersion } from '../../types/profile';
 import type { TimelineClipSpeaker } from '../../types/timeline';
+import type { Voice } from '../../backend/types';
 import { cloneSpeaker } from '../../composables/timeline/clipModel';
-import VoiceConfigPanel from '../voice/VoiceConfigPanel.vue';
+import VoiceEditor from '../voice/VoiceEditor.vue';
 
 const props = defineProps<{
   show: boolean;
-  version: AquesTalkVersion;
   speaker: TimelineClipSpeaker;
   title: string;
 }>();
@@ -33,6 +32,10 @@ function setShow(value: boolean): void {
   emit('update:show', value);
 }
 
+function onVoiceUpdate(voice: Voice): void {
+  draft.value = { ...draft.value, voice };
+}
+
 function onConfirm(): void {
   emit('confirm', cloneSpeaker(draft.value));
   setShow(false);
@@ -43,7 +46,7 @@ function onConfirm(): void {
   <var-dialog
     :show="show"
     dialog-class="timeline-clip-voice-dialog"
-    width="24rem"
+    width="26rem"
     :title="title"
     :confirm-button="false"
     :cancel-button="false"
@@ -51,13 +54,9 @@ function onConfirm(): void {
     :close-on-key-escape="true"
     @update:show="setShow"
   >
-    <VoiceConfigPanel
-      :key="`${show}-${version}`"
-      :version="version"
-      v-model:profile-id="draft.profileId"
-      v-model:at1="draft.aquestalk1"
-      v-model:at2="draft.aquestalk2"
-      v-model:at10="draft.aquestalk10"
+    <VoiceEditor
+      :model-value="draft.voice"
+      @update:model-value="onVoiceUpdate"
     />
     <template #actions="{ slotClass }">
       <div :class="[slotClass, 'flex w-full justify-end gap-2']">
@@ -80,6 +79,6 @@ function onConfirm(): void {
 
 <style>
 .timeline-clip-voice-dialog {
-  max-width: min(24rem, 92vw);
+  max-width: min(26rem, 92vw);
 }
 </style>
