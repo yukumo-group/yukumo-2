@@ -27,7 +27,7 @@ The application serves as a graphical interface for the `yukumo-script` library.
 | `vite` | ^7.0.0 | Frontend build tool & dev server |
 | `@vitejs/plugin-vue` | ^6.0.0 | Vite plugin for Vue SFC support |
 | `vue-router` | ^5.0.0 | File-based routing (hash history for Wails) |
-| `@varlet/ui` | ^3.20.0 | Material Design 3 Vue component library |
+| `@m3e/web` | local v2.13.0 (`gui/m3e`, `link:../m3e/packages/web`) | Material 3 custom elements (`m3e-*`). Bind properties with `.` and listen to DOM events. Do not use Vue `v-model`. Edit `gui/m3e/packages/web/src`, then rebuild with `npm run build --workspace=@m3e/web` from `gui/m3e`. |
 | `@lucide/vue` | ^1.0.0 | Tree-shakable Lucide icons for Vue |
 | `vue-i18n` | ^11.0.0 | Application UI internationalization (EN / JA / zh-CN) |
 | `yukumo-script/core/api` | local (`../core/api`) | Core use-case facade used by the Wails service |
@@ -70,6 +70,7 @@ yukumo-gui/
 │   ├── android/            # Android build assets
 │   └── ios/                # iOS build assets
 │
+├── m3e/                    # Local checkout of matraic/m3e v2.13.0 (branch `yukumo`). `@m3e/web` is `packages/web`.
 ├── frontend/               # Frontend (Vue 3 + Vite)
 │   ├── index.html          # HTML entry point
 │   ├── package.json        # pnpm dependencies
@@ -91,11 +92,11 @@ yukumo-gui/
 │   │   ├── pages/          # File-based route pages
 │   │   ├── navigation/     # Shared nav destination lists (label keys, not raw text)
 │   │   ├── layouts/        # Shared shells (e.g. MainLayout)
-│   │   ├── theme/          # MD3 theme preference + StyleProvider
+│   │   ├── theme/          # Hue, light/dark/system preference, m3e-theme sync
 │   │   ├── backend/        # Backend port, Wails adapter, WASM skeleton, WAV helpers
 │   │   ├── store/          # Reactive character store backed by the backend port
 │   │   ├── i18n/           # vue-i18n setup + locale message catalogs
-│   │   │   ├── index.ts    # createI18n, setLocale, Varlet Locale sync
+│   │   │   ├── index.ts    # createI18n, setLocale
 │   │   │   └── messages/   # en-US.ts, ja-JP.ts, zh-CN.ts
 │   │   │
 │   │   ├── assets/         # Static assets
@@ -175,36 +176,41 @@ All **TypeScript / Vue frontend code** must follow these rules:
 6. **Imports**: Group imports logically — Vue core first, then project components, then Wails bindings. Prefer `import type` for type-only imports.
 7. **Template organization**: Keep templates clean and well-indented; extract complex logic into computed properties or methods.
 8. **TypeScript version**: Stay on TypeScript 6 (`typescript@^6`) so `vue-tsc` can type-check Vue SFCs. Do not upgrade to TypeScript 7 until `vue-tsc` supports its programmatic API.
-9. **Varlet Tailwind color utilities**: The project uses `@varlet/preset-tailwindcss`. Map `--color-*` tokens to preset utilities — never write arbitrary `-[var(--color-…)]` classes in templates.
+9. **Material system color utilities**: `frontend/src/style.css` maps `--md-sys-color-*` onto Tailwind `--color-*` tokens in `@theme`, so utilities and opacity modifiers (`bg-error/15`, `border-outline/30`) keep working. `m3e-theme` is the only source of those tokens. Never write arbitrary `-[var(--md-sys-color-…)]` classes in templates.
 
    | Token | Prefer | Avoid |
    |---|---|---|
-   | `--color-text` | `text-text`, `bg-text`, `border-text` | `text-[var(--color-text)]` |
-   | `--color-on-surface-variant` | `text-on-surface-variant`, `border-on-surface-variant` | `border-[var(--color-on-surface-variant)]` |
-   | `--color-body` | `bg-body` | `bg-[var(--color-body)]` |
-   | `--color-primary` | `text-primary`, `bg-primary` | `text-[var(--color-primary)]` |
-   | `--color-surface-container` | `bg-surface-container` | `bg-[var(--color-surface-container)]` |
+   | `--md-sys-color-on-surface` | `text-on-surface`, `bg-on-surface` | `text-[var(--md-sys-color-on-surface)]` |
+   | `--md-sys-color-on-surface-variant` | `text-on-surface-variant`, `border-on-surface-variant` | `border-[var(--md-sys-color-on-surface-variant)]` |
+   | `--md-sys-color-surface` | `bg-surface` | `bg-[var(--md-sys-color-surface)]` |
+   | `--md-sys-color-primary` | `text-primary`, `bg-primary` | `text-[var(--md-sys-color-primary)]` |
+   | `--md-sys-color-error` | `text-error`, `bg-error`, `border-error` | `text-danger`, `bg-danger` |
+   | `--md-sys-color-surface-container` | `bg-surface-container` | `bg-[var(--md-sys-color-surface-container)]` |
 
-   Same pattern for other preset colors (`outline`, `danger`, `surface-container-high`, …). Raw `var(--color-*)` is fine in plain CSS (e.g. `style.css`), but Tailwind class names must use the preset utilities.
+   Same pattern for other mapped colors (`outline`, `surface-container-high`, …). Plain CSS should use `var(--md-sys-color-*)` or `color-mix()` on those tokens.
 
 ### 4.2. Entry Point: `frontend/src/main.ts`
 
 ```typescript
 import { createApp } from 'vue';
-import Varlet from '@varlet/ui';
-import '@varlet/ui/es/style';
-import '@varlet/touch-emulator';
+import { install as VueMonacoEditorPlugin } from '@guolao/vue-monaco-editor';
 
 import App from './App.vue';
 import router from './router';
 import { i18n, initI18n } from './i18n';
 import { initTheme } from './theme/theme';
+import './m3e';
+import './monaco/setup';
 import './style.css';
 
 initTheme();
 initI18n();
-createApp(App).use(Varlet).use(i18n).use(router).mount('#app');
+const app = createApp(App);
+app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith('m3e-');
+app.use(i18n).use(router).use(VueMonacoEditorPlugin).mount('#app');
 ```
+
+`frontend/src/m3e.ts` side-effect-imports each `@m3e/web/*` element the app uses. `index.html` mounts Vue on `<m3e-theme id="app">`, which is a direct child of `body` so theme tokens land on `html`. Resolve `system` to `light` or `dark` before setting `scheme`. Do not pass `auto`. Dialog, snackbar, and split labels come from vue-i18n.
 
 ### 4.3. Internationalization (i18n)
 
@@ -212,13 +218,11 @@ Supported locales: **`en-US`**, **`ja-JP`**, **`zh-CN`**.
 
 | Layer | Responsibility |
 |---|---|
-| `vue-i18n` (`frontend/src/i18n/`) | All application UI copy (pages, nav labels, settings, aria-labels) |
-| Varlet `Locale` API | Built-in Varlet component strings (dialogs, pickers, etc.) — see [Varlet Locale](https://varletjs.org/#/zh-CN/locale) |
+| `vue-i18n` (`frontend/src/i18n/`) | All application UI copy, including dialog, snackbar, and split-pane labels |
 
 Locale preference is persisted in `localStorage` (`yukumo-locale`) and synced to:
 1. `i18n.global.locale`
-2. `Locale.use(...)` for Varlet
-3. `document.documentElement.lang`
+2. `document.documentElement.lang`
 
 #### Rules for agents (mandatory)
 
@@ -230,7 +234,7 @@ Locale preference is persisted in `localStorage` (`yukumo-locale`) and synced to
    - `frontend/src/i18n/messages/zh-CN.ts`
 4. Keep message object **keys and nesting identical** across the three locale files. English is the structural source of truth.
 5. Navigation destinations store `labelKey` strings (not translated text). Components call `t(destination.labelKey)`.
-6. Changing language at runtime must go through `setLocale()` from `frontend/src/i18n/index.ts` so vue-i18n and Varlet stay in sync. Do not call `Locale.use` or mutate `i18n.global.locale` ad hoc from feature code.
+6. Changing language at runtime must go through `setLocale()` from `frontend/src/i18n/index.ts`. Do not mutate `i18n.global.locale` ad hoc from feature code.
 7. Do not invent new locale codes unless the maintainer asks. Supported set is only `en-US` / `ja-JP` / `zh-CN`.
 
 #### Example
@@ -345,13 +349,20 @@ function greet(): void {
 
 ```css
 @import 'tailwindcss';
-@config '../tailwind.config.js';
+
+@theme {
+  --color-primary: var(--md-sys-color-primary);
+  --color-on-surface: var(--md-sys-color-on-surface);
+  --color-surface: var(--md-sys-color-surface);
+  --color-error: var(--md-sys-color-error);
+}
 
 html {
   margin: 0;
   padding: 0;
   text-align: left;
-  color: var(--color-text, #2c3e50);
+  color: var(--md-sys-color-on-surface, #2c3e50);
+  background-color: var(--md-sys-color-surface, #faf7ff);
 }
 
 body {
@@ -455,7 +466,7 @@ When working on this project, follow these rules:
 - Comment only non-obvious intent; keep comments sparse and short (see Section 4.1).
 - Use **Vue 3 Composition API** with `<script setup lang="ts">` for all Vue components.
 - Route **all user-visible UI text** through `vue-i18n` (`t('...')`) and keep `en-US` / `ja-JP` / `zh-CN` message files in sync (see Section 4.3).
-- Use **Varlet Tailwind color utilities** (`text-text`, `border-on-surface-variant`, `bg-body`, …) instead of arbitrary `-[var(--color-…)]` classes (see Section 4.1 §9).
+- Use **Material system color utilities** (`text-on-surface`, `border-on-surface-variant`, `bg-surface`, `text-error`, …) instead of arbitrary `-[var(--md-sys-color-…)]` classes (see Section 4.1 §9).
 - Ask for clarification if a task is ambiguous.
 
 ### ❌ Do NOT
@@ -467,8 +478,8 @@ When working on this project, follow these rules:
 - **Do NOT upgrade** to TypeScript 7 while `vue-tsc` still requires the TypeScript 6 API.
 - **Do NOT fix** missing types, undefined references, or build errors in Go code — notify the maintainer instead.
 - **Do NOT hardcode** UI strings in components/pages; add keys to all three locale catalogs instead.
-- **Do NOT** change locale by calling Varlet `Locale.use` or mutating `i18n.global.locale` directly — use `setLocale()`.
-- **Do NOT** write Tailwind classes like `text-[var(--color-text)]` or `border-[var(--color-on-surface-variant)]` — use `text-text` / `border-on-surface-variant` from `@varlet/preset-tailwindcss`.
+- **Do NOT** change locale by mutating `i18n.global.locale` directly — use `setLocale()`.
+- **Do NOT** write Tailwind classes like `text-[var(--md-sys-color-on-surface)]` — use `text-on-surface` / `bg-surface` / `text-error` from the `@theme` map. Do not use `v-model` on `m3e-*` elements.
 ### ⚠️ Installing pnpm Modules
 - **Always `cd` into `frontend/` before running any pnpm command.** The `package.json` lives in `frontend/`, not the project root.
   ```bash
