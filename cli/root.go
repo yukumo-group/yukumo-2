@@ -5,6 +5,7 @@ import (
 
 	clicharacter "yukumo-script/cli/character"
 	cliconfig "yukumo-script/cli/config"
+	cliserve "yukumo-script/cli/serve"
 	clisynth "yukumo-script/cli/synth"
 	"yukumo-script/core/api"
 	"yukumo-script/core/api/cliopen"
@@ -32,5 +33,6 @@ func newRoot(app *api.App) *cobra.Command {
 	root.AddCommand(cliconfig.NewCmd(app))
 	root.AddCommand(clicharacter.NewCmd(app))
 	root.AddCommand(clisynth.NewCmd(app))
+	root.AddCommand(cliserve.NewCmd(app))
 	return root
 }
