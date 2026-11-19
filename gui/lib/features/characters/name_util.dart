@@ -11,30 +11,34 @@ String uniqueCopyName(String base, Iterable<String> existing) {
   return name;
 }
 
+Voice cloneVoice(Voice source, String newName) {
+  return Voice(
+    name: newName,
+    params: [
+      for (final p in source.params ?? const <SynthParam>[])
+        SynthParam(
+          version: p.version,
+          preset: p.preset,
+          speed: p.speed,
+          phontData: p.phontData,
+          base: p.base,
+          volume: p.volume,
+          pitch: p.pitch,
+          accent: p.accent,
+          lmd: p.lmd,
+          fsc: p.fsc,
+        ),
+    ],
+  );
+}
+
 Character cloneCharacter(Character source, String newName) {
   return Character(
     name: newName,
     description: source.description,
     voices: [
       for (final v in source.voices ?? const <Voice>[])
-        Voice(
-          name: v.name,
-          params: [
-            for (final p in v.params ?? const <SynthParam>[])
-              SynthParam(
-                version: p.version,
-                preset: p.preset,
-                speed: p.speed,
-                phontData: p.phontData,
-                base: p.base,
-                volume: p.volume,
-                pitch: p.pitch,
-                accent: p.accent,
-                lmd: p.lmd,
-                fsc: p.fsc,
-              ),
-          ],
-        ),
+        cloneVoice(v, v.name),
     ],
   );
 }
