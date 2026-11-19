@@ -4,57 +4,6 @@ AquesTalk WASM（`third-party/aq_wasm`）语音合成与角色/音色管理 CLI�
 
 [English](README.md)
 
-## 架构
-
-模块（依赖方向只向下）：
-
-```
-cli/cmd/yukumo-script（main）
-  ↓
-cli  ── cobra / huh / lipgloss
-  ↓
-core/api  ── DTO 用例门面 + 组合根
-  ↓                    ↘
-core/internal/service   runtime/aq → aq_wasm.wasm（Yukw）→ AquesTalk
-  ↓
-core/internal/{domain, store}
-```
-
-| module | 职责 |
-|---|---|
-| `core/internal/domain` | 纯数据模型，数据默认值和规范化 |
-| `core/internal/store` | 通用数据读写，YAML 数据编解码 |
-| `core/internal/service` | 各种业务逻辑实现，通过接口依赖 store/runtime/其它 service |
-| `runtime/aq` | 底层引擎，wazero 实例、`aq_*` 导出、多线程实例池 |
-| `core/api` | DTO 门面 + CLI / 未来 GUI 的用例 API |
-| `cli` | 交互层，cobra 命令、huh TUI、音频预览 |
-
-**Yukw**：用 Rust 编写的兼容层，把多个 AquesTalk 产品的 WASM 串成单一模块 `aq_wasm.wasm`，并导出统一的 `aq_*` 合成/查询 API，以及 `malloc` / `free` 等宿主侧内存分配接口。本仓库的 `runtime/aq` 经 wazero 加载该模块。
-
-### 多线程
-
-引擎侧通过 `aq.Pool` 支持多 goroutine 并行使用；播放预览也可在后台 goroutine 进行。
-
-- 由于 WASM 模块本身不线程安全，一个 `Runtime`（一个实例）同一时刻只能被一个 goroutine 使用，禁止跨 goroutine 共用同一实例。
-- `aq.Pool` 按需创建实例：`Acquire` 借出独占 `Runtime`，用完 `Release` 归还；`Do` / `Synthesize` / `HasPreset` / `PresetNames` 使用同一套租借，因此多个合成/查询可以并行，彼此各用各的实例。
-- 交互模式 `-p` / preview：播放在后台 goroutine，不阻塞 huh 界面；再次合成会先停掉上一次播放进程。
-
-### 领域模型
-
-- `Character`：`name`（id）, `description`, `voices[]`；文件 `{Sanitize(name)}.yaml`。
-- `Voice`：`name`（id） + `params[]`；同一 voice 最多 3 条 param，版本唯一 ∈ {1,2,10}。
-- `SynthParam`：对齐 `AqSynthParam`。公共：`preset`, `speed`(50–300)。v2：`phont_data`。v10：`base`(F1E/F2E/M1E), `volume`, `pitch`, `accent`, `lmd`, `fsc`。`Normalize` 按版本清无关字段并 clamp。`speed` 仍挂在音色上，表示该预设的急促程度；合成时再乘 CLI `-s` 因子。
-- 合成有效语速：`clamp(round(voice.speed * factor), 50, 300)`；`factor≤0` 视为 `1`。
-
-### 解耦
-
-- 实现了 `store.Store` 接口及 `Reader`、`Writer`、`ExistenceChecker`、`Lister`、`Deleter` 子接口，使得增删查改可以换不同存储实现。单元测试用 `Memory`，不必碰真实文件系统；生产用 `FS` 输出。
-- `core/internal/service/character/voice` 只依赖 `Characters`（读改角色）和 `PresetCatalog`（问引擎某 preset 是否合法），不直接依赖 character 的磁盘路径，也不绑定某一个全局 WASM 实例。因此同一套 voice 逻辑既能挂真实角色 service + `aq.Pool`，也能在测试里换成内存角色与假 catalog。
-- `core/internal/service/synth` 只依赖 `Config`、`Voices`、`Engine` 三个接口：向谁要配置、向谁取音色、用谁合成，都可以替换。输出策略（写不写、写哪）留在 service；终端打印路径与播放预览留在 CLI（`runRequest`），互不拖拽。
-- `cli/setting` 描述「有哪些字段、如何读写模型」；`cli/prompt` 负责「怎么问用户」。config / character / voice param 共用同一套 Ask、Browse、Normalize，改交互控件不必改业务字段表，反之亦然。
-- `cli/browse` 在 `cli.default_interactive=true` 时给「有子命令」的节点挂菜单导航；真正干活的仍是各叶子命令自己的 `RunE`，命令树与交互壳分离。
-- CLI 只 import `core/api`；Go 的 `internal` 规则让 CLI module 无法直接访问 `core/internal/*`，其余方向由 depguard 检查。
-
 ## 构建与运行
 
 需可用的 `third-party/aq_wasm.wasm`（或设 `YUKUMO_AQ_WASM`）。开发命令使用 `just`；`just lint` / `just build` 需要 golangci-lint v2（可用 `just install-tools`）。

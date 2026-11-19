@@ -4,57 +4,6 @@ CLI for character/voice management and speech synthesis via AquesTalk WASM (`thi
 
 [中文](README.zh.md)
 
-## Architecture
-
-Modules (dependencies point downward only):
-
-```
-cli/cmd/yukumo-script (main)
-  ↓
-cli  ── cobra / huh / lipgloss
-  ↓
-core/api  ── DTO use-case facade + composition root
-  ↓                    ↘
-core/internal/service   runtime/aq → aq_wasm.wasm (Yukw) → AquesTalk
-  ↓
-core/internal/{domain, store}
-```
-
-| Module | Responsibility |
-|---|---|
-| `core/internal/domain` | Pure models, defaults, normalization |
-| `core/internal/store` | Named byte IO, YAML encode/decode |
-| `core/internal/service` | Use-cases; depends on store/runtime/other services via interfaces |
-| `runtime/aq` | wazero runtime, `aq_*` exports, multi-goroutine pool |
-| `core/api` | DTO facade + use-case API for CLI / future GUIs |
-| `cli` | cobra commands, huh TUI, audio preview |
-
-**Yukw**: a Rust compatibility layer that links multiple AquesTalk product WASMs into one `aq_wasm.wasm`, exporting a unified `aq_*` synth/query API plus host heap helpers (`malloc`, `free`, …). This repo’s `runtime/aq` loads that module through wazero.
-
-### Multithreading
-
-Yes — `aq.Pool` allows parallel use across goroutines; preview playback can also run in a background goroutine.
-
-- The WASM module is **not** thread-safe: one `Runtime` (one instance) may be used by only one goroutine at a time; never share an instance across goroutines.
-- `aq.Pool` creates instances on demand: `Acquire` leases an exclusive `Runtime`, `Release` returns it; `Do` / `Synthesize` / `HasPreset` / `PresetNames` use the same lease path, so concurrent synth/queries each get their own instance.
-- Interactive `-p` / preview: playback runs in a background goroutine and does not block huh; a new synth stops the previous player process first.
-
-### Domain model
-
-- `Character`: `name` (id), `description`, `voices[]`; file `{Sanitize(name)}.yaml`.
-- `Voice`: `name` (id) + `params[]`; at most 3 params per voice, unique versions ∈ {1,2,10}.
-- `SynthParam`: mirrors `AqSynthParam`. Shared: `preset`, `speed` (50–300). v2: `phont_data`. v10: `base` (F1E/F2E/M1E), `volume`, `pitch`, `accent`, `lmd`, `fsc`. `Normalize` clears irrelevant fields and clamps. `speed` stays on the voice as that preset’s urgency; synthesis multiplies by CLI `-s`.
-- Effective speed: `clamp(round(voice.speed * factor), 50, 300)`; `factor≤0` treated as `1`.
-
-### Decoupling
-
-- `store.Store` plus `Reader` / `Writer` / `ExistenceChecker` / `Lister` / `Deleter` let CRUD swap backends. Tests use `Memory` (no real FS); production uses `FS`.
-- `core/internal/service/character/voice` depends only on `Characters` (load/update character) and `PresetCatalog` (ask whether a preset is valid)—not on character disk paths or a global WASM singleton. The same voice logic can wire a real character service + `aq.Pool`, or in-memory fakes in tests.
-- `core/internal/service/synth` depends on `Config`, `Voices`, and `Engine` only—who supplies config, voices, and synthesis is replaceable. Write policy stays in the service; printing paths and preview stay in the CLI (`runRequest`).
-- `cli/setting` describes fields and model get/set; `cli/prompt` asks the user. Config / character / voice params share Ask, Browse, and Normalize—change widgets without touching field tables, and vice versa.
-- `cli/browse` mounts menus on branch commands when `cli.default_interactive=true`; leaf work remains each command’s `RunE`.
-- CLI imports only `core/api`; Go's `internal` rule makes `core/internal/*` unreachable from the CLI module. depguard checks the remaining layer directions.
-
 ## Build & run
 
 Requires `third-party/aq_wasm.wasm` (or `YUKUMO_AQ_WASM`). Development commands use `just`; `just lint` / `just build` require golangci-lint v2 (`just install-tools`).
