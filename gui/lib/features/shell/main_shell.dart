@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../characters/characters_page.dart';
 import '../synth/synth_page.dart';
 import 'bottom_dock.dart';
+import 'side_rail.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -15,12 +16,43 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
 
+  static const _pages = [
+    SynthPage(),
+    CharactersPage(),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final width = MediaQuery.sizeOf(context).width;
-    final barWidth = width < 520 ? width - 32 : 360.0;
+    final useRail = width >= kShellRailBreakpoint;
+    final body = IndexedStack(
+      index: _index,
+      children: _pages,
+    );
 
+    if (useRail) {
+      return Scaffold(
+        backgroundColor: cs.surface,
+        body: Row(
+          children: [
+            SideNavRail(
+              selectedIndex: _index,
+              onDestinationSelected: (i) => setState(() => _index = i),
+              extended: false,
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: cs.outlineVariant.withValues(alpha: 0.5),
+            ),
+            Expanded(child: body),
+          ],
+        ),
+      );
+    }
+
+    final barWidth = width < 520 ? width - 32 : 360.0;
     return Scaffold(
       backgroundColor: cs.surface,
       body: BottomBar(
@@ -53,13 +85,7 @@ class _MainShellState extends State<MainShell> {
             ],
           ),
         ),
-        body: IndexedStack(
-          index: _index,
-          children: const [
-            SynthPage(),
-            CharactersPage(),
-          ],
-        ),
+        body: body,
         child: FloatingBottomDock(
           selectedIndex: _index,
           onDestinationSelected: (i) => setState(() => _index = i),

@@ -56,12 +56,18 @@ class PageCardTitle extends StatelessWidget {
   const PageCardTitle(
     this.title, {
     super.key,
+    this.leading,
     this.trailing,
+    this.leadingGap = 12,
     this.bottomGap = kPageCardTitleGap,
   });
 
   final String title;
+  final Widget? leading;
   final Widget? trailing;
+
+  /// Space between [leading] and the title text.
+  final double leadingGap;
 
   /// Gap below the title row before card content. Use `0` when spacing is
   /// applied by the parent instead.
@@ -78,6 +84,10 @@ class PageCardTitle extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            if (leading != null) ...[
+              leading!,
+              SizedBox(width: leadingGap),
+            ],
             Expanded(child: Text(title, style: style)),
             if (trailing != null) trailing!,
           ],
