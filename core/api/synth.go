@@ -23,10 +23,10 @@ type SynthRequest struct {
 }
 
 type SynthResult struct {
-	WAV       []byte
-	Path      string
-	Wrote     bool
-	FromCache bool
+	WAV       []byte `json:"wav"`
+	Path      string `json:"path,omitempty"`
+	Wrote     bool   `json:"wrote"`
+	FromCache bool   `json:"fromCache"`
 }
 
 func (a *App) Synthesize(ctx context.Context, req SynthRequest) (SynthResult, error) {
