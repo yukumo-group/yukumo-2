@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app_scope.dart';
 import '../../gen/rpc.dart';
+import '../../widgets/content_frame.dart';
 import '../shell/bar_padding.dart';
 import 'wav_preview.dart';
 
@@ -178,9 +179,152 @@ class _SynthPageState extends State<SynthPage> {
     }
   }
 
+  Widget _textField(ColorScheme cs) {
+    return TextField(
+      controller: _text,
+      minLines: 8,
+      maxLines: 16,
+      decoration: InputDecoration(
+        labelText: '文本',
+        hintText: '输入要合成的日文假名或文本',
+        alignLabelWithHint: true,
+        filled: true,
+        fillColor: cs.surfaceContainer,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _selectorColumn(ColorScheme cs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('角色', style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 8),
+        NotificationListener<ScrollNotification>(
+          onNotification: (_) => true,
+          child: M3EDropdownMenu<String>.future(
+            future: _characterItems,
+            controller: _characterDropdown,
+            singleSelect: true,
+            searchEnabled: true,
+            maxSelections: 1,
+            containerRadius: 24,
+            fieldStyle: M3EDropdownFieldStyle(
+              hintText: '选择角色',
+              showClearIcon: false,
+              padding: const EdgeInsets.all(14),
+            ),
+            dropdownStyle: M3EDropdownStyle(
+              elevation: 4,
+              maxHeight: 320,
+              backgroundColor: cs.surfaceContainer,
+            ),
+            searchStyle: const M3ESearchStyle(
+              hintText: '搜索角色',
+              showClearIcon: true,
+            ),
+            itemStyle: M3EDropdownItemStyle(
+              outerRadius: 16,
+              innerRadius: 6,
+              selectedBackgroundColor: cs.secondaryContainer,
+            ),
+            onSelectionChanged: (items) {
+              if (_syncing) return;
+              final name = items.isEmpty ? null : items.first.value;
+              setState(() {
+                _character = name;
+                _voice = _voiceFor(name);
+              });
+              unawaited(_syncDropdowns());
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text('音色', style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 8),
+        NotificationListener<ScrollNotification>(
+          onNotification: (_) => true,
+          child: M3EDropdownMenu<String>.future(
+            future: _voiceItems,
+            controller: _voiceDropdown,
+            singleSelect: true,
+            searchEnabled: true,
+            maxSelections: 1,
+            containerRadius: 24,
+            fieldStyle: M3EDropdownFieldStyle(
+              hintText: '选择音色',
+              showClearIcon: false,
+              padding: const EdgeInsets.all(14),
+            ),
+            dropdownStyle: M3EDropdownStyle(
+              elevation: 4,
+              maxHeight: 320,
+              backgroundColor: cs.surfaceContainer,
+            ),
+            searchStyle: const M3ESearchStyle(
+              hintText: '搜索音色',
+              showClearIcon: true,
+            ),
+            itemStyle: M3EDropdownItemStyle(
+              outerRadius: 16,
+              innerRadius: 6,
+              selectedBackgroundColor: cs.secondaryContainer,
+            ),
+            onSelectionChanged: (items) {
+              if (_syncing) return;
+              setState(() {
+                _voice = items.isEmpty ? null : items.first.value;
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: M3EButton(
+                onPressed: _busy ? null : () => _runSynth(save: false),
+                style: M3EButtonStyle.tonal,
+                shape: M3EButtonShape.round,
+                child: const Text('预览'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: M3EButton(
+                onPressed: _busy ? null : () => _runSynth(save: true),
+                style: M3EButtonStyle.filled,
+                shape: M3EButtonShape.round,
+                child: const Text('保存'),
+              ),
+            ),
+          ],
+        ),
+        if (_busy) ...[
+          const SizedBox(height: 16),
+          const Center(child: M3ELoadingIndicator()),
+        ],
+        if (_status != null) ...[
+          const SizedBox(height: 16),
+          Text(
+            _status!,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: cs.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final wide = isWideLayout(context);
     return withBarBottomPadding(context, (bottom) {
       return CustomScrollView(
         slivers: [
@@ -189,141 +333,27 @@ class _SynthPageState extends State<SynthPage> {
             backgroundColor: cs.surface,
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, bottom),
-            sliver: SliverList.list(
-              children: [
-                TextField(
-                  controller: _text,
-                  minLines: 4,
-                  maxLines: 10,
-                  decoration: InputDecoration(
-                    labelText: '文本',
-                    hintText: '输入要合成的日文假名或文本',
-                    filled: true,
-                    fillColor: cs.surfaceContainer,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text('角色', style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 8),
-                NotificationListener<ScrollNotification>(
-                  onNotification: (_) => true,
-                  child: M3EDropdownMenu<String>.future(
-                    future: _characterItems,
-                    controller: _characterDropdown,
-                    singleSelect: true,
-                    searchEnabled: true,
-                    maxSelections: 1,
-                    containerRadius: 24,
-                    fieldStyle: M3EDropdownFieldStyle(
-                      hintText: '选择角色',
-                      showClearIcon: false,
-                      padding: const EdgeInsets.all(14),
-                    ),
-                    dropdownStyle: M3EDropdownStyle(
-                      elevation: 4,
-                      maxHeight: 320,
-                      backgroundColor: cs.surfaceContainer,
-                    ),
-                    searchStyle: const M3ESearchStyle(
-                      hintText: '搜索角色',
-                      showClearIcon: true,
-                    ),
-                    itemStyle: M3EDropdownItemStyle(
-                      outerRadius: 16,
-                      innerRadius: 6,
-                      selectedBackgroundColor: cs.secondaryContainer,
-                    ),
-                    onSelectionChanged: (items) {
-                      if (_syncing) return;
-                      final name = items.isEmpty ? null : items.first.value;
-                      setState(() {
-                        _character = name;
-                        _voice = _voiceFor(name);
-                      });
-                      unawaited(_syncDropdowns());
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text('音色', style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 8),
-                NotificationListener<ScrollNotification>(
-                  onNotification: (_) => true,
-                  child: M3EDropdownMenu<String>.future(
-                    future: _voiceItems,
-                    controller: _voiceDropdown,
-                    singleSelect: true,
-                    searchEnabled: true,
-                    maxSelections: 1,
-                    containerRadius: 24,
-                    fieldStyle: M3EDropdownFieldStyle(
-                      hintText: '选择音色',
-                      showClearIcon: false,
-                      padding: const EdgeInsets.all(14),
-                    ),
-                    dropdownStyle: M3EDropdownStyle(
-                      elevation: 4,
-                      maxHeight: 320,
-                      backgroundColor: cs.surfaceContainer,
-                    ),
-                    searchStyle: const M3ESearchStyle(
-                      hintText: '搜索音色',
-                      showClearIcon: true,
-                    ),
-                    itemStyle: M3EDropdownItemStyle(
-                      outerRadius: 16,
-                      innerRadius: 6,
-                      selectedBackgroundColor: cs.secondaryContainer,
-                    ),
-                    onSelectionChanged: (items) {
-                      if (_syncing) return;
-                      setState(() {
-                        _voice = items.isEmpty ? null : items.first.value;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: M3EButton(
-                        onPressed: _busy ? null : () => _runSynth(save: false),
-                        style: M3EButtonStyle.tonal,
-                        shape: M3EButtonShape.round,
-                        child: const Text('预览'),
+            padding: EdgeInsets.only(bottom: bottom),
+            sliver: SliverToBoxAdapter(
+              child: ContentFrame(
+                child: wide
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 5, child: _textField(cs)),
+                          const SizedBox(width: 24),
+                          Expanded(flex: 4, child: _selectorColumn(cs)),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _textField(cs),
+                          const SizedBox(height: 20),
+                          _selectorColumn(cs),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: M3EButton(
-                        onPressed: _busy ? null : () => _runSynth(save: true),
-                        style: M3EButtonStyle.filled,
-                        shape: M3EButtonShape.round,
-                        child: const Text('保存'),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_busy) ...[
-                  const SizedBox(height: 16),
-                  const Center(child: M3ELoadingIndicator()),
-                ],
-                if (_status != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    _status!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
         ],

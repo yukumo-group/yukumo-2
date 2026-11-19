@@ -6,7 +6,11 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app_scope.dart';
 import '../../gen/rpc.dart';
+import '../../widgets/content_frame.dart';
 import '../shell/bar_padding.dart';
+import 'character_edit_page.dart';
+import 'name_util.dart';
+import 'swipe_actions.dart';
 
 class CharactersPage extends StatefulWidget {
   const CharactersPage({super.key});
@@ -16,9 +20,11 @@ class CharactersPage extends StatefulWidget {
 }
 
 class _CharactersPageState extends State<CharactersPage> {
+  final _menuController = M3EMenuController();
   List<Character> _items = const [];
   bool _loading = true;
   String? _error;
+  int? _menuIndex;
 
   @override
   void initState() {
@@ -26,6 +32,12 @@ class _CharactersPageState extends State<CharactersPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_reload());
     });
+  }
+
+  @override
+  void dispose() {
+    _menuController.dispose();
+    super.dispose();
   }
 
   Future<void> _reload() async {
@@ -47,6 +59,40 @@ class _CharactersPageState extends State<CharactersPage> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _openEdit(String name) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CharacterEditPage(characterName: name),
+      ),
+    );
+    if (mounted) await _reload();
+  }
+
+  Future<bool> _cloneAt(int index) async {
+    final src = _items[index];
+    final client = AppScope.of(context);
+    final newName = uniqueCopyName(src.name, _items.map((c) => c.name));
+    try {
+      await client.characters.add(
+        CharacterAddReq(character: cloneCharacter(src, newName)),
+      );
+      if (!mounted) return false;
+      await _reload();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已克隆为「$newName」')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('克隆失败: $e')),
+        );
+      }
+    }
+    return false;
   }
 
   Future<bool> _deleteAt(int index) async {
@@ -114,7 +160,8 @@ class _CharactersPageState extends State<CharactersPage> {
           character: Character(name: name, description: descCtrl.text.trim()),
         ),
       );
-      await _reload();
+      if (!mounted) return;
+      await _openEdit(name);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('创建失败: $e')));
@@ -122,25 +169,62 @@ class _CharactersPageState extends State<CharactersPage> {
   }
 
   void _openContextMenu(Offset globalPosition, int index) {
-    final c = _items[index];
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        globalPosition & const Size(1, 1),
-        Offset.zero & overlay.size,
+    setState(() => _menuIndex = index);
+    _menuController.open(position: globalPosition);
+  }
+
+  List<Widget> _menuChildren(ColorScheme cs) {
+    final index = _menuIndex;
+    final name = (index != null && index >= 0 && index < _items.length)
+        ? _items[index].name
+        : '';
+    return [
+      M3EMenuGroup(
+        shapes: MenuGroupShapes.leading(),
+        children: [
+          const M3EMenuGroupLabel(child: Text('角色')),
+          M3EMenuItemButton(
+            onPressed: () {
+              _menuController.close();
+              if (index != null) unawaited(_openEdit(_items[index].name));
+            },
+            leadingIcon: const Icon(Icons.edit_rounded),
+            child: Text(name.isEmpty ? '编辑' : '编辑「$name」'),
+          ),
+          M3EMenuItemButton(
+            onPressed: () {
+              _menuController.close();
+              if (index != null) unawaited(_cloneAt(index));
+            },
+            leadingIcon: const Icon(Icons.copy_rounded),
+            child: const Text('克隆'),
+          ),
+          M3EMenuItemButton(
+            onPressed: () {
+              _menuController.close();
+              unawaited(_reload());
+            },
+            leadingIcon: const Icon(Icons.refresh_rounded),
+            child: const Text('刷新列表'),
+          ),
+        ],
       ),
-      items: [
-        PopupMenuItem(value: 'delete', child: Text('删除「${c.name}」')),
-        const PopupMenuItem(value: 'refresh', child: Text('刷新列表')),
-      ],
-    ).then((value) async {
-      if (value == 'delete') {
-        await _deleteAt(index);
-      } else if (value == 'refresh') {
-        await _reload();
-      }
-    });
+      M3EMenuGroup(
+        shapes: MenuGroupShapes.trailing(),
+        children: [
+          const M3EMenuGroupLabel(child: Text('危险操作')),
+          M3EMenuItemButton(
+            onPressed: () {
+              _menuController.close();
+              if (index != null) unawaited(_deleteAt(index));
+            },
+            leadingIcon: Icon(Icons.delete_forever_rounded, color: cs.error),
+            itemStyle: M3EMenuItemStyle(foregroundColor: cs.error),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    ];
   }
 
   @override
@@ -175,85 +259,93 @@ class _CharactersPageState extends State<CharactersPage> {
             )
           else
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, bottom),
+              padding: EdgeInsets.only(bottom: bottom),
               sliver: SliverToBoxAdapter(
-                child: M3EDismissibleCardColumn(
-                  itemCount: _items.length,
-                  emptyBuilder: (_) => Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                      '暂无角色',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
+                child: ContentFrame(
+                  child: M3EMenuAnchor(
+                    controller: _menuController,
+                    colorSchemeVariant: M3EMenuColorSchemeVariant.standard,
+                    consumeOutsideTaps: true,
+                    anchorTapClosesMenu: true,
+                    style: const M3EMenuStyle(
+                      minWidth: 180,
+                      maxWidth: 300,
+                      elevation: 3,
+                      spatialMotion: M3EMotion.expressiveSpatialFast,
+                      animationStyle: M3EMenuAnimationStyle.popup,
                     ),
-                  ),
-                  style: M3EDismissibleCardStyle(
-                    direction: DismissDirection.startToEnd,
-                    outerRadius: 24,
-                    innerRadius: 10,
-                    gap: 6,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    actions: [
-                      M3ESwipeAction(
-                        isPrimary: true,
-                        dismissOnTap: true,
-                        backgroundColor: cs.error,
-                        foregroundColor: cs.onError,
-                        icon: const FaIcon(FontAwesomeIcons.trashCan, size: 18),
-                        label: const Text('删除'),
-                        onTap: () {},
-                      ),
-                    ],
-                    autoExecutePrimaryOnFullSwipe: true,
-                  ),
-                  onDismiss: (index, direction) => _deleteAt(index),
-                  itemBuilder: (context, index) {
-                    final c = _items[index];
-                    final voiceCount = c.voices?.length ?? 0;
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onSecondaryTapDown: (details) {
-                        _openContextMenu(details.globalPosition, index);
-                      },
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  c.name,
-                                  style: Theme.of(context).textTheme.titleMedium,
-                                ),
-                                if (c.description.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    c.description,
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                                const SizedBox(height: 4),
-                                Text(
-                                  '$voiceCount 个音色',
-                                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right_rounded,
+                    menuChildren: _menuChildren(cs),
+                    builder: (context, controller, child) => child!,
+                    child: M3EDismissibleCardColumn(
+                      itemCount: _items.length,
+                      emptyBuilder: (_) => Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Text(
+                          '暂无角色',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: cs.onSurfaceVariant,
                           ),
-                        ],
+                        ),
                       ),
-                    );
-                  },
+                      style: characterSwipeStyle(cs),
+                      onDismiss: (index, direction) async {
+                        if (direction == DismissDirection.startToEnd) {
+                          return _cloneAt(index);
+                        }
+                        if (direction == DismissDirection.endToStart) {
+                          return _deleteAt(index);
+                        }
+                        return false;
+                      },
+                      onTap: (index) => unawaited(_openEdit(_items[index].name)),
+                      itemBuilder: (context, index) {
+                        final c = _items[index];
+                        final voiceCount = c.voices?.length ?? 0;
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onSecondaryTapDown: (details) {
+                            _openContextMenu(details.globalPosition, index);
+                          },
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      c.name,
+                                      style: Theme.of(context).textTheme.titleMedium,
+                                    ),
+                                    if (c.description.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        c.description,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: cs.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '$voiceCount 个音色',
+                                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
