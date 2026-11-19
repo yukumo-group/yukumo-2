@@ -289,6 +289,7 @@ class _CharactersPageState extends State<CharactersPage> {
 
   Widget _emptyDetail(String message, ColorScheme cs) {
     return Center(
+      key: ValueKey('empty-$message'),
       child: Text(
         message,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -298,20 +299,30 @@ class _CharactersPageState extends State<CharactersPage> {
     );
   }
 
-  Widget _characterPane({required bool triple}) {
+  Widget _detailPane({required bool triple}) {
     final cs = Theme.of(context).colorScheme;
     final name = _selectedCharacter;
     if (name == null) {
       return _emptyDetail('选择一个角色开始编辑', cs);
     }
+    // Dual: open voice in the right column (covers character edit).
+    if (!triple && _selectedVoice != null) {
+      return VoiceEditPage(
+        key: ValueKey('voice-$name-$_selectedVoice'),
+        characterName: name,
+        voiceName: _selectedVoice!,
+        embedded: true,
+        onBack: () => setState(() => _selectedVoice = null),
+        onVoiceRenamed: (next) => setState(() => _selectedVoice = next),
+        onUpdated: () => unawaited(_reload()),
+      );
+    }
     return CharacterEditPage(
       key: ValueKey('char-$name'),
       characterName: name,
       embedded: true,
-      selectedVoiceName: triple ? _selectedVoice : null,
-      onOpenVoice: triple
-          ? (voice) => setState(() => _selectedVoice = voice)
-          : null,
+      selectedVoiceName: _selectedVoice,
+      onOpenVoice: (voice) => setState(() => _selectedVoice = voice),
       onDeselectVoice: () => setState(() => _selectedVoice = null),
       onRenamed: (next) {
         setState(() => _selectedCharacter = next);
@@ -369,8 +380,11 @@ class _CharactersPageState extends State<CharactersPage> {
     required bool triple,
     required double bottom,
   }) {
+    final voiceCoversDetail = !triple && _selectedVoice != null;
     return MultiColumnView(
       padding: EdgeInsets.fromLTRB(20, 12, 20, bottom + 16),
+      scrollDetail: !voiceCoversDetail,
+      scrollSecondary: false,
       master: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -382,7 +396,7 @@ class _CharactersPageState extends State<CharactersPage> {
           ),
         ],
       ),
-      detail: _characterPane(triple: triple),
+      detail: _detailPane(triple: triple),
       secondary: triple ? _voicePane() : null,
     );
   }

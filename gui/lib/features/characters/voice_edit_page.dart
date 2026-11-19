@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_scope.dart';
+import '../../bridge/client.dart';
 import '../../gen/rpc.dart';
 import '../../widgets/content_frame.dart';
+import '../synth/wav_preview.dart';
 import 'voice_param_editor.dart';
+
+const _kPreviewText = 'ゆっくりしていってね';
 
 class VoiceEditPage extends StatefulWidget {
   const VoiceEditPage({
@@ -14,6 +19,7 @@ class VoiceEditPage extends StatefulWidget {
     required this.characterName,
     required this.voiceName,
     this.embedded = false,
+    this.onBack,
     this.onUpdated,
     this.onVoiceRenamed,
   });
@@ -24,6 +30,9 @@ class VoiceEditPage extends StatefulWidget {
   /// When true, render only the editor body (no Scaffold / AppBar).
   final bool embedded;
 
+  /// Shown as a back control in the embedded title (e.g. dual-column overlay).
+  final VoidCallback? onBack;
+
   final VoidCallback? onUpdated;
   final ValueChanged<String>? onVoiceRenamed;
 
@@ -33,14 +42,18 @@ class VoiceEditPage extends StatefulWidget {
 
 class _VoiceEditPageState extends State<VoiceEditPage> {
   Timer? _saveTimer;
+  YukumoClient? _client;
   String _characterName = '';
   String _voiceName = '';
   String _description = '';
   List<Voice> _voices = const [];
+  int _selectedVersion = 1;
   bool _loading = true;
   bool _ready = false;
   bool _saving = false;
   bool _saveQueued = false;
+  bool _dirty = false;
+  bool _previewing = false;
   String? _error;
 
   Voice? get _voice {
@@ -61,31 +74,46 @@ class _VoiceEditPageState extends State<VoiceEditPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _client = AppScope.of(context);
+  }
+
+  @override
   void didUpdateWidget(covariant VoiceEditPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.characterName != widget.characterName ||
         oldWidget.voiceName != widget.voiceName) {
-      _flushSave();
-      _characterName = widget.characterName;
-      _voiceName = widget.voiceName;
-      unawaited(_load());
+      unawaited(_switchTarget(widget.characterName, widget.voiceName));
     }
   }
 
   @override
   void dispose() {
     _saveTimer?.cancel();
+    if (_dirty && _ready) {
+      unawaited(_persist(notify: false));
+    }
     super.dispose();
+  }
+
+  Future<void> _switchTarget(String characterName, String voiceName) async {
+    await _flushSave();
+    if (!mounted) return;
+    _characterName = characterName;
+    _voiceName = voiceName;
+    await _load();
   }
 
   Future<void> _load() async {
     setState(() {
       _loading = true;
       _ready = false;
+      _dirty = false;
       _error = null;
     });
     try {
-      final c = await AppScope.of(context).characters.get(
+      final c = await (_client ?? AppScope.of(context)).characters.get(
         CharacterGetReq(name: widget.characterName),
       );
       if (!mounted) return;
@@ -100,9 +128,14 @@ class _VoiceEditPageState extends State<VoiceEditPage> {
         _ready = exists;
         _error = exists ? null : '找不到音色「${widget.voiceName}」';
       });
-      if (!exists && !widget.embedded) {
+      if (!exists) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) Navigator.of(context).maybePop();
+          if (!mounted) return;
+          if (widget.embedded) {
+            widget.onBack?.call();
+          } else {
+            Navigator.of(context).maybePop();
+          }
         });
       }
     } catch (e) {
@@ -121,29 +154,33 @@ class _VoiceEditPageState extends State<VoiceEditPage> {
 
   void _scheduleSave({Duration delay = const Duration(milliseconds: 450)}) {
     if (!_ready || _loading) return;
+    _dirty = true;
     _saveTimer?.cancel();
     _saveTimer = Timer(delay, () {
-      unawaited(_save());
+      unawaited(_persist());
     });
   }
 
-  void _flushSave() {
+  Future<void> _flushSave() async {
     _saveTimer?.cancel();
-    if (!_ready || _loading) return;
-    unawaited(_save());
+    if (!_dirty || !_ready) return;
+    await _persist();
   }
 
-  Future<void> _save() async {
-    if (!mounted || !_ready || _loading) return;
+  Future<void> _persist({bool notify = true}) async {
+    if (!_ready) return;
     if (_saving) {
       _saveQueued = true;
       return;
     }
+    final client = _client;
+    if (client == null) return;
+
     _saving = true;
-    final client = AppScope.of(context);
     final voices = List<Voice>.of(_voices);
     final characterName = _characterName;
     final description = _description;
+    final snapshotDirty = _dirty;
     try {
       await client.characters.update(
         CharacterUpdateReq(
@@ -155,20 +192,27 @@ class _VoiceEditPageState extends State<VoiceEditPage> {
           ),
         ),
       );
-      if (!mounted) return;
-      widget.onUpdated?.call();
+      _dirty = false;
+      if (notify && mounted) widget.onUpdated?.call();
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('保存失败: $e')),
-      );
+      _dirty = snapshotDirty || _dirty;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
+        );
+      }
     } finally {
       _saving = false;
       if (_saveQueued) {
         _saveQueued = false;
-        unawaited(_save());
+        await _persist(notify: notify);
       }
     }
+  }
+
+  Future<void> _handleBack() async {
+    await _flushSave();
+    widget.onBack?.call();
   }
 
   void _onVoiceChanged(Voice next) {
@@ -188,6 +232,78 @@ class _VoiceEditPageState extends State<VoiceEditPage> {
     });
     if (renamed) widget.onVoiceRenamed?.call(next.name);
     _scheduleSave();
+  }
+
+  Future<void> _preview() async {
+    final voice = _voice;
+    if (voice == null || _previewing) return;
+    final params = voice.params ?? const <SynthParam>[];
+    final hasVersion = params.any((p) => p.version == _selectedVersion);
+    if (!hasVersion) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('请先启用 AQ$_selectedVersion')),
+      );
+      return;
+    }
+
+    setState(() => _previewing = true);
+    try {
+      final client = _client ?? AppScope.of(context);
+      final res = await client.synth.render(
+        SynthRequest(
+          voice: voice,
+          voiceBase: _characterName,
+          text: _kPreviewText,
+          version: _selectedVersion,
+          speedFactor: 1,
+          preview: false,
+          noWrite: true,
+        ),
+      );
+      if (!mounted) return;
+      final b64 = res.wAV;
+      if (b64 == null || b64.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('预览无音频数据')),
+        );
+        return;
+      }
+      unawaited(() async {
+        try {
+          await playWavBytes(base64Decode(b64));
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('播放失败: $e')),
+          );
+        }
+      }());
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('预览失败: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _previewing = false);
+    }
+  }
+
+  Widget _previewFab() {
+    return M3EFab(
+      tooltip: '预览「$_kPreviewText」',
+      color: M3EFabColor.primary,
+      size: M3EFabSize.medium,
+      onPressed: (_loading || _error != null || _voice == null || _previewing)
+          ? null
+          : () => unawaited(_preview()),
+      icon: _previewing
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            )
+          : const Icon(Icons.play_arrow_rounded),
+    );
   }
 
   Widget _editorBody(ColorScheme cs) {
@@ -214,12 +330,30 @@ class _VoiceEditPageState extends State<VoiceEditPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.embedded) ...[
-          PageCardTitle(_voiceName),
-          const SizedBox(height: 16),
+          PageCardTitle(
+            _voiceName,
+            leading: widget.onBack == null
+                ? null
+                : IconButton(
+                    tooltip: '返回角色',
+                    onPressed: () => unawaited(_handleBack()),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+          ),
         ],
         VoiceParamEditor(
           voice: voice,
           onChanged: _onVoiceChanged,
+          onSelectedVersionChanged: (version) {
+            if (_selectedVersion == version) return;
+            setState(() => _selectedVersion = version);
+          },
         ),
       ],
     );
@@ -231,22 +365,39 @@ class _VoiceEditPageState extends State<VoiceEditPage> {
     final body = _editorBody(cs);
 
     if (widget.embedded) {
-      return body;
+      return SizedBox.expand(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 80),
+                child: body,
+              ),
+            ),
+            Positioned(
+              right: 4,
+              bottom: 4,
+              child: _previewFab(),
+            ),
+          ],
+        ),
+      );
     }
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) _flushSave();
+        if (didPop) unawaited(_flushSave());
       },
       child: Scaffold(
         backgroundColor: cs.surface,
         appBar: AppBar(
           title: Text(_loading ? '编辑音色' : _voiceName),
         ),
+        floatingActionButton: _previewFab(),
         body: _loading || _error != null || _voice == null
             ? body
             : SingleChildScrollView(
-                padding: const EdgeInsets.only(top: 8, bottom: 32),
+                padding: const EdgeInsets.only(top: 8, bottom: 96),
                 child: ContentFrame(child: body),
               ),
       ),

@@ -18,16 +18,21 @@ MultiColumnMode multiColumnModeOf(
   return MultiColumnMode.narrow;
 }
 
+/// Short fade when pane body identity changes (driven by [child] keys).
+const Duration kMultiColumnPaneFadeDuration = Duration(milliseconds: 180);
+
 /// Surface card used by each column in [MultiColumnView].
 class MultiColumnPane extends StatelessWidget {
   const MultiColumnPane({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 20),
+    this.fadeDuration = kMultiColumnPaneFadeDuration,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final Duration fadeDuration;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +43,27 @@ class MultiColumnPane extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
-      child: Padding(padding: padding, child: child),
+      child: Padding(
+        padding: padding,
+        child: AnimatedSwitcher(
+          duration: fadeDuration,
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          layoutBuilder: (currentChild, previousChildren) {
+            return Stack(
+              alignment: Alignment.topCenter,
+              children: <Widget>[
+                ...previousChildren,
+                if (currentChild != null) currentChild,
+              ],
+            );
+          },
+          transitionBuilder: (child, animation) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          child: child,
+        ),
+      ),
     );
   }
 }
@@ -96,9 +121,15 @@ class MultiColumnView extends StatelessWidget {
     final triple = mode == MultiColumnMode.triple;
     final showSecondary = secondary != null && triple;
 
-    Widget wrapScroll(Widget child, {required bool enabled}) {
-      if (!enabled) return child;
-      return SingleChildScrollView(child: child);
+    /// Preserve [child.key] on the switcher child even when scrolling wraps it.
+    Widget keyedBody(Widget child, {required bool scroll}) {
+      final body = scroll
+          ? SingleChildScrollView(child: child)
+          : SizedBox.expand(child: child);
+      return KeyedSubtree(
+        key: child.key ?? ValueKey<Type>(child.runtimeType),
+        child: body,
+      );
     }
 
     return SafeArea(
@@ -110,13 +141,13 @@ class MultiColumnView extends StatelessWidget {
           children: [
             SizedBox(
               width: triple ? masterWidthTriple : masterWidth,
-              child: MultiColumnPane(child: master),
+              child: MultiColumnPane(child: keyedBody(master, scroll: false)),
             ),
             SizedBox(width: gap),
             Expanded(
               flex: showSecondary ? detailFlexTriple : detailFlex,
               child: MultiColumnPane(
-                child: wrapScroll(detail, enabled: scrollDetail),
+                child: keyedBody(detail, scroll: scrollDetail),
               ),
             ),
             if (showSecondary) ...[
@@ -124,7 +155,7 @@ class MultiColumnView extends StatelessWidget {
               Expanded(
                 flex: secondaryFlex,
                 child: MultiColumnPane(
-                  child: wrapScroll(secondary!, enabled: scrollSecondary),
+                  child: keyedBody(secondary!, scroll: scrollSecondary),
                 ),
               ),
             ],

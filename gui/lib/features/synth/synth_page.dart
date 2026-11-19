@@ -162,8 +162,18 @@ class _SynthPageState extends State<SynthPage> {
           setState(() => _status = '预览无音频数据');
           return;
         }
-        await playWavBytes(base64Decode(b64));
-        setState(() => _status = '预览完成');
+        setState(() => _status = '播放中…');
+        // Start playback without awaiting completion so the UI stays responsive.
+        unawaited(() async {
+          try {
+            await playWavBytes(base64Decode(b64));
+            if (!mounted) return;
+            setState(() => _status = '预览完成');
+          } catch (e) {
+            if (!mounted) return;
+            setState(() => _status = '播放失败: $e');
+          }
+        }());
       } else {
         setState(() {
           _status = res.path != null && res.path!.isNotEmpty
