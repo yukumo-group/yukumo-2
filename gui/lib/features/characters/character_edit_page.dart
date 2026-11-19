@@ -7,13 +7,41 @@ import 'package:material_ui/material_ui.dart';
 import '../../app_scope.dart';
 import '../../gen/rpc.dart';
 import '../../widgets/content_frame.dart';
+import '../../widgets/entity_context_menu.dart';
+import '../../widgets/entity_list.dart';
 import 'name_util.dart';
 import 'swipe_actions.dart';
+import 'voice_edit_page.dart';
+import 'voice_param_editor.dart';
 
 class CharacterEditPage extends StatefulWidget {
-  const CharacterEditPage({super.key, required this.characterName});
+  const CharacterEditPage({
+    super.key,
+    required this.characterName,
+    this.embedded = false,
+    this.selectedVoiceName,
+    this.onOpenVoice,
+    this.onDeselectVoice,
+    this.onRenamed,
+    this.onUpdated,
+  });
 
   final String characterName;
+
+  /// When true, render only the editor body (no Scaffold / AppBar).
+  final bool embedded;
+
+  /// Highlighted voice in the list (wide 3-col selection).
+  final String? selectedVoiceName;
+
+  /// If set, called instead of pushing [VoiceEditPage].
+  final ValueChanged<String>? onOpenVoice;
+
+  /// Called when the currently selected voice is deleted (wide layout).
+  final VoidCallback? onDeselectVoice;
+
+  final ValueChanged<String>? onRenamed;
+  final VoidCallback? onUpdated;
 
   @override
   State<CharacterEditPage> createState() => _CharacterEditPageState();
@@ -22,31 +50,55 @@ class CharacterEditPage extends StatefulWidget {
 class _CharacterEditPageState extends State<CharacterEditPage> {
   final _name = TextEditingController();
   final _description = TextEditingController();
+  Timer? _saveTimer;
   String _originalName = '';
   List<Voice> _voices = const [];
   bool _loading = true;
+  bool _ready = false;
   bool _saving = false;
+  bool _saveQueued = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
     _originalName = widget.characterName;
+    _name.addListener(_onMetaChanged);
+    _description.addListener(_onMetaChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_load());
     });
   }
 
   @override
+  void didUpdateWidget(covariant CharacterEditPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.characterName != widget.characterName) {
+      _flushSave();
+      _originalName = widget.characterName;
+      unawaited(_load());
+    }
+  }
+
+  @override
   void dispose() {
+    _saveTimer?.cancel();
+    _name.removeListener(_onMetaChanged);
+    _description.removeListener(_onMetaChanged);
     _name.dispose();
     _description.dispose();
     super.dispose();
   }
 
+  void _onMetaChanged() {
+    if (!_ready) return;
+    _scheduleSave();
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
+      _ready = false;
       _error = null;
     });
     try {
@@ -60,6 +112,7 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
       setState(() {
         _voices = List.of(c.voices ?? const <Voice>[]);
         _loading = false;
+        _ready = true;
       });
     } catch (e) {
       if (!mounted) return;
@@ -67,45 +120,87 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
         _error = '$e';
         _loading = false;
       });
+      if (!widget.embedded) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.of(context).maybePop();
+        });
+      }
     }
   }
 
+  void _scheduleSave({Duration delay = const Duration(milliseconds: 450)}) {
+    if (!_ready || _loading) return;
+    _saveTimer?.cancel();
+    _saveTimer = Timer(delay, () {
+      unawaited(_save());
+    });
+  }
+
+  void _flushSave() {
+    _saveTimer?.cancel();
+    if (!_ready || _loading) return;
+    unawaited(_save());
+  }
+
   Future<void> _save() async {
+    if (!mounted || !_ready || _loading) return;
     final name = _name.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('名称不能为空')),
-      );
+    if (name.isEmpty) return;
+    if (_saving) {
+      _saveQueued = true;
       return;
     }
-    setState(() => _saving = true);
+    _saving = true;
+    final voices = List<Voice>.of(_voices);
+    final description = _description.text.trim();
+    final oldName = _originalName;
     final client = AppScope.of(context);
     try {
       await client.characters.update(
         CharacterUpdateReq(
-          oldName: _originalName,
+          oldName: oldName,
           character: Character(
             name: name,
-            description: _description.text.trim(),
-            voices: _voices,
+            description: description,
+            voices: voices,
           ),
         ),
       );
       if (!mounted) return;
-      setState(() {
-        _originalName = name;
-        _saving = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已保存')),
-      );
+      final renamed = oldName != name;
+      _originalName = name;
+      if (renamed) widget.onRenamed?.call(name);
+      widget.onUpdated?.call();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('保存失败: $e')),
       );
+    } finally {
+      _saving = false;
+      if (_saveQueued) {
+        _saveQueued = false;
+        unawaited(_save());
+      }
     }
+  }
+
+  Future<void> _openVoice(String voiceName) async {
+    _flushSave();
+    final open = widget.onOpenVoice;
+    if (open != null) {
+      open(voiceName);
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VoiceEditPage(
+          characterName: _originalName,
+          voiceName: voiceName,
+        ),
+      ),
+    );
+    if (mounted) await _load();
   }
 
   Future<void> _addVoice() async {
@@ -140,288 +235,190 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
     setState(() {
       _voices = [
         ..._voices,
-        Voice(
-          name: name,
-          params: const [
-            SynthParam(
-              version: 1,
-              preset: 0,
-              speed: 100,
-              base: 0,
-              volume: 0,
-              pitch: 0,
-              accent: 0,
-              lmd: 0,
-              fsc: 0,
-            ),
-          ],
-        ),
+        Voice(name: name, params: [defaultSynthParam(1)]),
       ];
     });
+    _scheduleSave(delay: Duration.zero);
+    await _openVoice(name);
   }
 
   Future<bool> _cloneVoiceAt(int index) async {
     final src = _voices[index];
     final newName = uniqueCopyName(src.name, _voices.map((v) => v.name));
     setState(() {
-      _voices = [
-        ..._voices,
-        Voice(
-          name: newName,
-          params: [
-            for (final p in src.params ?? const <SynthParam>[])
-              SynthParam(
-                version: p.version,
-                preset: p.preset,
-                speed: p.speed,
-                phontData: p.phontData,
-                base: p.base,
-                volume: p.volume,
-                pitch: p.pitch,
-                accent: p.accent,
-                lmd: p.lmd,
-                fsc: p.fsc,
-              ),
-          ],
-        ),
-      ];
+      _voices = [..._voices, cloneVoice(src, newName)];
     });
+    _scheduleSave(delay: Duration.zero);
+    widget.onUpdated?.call();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已克隆为「$newName」')),
+      );
+    }
     return false;
   }
 
   Future<bool> _deleteVoiceAt(int index) async {
-    final v = _voices[index];
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除音色'),
-        content: Text('确定删除「${v.name}」？'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('删除')),
-        ],
-      ),
-    );
-    if (ok != true) return false;
-    setState(() => _voices = List.of(_voices)..removeAt(index));
+    if (index < 0 || index >= _voices.length) return false;
+    final deleted = _voices[index].name;
+    setState(() {
+      _voices = List.of(_voices)..removeAt(index);
+    });
+    _scheduleSave(delay: Duration.zero);
+    if (widget.selectedVoiceName == deleted) {
+      widget.onDeselectVoice?.call();
+    }
+    widget.onUpdated?.call();
     return true;
   }
 
-  Future<void> _editVoiceAt(int index) async {
-    final v = _voices[index];
-    final nameCtrl = TextEditingController(text: v.name);
-    final speed = v.params?.isNotEmpty == true ? v.params!.first.speed : 100;
-    final speedCtrl = TextEditingController(text: '$speed');
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('编辑音色'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: '名称'),
+  Widget _editorBody(ColorScheme cs) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 48),
+        child: Center(child: M3ELoadingIndicator()),
+      );
+    }
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Center(child: Text(_error!)),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.embedded) ...[
+          PageCardTitle(_originalName),
+          const SizedBox(height: 16),
+        ],
+        TextField(
+          controller: _name,
+          decoration: InputDecoration(
+            labelText: '名称',
+            filled: true,
+            fillColor: cs.surfaceContainer,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: speedCtrl,
-              decoration: const InputDecoration(labelText: '语速 (50–300)'),
-              keyboardType: TextInputType.number,
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _description,
+          minLines: 2,
+          maxLines: 4,
+          decoration: InputDecoration(
+            labelText: '描述',
+            filled: true,
+            fillColor: cs.surfaceContainer,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Text('音色', style: Theme.of(context).textTheme.titleMedium),
+            const Spacer(),
+            IconButton(
+              tooltip: '添加音色',
+              onPressed: _addVoice,
+              icon: const FaIcon(FontAwesomeIcons.plus, size: 16),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('应用')),
-        ],
-      ),
+        const SizedBox(height: 8),
+        EntityDismissibleList(
+          itemCount: _voices.length,
+          style: entitySwipeStyle(
+            cs,
+            color: cs.surfaceContainerHighest,
+          ),
+          emptyBuilder: (_) => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              '暂无音色',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
+          ),
+          onDismiss: (index, direction) async {
+            if (direction == DismissDirection.startToEnd) {
+              return _cloneVoiceAt(index);
+            }
+            if (direction == DismissDirection.endToStart) {
+              return _deleteVoiceAt(index);
+            }
+            return false;
+          },
+          onTap: (index) => unawaited(_openVoice(_voices[index].name)),
+          menuChildren: (context, menuIndex, close) {
+            final name =
+                (menuIndex != null &&
+                    menuIndex >= 0 &&
+                    menuIndex < _voices.length)
+                ? _voices[menuIndex].name
+                : null;
+            return buildEntityContextMenu(
+              groupLabel: '音色',
+              name: name,
+              close: close,
+              onEdit: () {
+                if (menuIndex != null) {
+                  unawaited(_openVoice(_voices[menuIndex].name));
+                }
+              },
+              onClone: () {
+                if (menuIndex != null) unawaited(_cloneVoiceAt(menuIndex));
+              },
+              onDelete: () {
+                if (menuIndex != null) unawaited(_deleteVoiceAt(menuIndex));
+              },
+            );
+          },
+          itemBuilder: (context, index) {
+            final v = _voices[index];
+            return EntityListRow(
+              leading: const EntityListAvatar(Icons.graphic_eq_rounded),
+              selected: widget.selectedVoiceName == v.name,
+              title: v.name,
+              subtitle: EntityListMeta(voiceSubtitle(v)),
+            );
+          },
+        ),
+      ],
     );
-    if (ok != true) return;
-    final newName = nameCtrl.text.trim();
-    if (newName.isEmpty) return;
-    if (newName != v.name && _voices.any((x) => x.name == newName)) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('音色名已存在')),
-      );
-      return;
-    }
-    final parsedSpeed = int.tryParse(speedCtrl.text.trim()) ?? speed;
-    final clamped = parsedSpeed.clamp(50, 300);
-    setState(() {
-      _voices = [
-        for (var i = 0; i < _voices.length; i++)
-          if (i == index)
-            Voice(
-              name: newName,
-              params: [
-                for (var j = 0; j < (v.params?.length ?? 0); j++)
-                  SynthParam(
-                    version: v.params![j].version,
-                    preset: v.params![j].preset,
-                    speed: j == 0 ? clamped : v.params![j].speed,
-                    phontData: v.params![j].phontData,
-                    base: v.params![j].base,
-                    volume: v.params![j].volume,
-                    pitch: v.params![j].pitch,
-                    accent: v.params![j].accent,
-                    lmd: v.params![j].lmd,
-                    fsc: v.params![j].fsc,
-                  ),
-              ],
-            )
-          else
-            _voices[i],
-      ];
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: cs.surface,
-      appBar: AppBar(
-        title: Text(_loading ? '编辑角色' : _originalName),
-        actions: [
-          TextButton(
-            onPressed: _saving || _loading ? null : _save,
-            child: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('保存'),
-          ),
-        ],
+    final body = _editorBody(cs);
+
+    if (widget.embedded) {
+      return body;
+    }
+
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _flushSave();
+      },
+      child: Scaffold(
+        backgroundColor: cs.surface,
+        appBar: AppBar(
+          title: Text(_loading ? '编辑角色' : _originalName),
+        ),
+        body: _loading || _error != null
+            ? body
+            : SingleChildScrollView(
+                padding: const EdgeInsets.only(top: 8, bottom: 32),
+                child: ContentFrame(child: body),
+              ),
       ),
-      body: _loading
-          ? const Center(child: M3ELoadingIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    final wide = constraints.maxWidth >= kPageBreakpoint;
-                    final form = Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextField(
-                          controller: _name,
-                          decoration: InputDecoration(
-                            labelText: '名称',
-                            filled: true,
-                            fillColor: cs.surfaceContainer,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _description,
-                          minLines: 2,
-                          maxLines: 4,
-                          decoration: InputDecoration(
-                            labelText: '描述',
-                            filled: true,
-                            fillColor: cs.surfaceContainer,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                    final voicesHeader = Row(
-                      children: [
-                        Text('音色', style: Theme.of(context).textTheme.titleMedium),
-                        const Spacer(),
-                        IconButton(
-                          tooltip: '添加音色',
-                          onPressed: _addVoice,
-                          icon: const FaIcon(FontAwesomeIcons.plus, size: 16),
-                        ),
-                      ],
-                    );
-                    final voicesList = M3EDismissibleCardColumn(
-                      itemCount: _voices.length,
-                      emptyBuilder: (_) => Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          '暂无音色',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: cs.onSurfaceVariant),
-                        ),
-                      ),
-                      style: characterSwipeStyle(cs),
-                      onDismiss: (index, direction) async {
-                        if (direction == DismissDirection.startToEnd) {
-                          return _cloneVoiceAt(index);
-                        }
-                        if (direction == DismissDirection.endToStart) {
-                          return _deleteVoiceAt(index);
-                        }
-                        return false;
-                      },
-                      onTap: _editVoiceAt,
-                      itemBuilder: (context, index) {
-                        final v = _voices[index];
-                        final params = v.params ?? const <SynthParam>[];
-                        final summary = params.isEmpty
-                            ? '无参数'
-                            : 'v${params.first.version} · speed ${params.first.speed}';
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(v.name, style: Theme.of(context).textTheme.titleSmall),
-                            const SizedBox(height: 4),
-                            Text(
-                              summary,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-
-                    final content = wide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: form),
-                              const SizedBox(width: 24),
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    voicesHeader,
-                                    voicesList,
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              form,
-                              const SizedBox(height: 20),
-                              voicesHeader,
-                              voicesList,
-                            ],
-                          );
-
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.only(top: 8, bottom: 32),
-                      child: ContentFrame(child: content),
-                    );
-                  },
-                ),
     );
   }
 }
