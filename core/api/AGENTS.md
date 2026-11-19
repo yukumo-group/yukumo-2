@@ -6,6 +6,7 @@ DTO use-case facade + composition root for CLI and future GUIs. Module: `yukumo-
 
 - Expose typed use-case APIs (`character`, `voice`, `synth`, `config`, …) over DTOs.
 - Wire concrete services, stores, and `runtime/aq` at the composition root (`cliopen`, app construction).
+- JSON-RPC method registry lives in `rpc/` (`Bind` + `Handle`); schemas/Dart clients from `cmd/gen`.
 - Keep callers off `core/internal/*`.
 
 ## Decoupling

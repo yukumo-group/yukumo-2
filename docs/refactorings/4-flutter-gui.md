@@ -1,6 +1,6 @@
 # Flutter GUI 桥梁计划（desktop-first JSON-RPC）
 
-- 状态：Planned
+- 状态：Implemented（桌面 stdio + codegen；wasm 仅骨架）
 - 日期：2026-11-18
 - 前置：[3-wasm-port.md](./3-wasm-port.md)（Implemented）、[2-cli-layer-refactor.md](./2-cli-layer-refactor.md)（Implemented；本计划**取代**其 §16 里 length-prefixed 帧草图，改用 JSON-RPC 2）
 - 范围：Go 类型为唯一来源的 JSON-RPC 2 契约、`protocol/` 生成物、Dart 胶水、**桌面端** Flutter ↔ 原生 Go 二进制（stdio）。移动端 / Web 的 wasm 运行时只定架构与接口骨架，不在本轮交付。

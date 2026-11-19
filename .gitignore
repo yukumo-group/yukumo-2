@@ -1,6 +1,7 @@
 .claude/
 .cursor/
 .idea/
+.pub-cache/
 /yukumo-script
 *.exe
 *.test

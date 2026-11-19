@@ -25,11 +25,13 @@ When making changes, preserve GitBook sync metadata such as frontmatter, `SUMMAR
 Modules (dependencies point downward only):
 
 ```
+gui (Flutter) ── JSON-RPC 2 / stdio → yukumo-script serve
+                                      ↓
 cli/cmd/yukumo-script (main)
   ↓
-cli  ── cobra
+cli  ── cobra (+ hidden serve)
   ↓
-core/api  ── DTO use-case facade + composition root
+core/api  ── DTO facade + rpc registry + composition root
   ↓                    ↘
 core/internal/service   runtime/aq → aq_wasm.wasm (Yukw) → AquesTalk
   ↓
@@ -42,7 +44,8 @@ Read the package `AGENTS.md` that matches the area you are changing. Prefer the 
 
 | Path | Read when… |
 |---|---|
-| [cli/AGENTS.md](cli/AGENTS.md) | CLI commands, preview, `core/api` boundary |
+| [cli/AGENTS.md](cli/AGENTS.md) | CLI commands, preview, `serve`, `core/api` boundary |
+| [gui/AGENTS.md](gui/AGENTS.md) | Flutter bridge, stdio/wasm transports, codegen |
 | [core/AGENTS.md](core/AGENTS.md) | Core module layout and `internal` visibility |
 | [core/api/AGENTS.md](core/api/AGENTS.md) | DTO facade, composition root, CLI/GUI entry |
 | [core/internal/domain/AGENTS.md](core/internal/domain/AGENTS.md) | Character / Voice / SynthParam model |

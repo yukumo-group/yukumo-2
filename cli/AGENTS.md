@@ -4,8 +4,9 @@ CLI layer: cobra commands and audio preview. Entry: `cli/cmd/yukumo-script`.
 
 ## Responsibility
 
-- Wire cobra command trees (`config`, `character`, `synth`, …).
+- Wire cobra command trees (`config`, `character`, `synth`, hidden `serve`, …).
 - Print synth paths and run preview playback; do **not** own write policy (that stays in `core/internal/service/synth`).
+- `serve` is NDJSON JSON-RPC 2 on stdin/stdout (`cli/serve` → `core/api/rpc`); no render/play.
 
 ## Decoupling
 
