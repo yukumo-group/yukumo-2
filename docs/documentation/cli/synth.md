@@ -11,8 +11,7 @@ Synthesize from a configured character (`-v`) or an explicit character YAML (`-P
 | --- | --- |
 | `synth -v character:voice … TEXT` | Load character from `character_path`; `-s` default `1` |
 | `synth -P file.yaml:voice … TEXT` | Character YAML override (split on **last** `:`); **mutex** with `-v` |
-| Shared: `[-V 1\|2\|10] [-s factor] [-o path] [-p] [--reuse-cache[=false]]` | Version / speed / output / preview / cache (flag overrides config) |
-| `synth voice` | **Interactive only**; keys are `character:voice`; **async** preview |
+| Shared: `[-V 1\|2\|10] [-s factor] [-o path] [-p] [--reuse-cache[=false]]` | Version / speed / output / blocking preview playback / cache (flag overrides config) |
 | `synth custom` | Stub, not implemented |
 
 {% hint style="warning" icon="code-branch" %}
@@ -61,7 +60,7 @@ After each synth, duration is printed after the output path (and `(cached)` if a
 
 ```bash
 just run synth -v remilia:default "こんにちは"
-just run synth -v remilia:default -p "こんにちは"
+just run synth -v remilia:default -p "こんにちは"   # blocking playback
 just run synth -v remilia:default -o /tmp/out.wav "テスト"
 just run synth -P ./remilia.yaml:default "こんにちは"
 just run synth -v remilia:default -V 10 -s 1.2 "こんにちは"

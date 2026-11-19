@@ -22,29 +22,14 @@ just build          # depguard + staticcheck, then build
 All later examples use `just run …`, which forwards args to the CLI (`go -C cli run ./cmd/yukumo-script …`). Equivalents:
 
 ```bash
-just run                          # interactive root menu
+just run                          # bare invocation prints help
 go run ./cli/cmd/yukumo-script …  # same without just
 ./yukumo-script …                 # after just build
 ```
 
-{% columns %}
-{% column width="50%" %}
-### Interactive
-
-With no subcommand and interactive mode on, the root browse menu opens.
+The CLI is scripted (cobra-only): there are no interactive prompts. Missing arguments exit with an error, and a bare `just run` (or bare `config` / `character`) prints help.
 
 ```bash
-just run
+just run config list
+just run synth -v remilia:default "こんにちは"
 ```
-{% endcolumn %}
-
-{% column width="50%" %}
-### Scripted
-
-Disable interactive prompts first when automating.
-
-```bash
-just run config edit cli.default_interactive false
-```
-{% endcolumn %}
-{% endcolumns %}

@@ -34,7 +34,6 @@ type SynthParam struct {
 type Config struct {
 	Characters CharacterConfig `json:"characters" yaml:"characters"`
 	Paths      PathConfig      `json:"paths" yaml:"paths"`
-	CLI        CLIConfig       `json:"cli" yaml:"cli"`
 	Synth      SynthConfig     `json:"synth" yaml:"synth"`
 }
 
@@ -45,11 +44,6 @@ type CharacterConfig struct {
 type PathConfig struct {
 	CharacterPath string `json:"characterPath" yaml:"character_path"`
 	OutputPath    string `json:"outputPath" yaml:"output_path"`
-}
-
-type CLIConfig struct {
-	DefaultInteractive bool `json:"defaultInteractive" yaml:"default_interactive"`
-	WithAccessibility  bool `json:"withAccessibility" yaml:"with_accessibility"`
 }
 
 type SynthConfig struct {

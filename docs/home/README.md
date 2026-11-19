@@ -39,7 +39,7 @@ CLI and Go API for character/voice management and speech synthesis via AquesTalk
 {% column %}
 ### CLI
 
-Interactive menus and scripted commands for `config`, `character`, `voice`, and `synth`.
+Scripted commands for `config`, `character`, `voice`, and `synth`.
 
 <a href="https://app.gitbook.com/s/A67wXyFHjvGTd6AJa6xT/cli/overview" class="button primary">CLI overview</a>
 {% endcolumn %}

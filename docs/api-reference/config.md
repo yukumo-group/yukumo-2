@@ -31,7 +31,7 @@ cfg, err := app.Config()
 if err != nil {
     return err
 }
-cfg.CLI.DefaultInteractive = false
+cfg.Synth.ReuseCache = false
 return app.SaveConfig(cfg)
 ```
 {% endtab %}

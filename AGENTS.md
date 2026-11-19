@@ -27,7 +27,7 @@ Modules (dependencies point downward only):
 ```
 cli/cmd/yukumo-script (main)
   ↓
-cli  ── cobra / huh / lipgloss
+cli  ── cobra
   ↓
 core/api  ── DTO use-case facade + composition root
   ↓                    ↘
@@ -42,9 +42,7 @@ Read the package `AGENTS.md` that matches the area you are changing. Prefer the 
 
 | Path | Read when… |
 |---|---|
-| [cli/AGENTS.md](cli/AGENTS.md) | CLI commands, interactive browse, preview, `core/api` boundary |
-| [cli/setting/AGENTS.md](cli/setting/AGENTS.md) | Field tables / model get-set for config·character·voice params |
-| [cli/prompt/AGENTS.md](cli/prompt/AGENTS.md) | huh Ask / Browse / Normalize widgets |
+| [cli/AGENTS.md](cli/AGENTS.md) | CLI commands, preview, `core/api` boundary |
 | [core/AGENTS.md](core/AGENTS.md) | Core module layout and `internal` visibility |
 | [core/api/AGENTS.md](core/api/AGENTS.md) | DTO facade, composition root, CLI/GUI entry |
 | [core/internal/domain/AGENTS.md](core/internal/domain/AGENTS.md) | Character / Voice / SynthParam model |

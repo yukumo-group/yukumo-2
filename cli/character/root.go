@@ -10,11 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Options struct {
-	Interactive bool
-}
-
-func NewCmd(app *api.App, opts Options) *cobra.Command {
+func NewCmd(app *api.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "character",
 		Short: "Manage characters",
@@ -24,7 +20,7 @@ func NewCmd(app *api.App, opts Options) *cobra.Command {
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) >= 2 && args[1] == "voice" {
-				return voice.Dispatch(cobraio.FromCmd(cmd), app, opts.Interactive, args[0], args[2:])
+				return voice.Dispatch(cobraio.FromCmd(cmd), app, args[0], args[2:])
 			}
 			if len(args) == 0 {
 				return cmd.Help()
@@ -32,16 +28,12 @@ func NewCmd(app *api.App, opts Options) *cobra.Command {
 			return fmt.Errorf("unknown character args %v", args)
 		},
 	}
-	get := newGetCmd(app, opts)
-	if opts.Interactive {
-		get.Hidden = true
-	}
 	cmd.AddCommand(
 		newListCmd(app),
-		get,
-		newAddCmd(app, opts),
-		newEditCmd(app, opts),
-		newDeleteCmd(app, opts),
+		newGetCmd(app),
+		newAddCmd(app),
+		newEditCmd(app),
+		newDeleteCmd(app),
 	)
 	return cmd
 }

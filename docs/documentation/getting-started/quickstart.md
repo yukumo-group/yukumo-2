@@ -29,11 +29,7 @@ just run character remilia voice add default 1
 ```
 
 {% hint style="info" %}
-With interactive mode on, `voice add` opens the param editor — accept defaults to continue. For scripting first:
-
-```bash
-just run config edit cli.default_interactive false
-```
+`voice add` requires the voice name; the version (`1`, `2`, or `10`) is optional and defaults to `1`. The voice is created with default params for that version.
 {% endhint %}
 </details>
 {% endstep %}
@@ -77,4 +73,4 @@ After each synth, the CLI prints the output path, optional `(cached)`, and durat
 
 ## Next steps
 
-<table data-view="cards"><thead><tr><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h4><i class="fa-sliders" style="color:$primary;">:sliders:</i></h4></td><td>Tune <code>config.yaml</code> paths, cache, and interactive defaults.</td><td><a href="../reference/configuration.md">configuration.md</a></td></tr><tr><td><h4><i class="fa-microphone" style="color:$primary;">:microphone:</i></h4></td><td>Edit voice params (preset, speed, v2/v10 fields).</td><td><a href="../cli/voice.md">voice.md</a></td></tr><tr><td><h4><i class="fa-wave-square" style="color:$primary;">:wave-square:</i></h4></td><td>Cache, version selection, and write policy for <code>synth</code>.</td><td><a href="../cli/synth.md">synth.md</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h4><i class="fa-sliders" style="color:$primary;">:sliders:</i></h4></td><td>Tune <code>config.yaml</code> paths, cache, and write policy.</td><td><a href="../reference/configuration.md">configuration.md</a></td></tr><tr><td><h4><i class="fa-microphone" style="color:$primary;">:microphone:</i></h4></td><td>Edit voice params (preset, speed, v2/v10 fields).</td><td><a href="../cli/voice.md">voice.md</a></td></tr><tr><td><h4><i class="fa-wave-square" style="color:$primary;">:wave-square:</i></h4></td><td>Cache, version selection, and write policy for <code>synth</code>.</td><td><a href="../cli/synth.md">synth.md</a></td></tr></tbody></table>

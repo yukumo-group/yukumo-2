@@ -1,5 +1,5 @@
-// Package schema defines the pure field metadata shared by shell, ui, and
-// action code. It has no cobra, huh, or prompt dependency.
+// Package schema defines the pure field metadata shared by shell and
+// action code. It has no cobra dependency.
 package schema
 
 import (

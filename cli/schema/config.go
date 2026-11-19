@@ -103,44 +103,6 @@ var configFields = []Entry[api.Config]{
 			return nil
 		},
 	},
-	{
-		Field: Field{
-			Key:         "cli.default_interactive",
-			Title:       "Default interactive CLI",
-			Description: "Enter huh menus when command args are incomplete",
-			Kind:        KindBool,
-		},
-		Get: func(c api.Config) string {
-			return strconv.FormatBool(c.CLI.DefaultInteractive)
-		},
-		Set: func(c *api.Config, v string) error {
-			b, err := strconv.ParseBool(v)
-			if err != nil {
-				return err
-			}
-			c.CLI.DefaultInteractive = b
-			return nil
-		},
-	},
-	{
-		Field: Field{
-			Key:         "cli.with_accessibility",
-			Title:       "Huh accessibility mode",
-			Description: "Use huh accessible prompts for screen readers",
-			Kind:        KindBool,
-		},
-		Get: func(c api.Config) string {
-			return strconv.FormatBool(c.CLI.WithAccessibility)
-		},
-		Set: func(c *api.Config, v string) error {
-			b, err := strconv.ParseBool(v)
-			if err != nil {
-				return err
-			}
-			c.CLI.WithAccessibility = b
-			return nil
-		},
-	},
 }
 
 // ConfigFields returns the editable config fields.

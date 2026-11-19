@@ -61,12 +61,6 @@ func applyDefaults(cfg *domain.Config, def domain.Config) {
 	if cfg.Synth.ReuseCache == nil {
 		cfg.Synth.ReuseCache = boolPtr(def.Synth.ReuseCache, true)
 	}
-	if cfg.CLI.DefaultInteractive == nil {
-		cfg.CLI.DefaultInteractive = boolPtr(def.CLI.DefaultInteractive, true)
-	}
-	if cfg.CLI.WithAccessibility == nil {
-		cfg.CLI.WithAccessibility = boolPtr(def.CLI.WithAccessibility, false)
-	}
 }
 
 func boolPtr(v *bool, def bool) *bool {

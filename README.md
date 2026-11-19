@@ -13,7 +13,7 @@ just build          # depguard + staticcheck, then build
 just test           # all modules
 just ci             # replace check + lint + build + test + vet
 
-# Interactive root menu (cli.default_interactive defaults to true)
+# Run the CLI (bare invocation prints help)
 just run
 # or: go run ./cli/cmd/yukumo-script
 
@@ -24,37 +24,35 @@ go run ./cli/cmd/yukumo-script character add remilia "example"
 # B: add voice manually
 # go run ./cli/cmd/yukumo-script character add remilia "example"
 # go run ./cli/cmd/yukumo-script character remilia voice add default 1
-# Note: with default interactive, voice add opens the param editor; accept defaults to continue.
-# For scripting first: go run ./cli/cmd/yukumo-script config edit cli.default_interactive false
+# voice add requires a voice name; optional version 1|2|10 (default 1)
 
 go run ./cli/cmd/yukumo-script synth -v remilia:default "こんにちは"
-go run ./cli/cmd/yukumo-script synth -v remilia:default -p "こんにちは"          # preview
+go run ./cli/cmd/yukumo-script synth -v remilia:default -p "こんにちは"          # preview (blocking playback)
 go run ./cli/cmd/yukumo-script synth -v remilia:default -o /tmp/out.wav "テスト" # explicit output
 go run ./cli/cmd/yukumo-script synth -P ./remilia.yaml:default "こんにちは"      # override character YAML path
 ```
 
 ## CLI
 
-With no subcommand and interactive on, the root menu opens. Under interactive config/character flows, `get` is **hidden** (use edit/browse).
+The CLI is scripted (cobra-only): there are no interactive prompts or menus. Missing required arguments exit with an error. Bare `yukumo-script`, `config`, and `character` print help.
 
 ### `config`
 
 | Command | Behavior |
 |---|---|
 | `config list` | Print all keys and values |
-| `config get <key>` | Print one key (non-interactive) |
-| `config edit <key> <value>` | One-shot set |
-| `config edit` / `config edit <key>` | Interactive tree over `paths.*` / `characters.*` / `synth.*` / `cli.*`; bool toggles on select |
+| `config get <key>` | Print one key |
+| `config edit <key> <value>` | One-shot set (both args required) |
 
 ### `character`
 
 | Command | Behavior |
 |---|---|
 | `character list` | JSON list |
-| `character get [name]` | Print character; interactive pick if name omitted |
-| `character add [name] [description]` | Create; may honor `init_default_voice` |
-| `character edit [name] [field] [value]` | Edit `name`/`description`; interactive field menu includes `voices` |
-| `character delete [name]` | Delete |
+| `character get <name>` | Print character |
+| `character add <name> [description]` | Create; may honor `init_default_voice` |
+| `character edit <name> <field> <value>` | Edit `name` / `description` |
+| `character delete <name>` | Delete |
 | `character <name> voice <verb> …` | Voice subcommands (below) |
 
 ### `character <name> voice …`
@@ -62,12 +60,13 @@ With no subcommand and interactive on, the root menu opens. Under interactive co
 | Verb | Behavior |
 |---|---|
 | `list` | List voices |
-| `get [voice]` | Print voice |
-| `add [voice]` | Create; interactive picks version and edits param |
-| `edit [voice] …` | Rename or `edit <voice> <1\|2\|10> <field> <value>`; interactive edits per-version params |
-| `delete [voice]` | Delete |
-| `duplicate [voice] [newName]` | Deep copy; default name via `nameutil` |
-| (verb omitted, interactive) | Voice menu |
+| `get <voice>` | Print voice |
+| `add <voice> [1\|2\|10]` | Create with default params for the version (default `1`) |
+| `edit <voice> name <newName>` or `edit <voice> <1\|2\|10> <field> <value>` | Rename or set a per-version param field |
+| `delete <voice>` | Delete |
+| `duplicate <voice> [newName]` | Deep copy; default name via `nameutil` |
+
+The verb is required; `character <name> voice` without one errors.
 
 Param fields: `preset`, `speed`; v2 +`phont_data` (file → embed); v10 +`base`,`volume`,`pitch`,`accent`,`lmd`,`fsc`. Presets validated via `PresetCatalog` (WASM).
 
@@ -77,8 +76,7 @@ Param fields: `preset`, `speed`; v2 +`phont_data` (file → embed); v10 +`base`,
 |---|---|
 | `synth -v character:voice … TEXT` | Load character from configured `character_path`; `-s` default `1` |
 | `synth -P file.yaml:voice … TEXT` | Character YAML override (split on **last** `:`); **mutex** with `-v` |
-| Shared: `[-V 1\|2\|10] [-s factor] [-o path] [-p] [--reuse-cache[=false]]` | Version / speed factor / output / preview / cache (flag overrides config; omit → `synth.reuse_cache`) |
-| `synth voice` | **Interactive only**; voice tree keys are `character:voice`; **async** preview |
+| Shared: `[-V 1\|2\|10] [-s factor] [-o path] [-p] [--reuse-cache[=false]]` | Version / speed factor / output / blocking preview playback / cache (flag overrides config; omit → `synth.reuse_cache`) |
 | `synth custom` | Stub, not implemented |
 
 **Version**: omit `-V` → first param among **1→2→10**; else `params empty` / `definition invalid`.  
@@ -106,8 +104,6 @@ Startup `MkdirAll` on `character_path` / `output_path`; failure (including permi
 | `synth.output_format` | `{character}:{voice}_{yyyy}-{MM}-{dd}:{hh}-{mm}-{ss}_{ms}` | Output basename (braced tokens only) |
 | `synth.always_write` | `true` | Always write files (see write policy) |
 | `synth.reuse_cache` | `true` | Reuse WAVs listed in `index.yaml` by task hash |
-| `cli.default_interactive` | `true` | huh when args incomplete; root browse |
-| `cli.with_accessibility` | `false` | huh accessibility |
 
 Bool defaults use pointers so missing YAML ≠ explicit `false`.
 

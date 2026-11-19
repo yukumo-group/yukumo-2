@@ -8,17 +8,12 @@ import (
 	"yukumo-script/cli/internal/cobraio"
 	"yukumo-script/cli/play"
 	"yukumo-script/cli/render"
-	"yukumo-script/cli/ui"
 	"yukumo-script/core/api"
 
 	"github.com/spf13/cobra"
 )
 
-type Options struct {
-	Interactive bool
-}
-
-func NewCmd(app *api.App, opts Options) *cobra.Command {
+func NewCmd(app *api.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "synth",
 		Short: "Synthesize speech from a character voice",
@@ -32,7 +27,7 @@ func NewCmd(app *api.App, opts Options) *cobra.Command {
 		Args:                  cobra.ArbitraryArgs,
 		DisableFlagsInUseLine: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runSynth(cmd, app, opts, args)
+			return runSynth(cmd, app, args)
 		},
 	}
 
@@ -44,7 +39,6 @@ func NewCmd(app *api.App, opts Options) *cobra.Command {
 	cmd.Flags().BoolP("preview", "p", false, "Play synthesized audio")
 	cmd.Flags().Bool("reuse-cache", true, "Reuse cached WAV when task hash matches (overrides synth.reuse_cache)")
 
-	cmd.AddCommand(newVoiceCmd(app, opts))
 	cmd.AddCommand(newCustomCmd())
 	return cmd
 }
@@ -59,7 +53,7 @@ func newCustomCmd() *cobra.Command {
 	}
 }
 
-func runSynth(cmd *cobra.Command, app *api.App, opts Options, args []string) error {
+func runSynth(cmd *cobra.Command, app *api.App, args []string) error {
 	s := cobraio.FromCmd(cmd)
 	voiceRef, _ := cmd.Flags().GetString("voice")
 	voicePath, _ := cmd.Flags().GetString("voice-path")
@@ -74,20 +68,10 @@ func runSynth(cmd *cobra.Command, app *api.App, opts Options, args []string) err
 
 	text := strings.TrimSpace(strings.Join(args, " "))
 	if text == "" {
-		if !opts.Interactive {
-			return fmt.Errorf("text is required")
-		}
-		if err := ui.EnsureSynthText(s, &text); err != nil {
-			return err
-		}
+		return fmt.Errorf("text is required")
 	}
 	if strings.TrimSpace(voicePath) == "" && strings.TrimSpace(voiceRef) == "" {
-		if !opts.Interactive {
-			return fmt.Errorf("voice is required (-v character:voice)")
-		}
-		if err := ui.PickVoiceRef(s, app, &voiceRef); err != nil {
-			return err
-		}
+		return fmt.Errorf("voice is required (-v character:voice)")
 	}
 
 	req := api.SynthRequest{
@@ -125,7 +109,7 @@ func runSynth(cmd *cobra.Command, app *api.App, opts Options, args []string) err
 		return err
 	}
 	if req.Preview {
-		return play.Preview(s.Ctx, res, false)
+		return play.Preview(s.Ctx, res)
 	}
 	return nil
 }

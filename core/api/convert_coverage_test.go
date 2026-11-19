@@ -141,7 +141,6 @@ func TestConfigFieldCoverage(t *testing.T) {
 	assertSameFieldsByName(t, reflect.ValueOf(a), reflect.ValueOf(d))
 	assertSameFieldsByName(t, reflect.ValueOf(a.Characters), reflect.ValueOf(d.Characters))
 	assertSameFieldsByName(t, reflect.ValueOf(a.Paths), reflect.ValueOf(d.Paths))
-	assertSameFieldsByName(t, reflect.ValueOf(a.CLI), reflect.ValueOf(d.CLI))
 	assertSameFieldsByName(t, reflect.ValueOf(a.Synth), reflect.ValueOf(d.Synth))
 	if back := fromConfig(a); !reflect.DeepEqual(d, back) {
 		t.Fatalf("domain→api→domain round trip mismatch:\n in=%+v\nout=%+v", d, back)
@@ -154,14 +153,12 @@ func TestConfigEffectiveBooleansFromUnset(t *testing.T) {
 	in := domain.Config{Paths: domain.PathConfig{CharacterPath: "chars", OutputPath: "out"}}
 
 	a := toConfig(in)
-	if !a.CLI.DefaultInteractive || a.CLI.WithAccessibility || !a.Synth.AlwaysWrite || !a.Synth.ReuseCache {
+	if !a.Synth.AlwaysWrite || !a.Synth.ReuseCache {
 		t.Fatalf("effective defaults not applied: %+v", a)
 	}
 
 	back := fromConfig(a)
-	if back.CLI.DefaultInteractive == nil || !*back.CLI.DefaultInteractive ||
-		back.CLI.WithAccessibility == nil || *back.CLI.WithAccessibility ||
-		back.Synth.AlwaysWrite == nil || !*back.Synth.AlwaysWrite ||
+	if back.Synth.AlwaysWrite == nil || !*back.Synth.AlwaysWrite ||
 		back.Synth.ReuseCache == nil || !*back.Synth.ReuseCache {
 		t.Fatalf("unset pointers were not written back explicitly: %+v", back)
 	}

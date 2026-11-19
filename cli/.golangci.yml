@@ -18,22 +18,22 @@ linters:
             - pkg: "yukumo-script/core/port"
               desc: "CLI must go through core/api"
             - pkg: "github.com/tetratelabs/wazero"
+            - pkg: "github.com/charmbracelet/huh"
+              desc: "interactive TUI removed"
+            - pkg: "github.com/charmbracelet/lipgloss"
+              desc: "interactive TUI removed"
         no-root:
           files:
             - "**/action/**"
             - "**/character/**"
             - "**/config/**"
             - "**/internal/**"
-            - "**/menu/**"
             - "**/parse/**"
             - "**/play/**"
-            - "**/prompt/**"
             - "**/render/**"
             - "**/schema/**"
-            - "**/setting/**"
             - "**/streams/**"
             - "**/synth/**"
-            - "**/ui/**"
           deny:
             - pkg: "yukumo-script/cli$"
               desc: "CLI subpackages must not import the root package"
@@ -44,32 +44,8 @@ linters:
             - pkg: "github.com/spf13/cobra"
             - pkg: "github.com/charmbracelet/huh"
             - pkg: "github.com/charmbracelet/lipgloss"
-            - pkg: "yukumo-script/cli/prompt"
-            - pkg: "yukumo-script/cli/setting"
-            - pkg: "yukumo-script/cli/ui"
             - pkg: "yukumo-script/cli/action"
             - pkg: "yukumo-script/cli/internal"
-            - pkg: "yukumo-script/cli$"
-        setting:
-          files:
-            - "**/setting/**"
-          deny:
-            - pkg: "github.com/spf13/cobra"
-            - pkg: "yukumo-script/core/api"
-            - pkg: "yukumo-script/cli/action"
-            - pkg: "yukumo-script/cli/ui"
-            - pkg: "yukumo-script/cli/internal"
-            - pkg: "yukumo-script/cli$"
-        prompt:
-          files:
-            - "**/prompt/**"
-          deny:
-            - pkg: "github.com/spf13/cobra"
-            - pkg: "yukumo-script/core/api"
-            - pkg: "yukumo-script/cli/schema"
-            - pkg: "yukumo-script/cli/setting"
-            - pkg: "yukumo-script/cli/action"
-            - pkg: "yukumo-script/cli/ui"
             - pkg: "yukumo-script/cli$"
         leaf-pure:
           files:
@@ -87,13 +63,9 @@ linters:
             - pkg: "github.com/spf13/cobra"
             - pkg: "github.com/charmbracelet/huh"
             - pkg: "github.com/charmbracelet/lipgloss"
-            - pkg: "yukumo-script/cli/prompt"
-            - pkg: "yukumo-script/cli/setting"
-            - pkg: "yukumo-script/cli/ui"
             - pkg: "yukumo-script/cli/render"
             - pkg: "yukumo-script/cli/play"
             - pkg: "yukumo-script/cli/streams"
-            - pkg: "yukumo-script/cli/menu"
             - pkg: "yukumo-script/cli/config"
             - pkg: "yukumo-script/cli/character"
             - pkg: "yukumo-script/cli/synth"
@@ -107,36 +79,8 @@ linters:
             - pkg: "github.com/spf13/cobra"
             - pkg: "github.com/charmbracelet/huh"
             - pkg: "github.com/charmbracelet/lipgloss"
-            - pkg: "yukumo-script/cli/prompt"
-            - pkg: "yukumo-script/cli/setting"
-            - pkg: "yukumo-script/cli/ui"
             - pkg: "yukumo-script/cli/action"
-            - pkg: "yukumo-script/cli/menu"
             - pkg: "yukumo-script/cli/streams"
-            - pkg: "yukumo-script/cli/internal"
-            - pkg: "yukumo-script/cli$"
-        ui:
-          files:
-            - "**/ui/**"
-          deny:
-            - pkg: "github.com/spf13/cobra"
-            - pkg: "yukumo-script/cli/config"
-            - pkg: "yukumo-script/cli/character"
-            - pkg: "yukumo-script/cli/synth"
-            - pkg: "yukumo-script/cli/internal"
-            - pkg: "yukumo-script/cli$"
-        menu:
-          files:
-            - "**/menu/**"
-          deny:
-            - pkg: "github.com/spf13/cobra"
-            - pkg: "github.com/charmbracelet/huh"
-            - pkg: "github.com/charmbracelet/lipgloss"
-            - pkg: "yukumo-script/cli/prompt"
-            - pkg: "yukumo-script/cli/setting"
-            - pkg: "yukumo-script/cli/ui"
-            - pkg: "yukumo-script/cli/action"
-            - pkg: "yukumo-script/cli/schema"
             - pkg: "yukumo-script/cli/internal"
             - pkg: "yukumo-script/cli$"
         cmd:

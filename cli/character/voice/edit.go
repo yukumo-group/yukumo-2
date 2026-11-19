@@ -7,25 +7,17 @@ import (
 	"yukumo-script/cli/action"
 	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
-	"yukumo-script/cli/ui"
 	"yukumo-script/core/api"
 )
 
-func runEdit(s streams.Streams, app *api.App, interactive bool, charName string, args []string) error {
-	name := ""
-	if len(args) >= 1 {
-		name = args[0]
-	}
-	if interactive {
-		return ui.EditVoice(s, app, charName, name)
-	}
-	if name == "" {
+func runEdit(s streams.Streams, app *api.App, charName string, args []string) error {
+	if len(args) < 1 || args[0] == "" {
 		return fmt.Errorf("voice name is required")
 	}
 	if len(args) < 2 {
 		return fmt.Errorf("field and value required")
 	}
-	return runOneShotVoiceEdit(s, app, charName, name, args[1:])
+	return runOneShotVoiceEdit(s, app, charName, args[0], args[1:])
 }
 
 func runOneShotVoiceEdit(s streams.Streams, app *api.App, charName, voiceName string, args []string) error {

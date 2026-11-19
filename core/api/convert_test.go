@@ -34,12 +34,8 @@ func TestCharacterRoundTripDeepCopies(t *testing.T) {
 func TestConfigEffectiveBooleans(t *testing.T) {
 	cfg := fromConfig(Config{
 		Paths: PathConfig{CharacterPath: "chars", OutputPath: "out"},
-		CLI:   CLIConfig{DefaultInteractive: true, WithAccessibility: false},
 		Synth: SynthConfig{OutputFormat: "{character}", AlwaysWrite: false, ReuseCache: true},
 	})
-	if !cfg.CLI.Interactive() || cfg.CLI.Accessibility() {
-		t.Fatal("CLI booleans not mapped")
-	}
 	if cfg.Synth.WriteAlways() || !cfg.Synth.CacheReuse() {
 		t.Fatal("synth booleans not mapped")
 	}
@@ -47,7 +43,7 @@ func TestConfigEffectiveBooleans(t *testing.T) {
 	if back.Paths.CharacterPath != "chars" || back.Paths.OutputPath != "out" {
 		t.Fatalf("paths not mapped: %+v", back.Paths)
 	}
-	if back.CLI.DefaultInteractive != true || back.Synth.AlwaysWrite != false {
+	if back.Synth.AlwaysWrite != false || back.Synth.ReuseCache != true {
 		t.Fatalf("effective booleans not mapped: %+v", back)
 	}
 }

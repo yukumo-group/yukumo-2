@@ -6,21 +6,14 @@ import (
 	"yukumo-script/cli/action"
 	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
-	"yukumo-script/cli/ui"
 	"yukumo-script/core/api"
 )
 
-func runDelete(s streams.Streams, app *api.App, interactive bool, charName string, args []string) error {
-	name := ""
-	if len(args) >= 1 {
-		name = args[0]
-	}
-	if interactive {
-		return ui.DeleteVoice(s, app, charName, name)
-	}
-	if name == "" {
+func runDelete(s streams.Streams, app *api.App, charName string, args []string) error {
+	if len(args) < 1 || args[0] == "" {
 		return fmt.Errorf("voice name is required")
 	}
+	name := args[0]
 	if err := action.DeleteVoice(s.Ctx, app, charName, name); err != nil {
 		return err
 	}

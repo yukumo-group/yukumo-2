@@ -19,8 +19,6 @@ Startup `MkdirAll` on `character_path` / `output_path`; failure (including permi
 | `synth.output_format` | `{character}:{voice}_{yyyy}-{MM}-{dd}:{hh}-{mm}-{ss}_{ms}` | Output basename (braced tokens only) |
 | `synth.always_write` | `true` | Always write files (see write policy) |
 | `synth.reuse_cache` | `true` | Reuse WAVs listed in `index.yaml` by task hash |
-| `cli.default_interactive` | `true` | huh when args incomplete; root browse |
-| `cli.with_accessibility` | `false` | huh accessibility |
 
 {% hint style="warning" icon="clone" %}
 `init_default_voice` **or** manual `voice add` for the same default name — not both.

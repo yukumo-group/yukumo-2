@@ -13,7 +13,7 @@ just build          # depguard + staticcheck 通过后再 build
 just test           # 全部 module
 just ci             # replace 检查 + lint + build + test + vet
 
-# 交互根菜单（cli.default_interactive 默认为 true）
+# 运行 CLI（无参数时打印帮助）
 just run
 # 或：go run ./cli/cmd/yukumo-script
 
@@ -24,37 +24,35 @@ go run ./cli/cmd/yukumo-script character add remilia "example"
 # B：手动添加音色
 # go run ./cli/cmd/yukumo-script character add remilia "example"
 # go run ./cli/cmd/yukumo-script character remilia voice add default 1
-# 注意：默认 interactive 下，voice add 会进入 param 编辑；确认默认值退出即可。
-# 纯脚本可先：go run ./cli/cmd/yukumo-script config edit cli.default_interactive false
+# voice add 必须给出音色名；版本 1|2|10 可选（默认 1）
 
 go run ./cli/cmd/yukumo-script synth -v remilia:default "こんにちは"
-go run ./cli/cmd/yukumo-script synth -v remilia:default -p "こんにちは"          # 预览播放
+go run ./cli/cmd/yukumo-script synth -v remilia:default -p "こんにちは"          # 预览播放（阻塞至播完）
 go run ./cli/cmd/yukumo-script synth -v remilia:default -o /tmp/out.wav "テスト" # 指定输出
 go run ./cli/cmd/yukumo-script synth -P ./remilia.yaml:default "こんにちは"      # 覆盖角色文件路径
 ```
 
 ## CLI 命令
 
-全局：无显式子命令且 interactive 开启时进入根菜单。`get` 在 interactive 下对 config/character **隐藏**（改走 edit/browse）。
+CLI 为脚本化（仅 cobra）：无交互提示或菜单；缺少必需参数会报错退出。无参数的 `yukumo-script`、`config`、`character` 会打印帮助。
 
 ### `config`
 
 | 命令 | 行为 |
 |---|---|
 | `config list` | 打印全部设置键与当前值 |
-| `config get <key>` | 打印单键（non-interactive） |
-| `config edit <key> <value>` | 一次性改键 |
-| `config edit` / `config edit <key>` | interactive：树形浏览 `paths.*` / `characters.*` / `synth.*` / `cli.*`；bool 选中即翻转 |
+| `config get <key>` | 打印单键 |
+| `config edit <key> <value>` | 一次性改键（两个参数均必填） |
 
 ### `character`
 
 | 命令 | 行为 |
 |---|---|
 | `character list` | JSON 列表 |
-| `character get [name]` | 打印角色；缺名 interactive 可选 |
-| `character add [name] [description]` | 创建；可受 `init_default_voice` 影响 |
-| `character edit [name] [field] [value]` | 改 `name`/`description`；interactive 为字段菜单，含进入 `voices` |
-| `character delete [name]` | 删除 |
+| `character get <name>` | 打印角色 |
+| `character add <name> [description]` | 创建；可受 `init_default_voice` 影响 |
+| `character edit <name> <field> <value>` | 改 `name` / `description` |
+| `character delete <name>` | 删除 |
 | `character <name> voice <verb> …` | 音色子命令（见下） |
 
 ### `character <name> voice …`
@@ -62,12 +60,13 @@ go run ./cli/cmd/yukumo-script synth -P ./remilia.yaml:default "こんにちは"
 | 动词 | 行为 |
 |---|---|
 | `list` | 列出音色 |
-| `get [voice]` | 打印音色 |
-| `add [voice]` | 创建；interactive 选版本并编辑 param |
-| `edit [voice] …` | 改名或 `edit <voice> <1\|2\|10> <field> <value>`；interactive 编辑各版本 param |
-| `delete [voice]` | 删除 |
-| `duplicate [voice] [newName]` | 深拷贝；默认名 `nameutil` 生成 |
-| （仅 verb 省略且 interactive） | 打开 voice 菜单 |
+| `get <voice>` | 打印音色 |
+| `add <voice> [1\|2\|10]` | 按版本默认 param 创建（版本默认 `1`） |
+| `edit <voice> name <newName>` 或 `edit <voice> <1\|2\|10> <field> <value>` | 改名或设置某版本的 param 字段 |
+| `delete <voice>` | 删除 |
+| `duplicate <voice> [newName]` | 深拷贝；默认名 `nameutil` 生成 |
+
+动词必填；仅写 `character <name> voice` 会报错。
 
 Param 字段：`preset`, `speed`；v2 +`phont_data`（选文件嵌入）；v10 +`base`,`volume`,`pitch`,`accent`,`lmd`,`fsc`。preset 经 `PresetCatalog`（WASM）校验。
 
@@ -77,8 +76,7 @@ Param 字段：`preset`, `speed`；v2 +`phont_data`（选文件嵌入）；v10 +
 |---|---|
 | `synth -v character:voice … TEXT` | 从配置的 `character_path` 取角色；`-s` 默认 `1` |
 | `synth -P file.yaml:voice … TEXT` | 用指定 Character YAML（**最后一个** `:` 分割路径与音色）；与 `-v` **互斥** |
-| 共用：`[-V 1\|2\|10] [-s factor] [-o path] [-p] [--reuse-cache[=false]]` | 版本 / 语速因子 / 输出 / 预览 / 是否读缓存（flag 覆盖配置，省略则用 `synth.reuse_cache`） |
-| `synth voice` | **仅 interactive**：表单循环；voice 树键为 `character:voice`；preview **异步** |
+| 共用：`[-V 1\|2\|10] [-s factor] [-o path] [-p] [--reuse-cache[=false]]` | 版本 / 语速因子 / 输出 / 阻塞式预览播放 / 是否读缓存（flag 覆盖配置，省略则用 `synth.reuse_cache`） |
 | `synth custom` | stub，未实现 |
 
 **版本**：`-V` 省略 → voice 内 **1→2→10** 首个 param；皆无则 `params empty` / `definition invalid`。  
@@ -106,8 +104,6 @@ Param 字段：`preset`, `speed`；v2 +`phont_data`（选文件嵌入）；v10 +
 | `synth.output_format` | `{character}:{voice}_{yyyy}-{MM}-{dd}:{hh}-{mm}-{ss}_{ms}` | 输出文件名模板（仅花括号） |
 | `synth.always_write` | `true` | 是否总是写文件（见合成输出） |
 | `synth.reuse_cache` | `true` | 按任务哈希复用 `index.yaml` 中的已有 WAV |
-| `cli.default_interactive` | `true` | 缺参时进入 huh；根命令挂载 browse |
-| `cli.with_accessibility` | `false` | huh 无障碍模式 |
 
 布尔缺省用指针区分「未设置」与显式 `false`。
 

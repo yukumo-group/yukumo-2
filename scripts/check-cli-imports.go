@@ -76,43 +76,22 @@ func main() {
 	}{
 		{"yukumo-script/cli/action", []string{
 			"github.com/spf13/cobra", "github.com/charmbracelet/huh", "github.com/charmbracelet/lipgloss",
-			"yukumo-script/cli/prompt", "yukumo-script/cli/setting", "yukumo-script/cli/ui",
 			"yukumo-script/cli/render", "yukumo-script/cli/play", "yukumo-script/cli/streams",
-			"yukumo-script/cli/menu", "yukumo-script/cli/internal",
+			"yukumo-script/cli/internal",
 			"yukumo-script/cli/config", "yukumo-script/cli/character", "yukumo-script/cli/synth",
-		}},
-		{"yukumo-script/cli/ui", []string{
-			"github.com/spf13/cobra", "yukumo-script/cli/config", "yukumo-script/cli/character",
-			"yukumo-script/cli/synth", "yukumo-script/cli/internal",
 		}},
 		{"yukumo-script/cli/render", []string{
 			"github.com/spf13/cobra", "github.com/charmbracelet/huh", "github.com/charmbracelet/lipgloss",
-			"yukumo-script/cli/prompt", "yukumo-script/cli/setting", "yukumo-script/cli/ui",
-			"yukumo-script/cli/action", "yukumo-script/cli/menu", "yukumo-script/cli/streams",
+			"yukumo-script/cli/action", "yukumo-script/cli/streams",
 			"yukumo-script/cli/internal",
 		}},
 		{"yukumo-script/cli/play", []string{
 			"github.com/spf13/cobra", "github.com/charmbracelet/huh", "github.com/charmbracelet/lipgloss",
-			"yukumo-script/cli/prompt", "yukumo-script/cli/setting", "yukumo-script/cli/ui",
-			"yukumo-script/cli/action", "yukumo-script/cli/menu", "yukumo-script/cli/streams",
-			"yukumo-script/cli/internal",
-		}},
-		{"yukumo-script/cli/menu", []string{
-			"github.com/spf13/cobra", "github.com/charmbracelet/huh", "github.com/charmbracelet/lipgloss",
-			"yukumo-script/cli/prompt", "yukumo-script/cli/setting", "yukumo-script/cli/ui",
-			"yukumo-script/cli/action", "yukumo-script/cli/schema", "yukumo-script/cli/internal",
-		}},
-		{"yukumo-script/cli/prompt", []string{
-			"github.com/spf13/cobra", "yukumo-script/core/api", "yukumo-script/cli/schema",
-			"yukumo-script/cli/setting", "yukumo-script/cli/action", "yukumo-script/cli/ui",
-		}},
-		{"yukumo-script/cli/setting", []string{
-			"github.com/spf13/cobra", "yukumo-script/cli/action", "yukumo-script/cli/ui",
+			"yukumo-script/cli/action", "yukumo-script/cli/streams",
 			"yukumo-script/cli/internal",
 		}},
 		{"yukumo-script/cli/schema", []string{
 			"github.com/spf13/cobra", "github.com/charmbracelet/huh", "github.com/charmbracelet/lipgloss",
-			"yukumo-script/cli/prompt", "yukumo-script/cli/setting", "yukumo-script/cli/ui",
 			"yukumo-script/cli/action", "yukumo-script/cli/internal",
 		}},
 	}
@@ -124,7 +103,7 @@ func main() {
 				problems = append(problems, fmt.Sprintf("%s must not depend on %s", rule.pkg, bad))
 			}
 		}
-		if strings.HasSuffix(rule.pkg, "/ui") || strings.HasSuffix(rule.pkg, "/action") {
+		if strings.HasSuffix(rule.pkg, "/action") {
 			if deps["yukumo-script/cli"] {
 				problems = append(problems, rule.pkg+" must not depend on yukumo-script/cli")
 			}

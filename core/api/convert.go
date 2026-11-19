@@ -80,10 +80,6 @@ func toConfig(c domain.Config) Config {
 	return Config{
 		Characters: CharacterConfig{InitDefaultVoice: c.Characters.InitDefaultVoice},
 		Paths:      PathConfig{CharacterPath: c.Paths.CharacterPath, OutputPath: c.Paths.OutputPath},
-		CLI: CLIConfig{
-			DefaultInteractive: c.CLI.Interactive(),
-			WithAccessibility:  c.CLI.Accessibility(),
-		},
 		Synth: SynthConfig{
 			OutputFormat: c.Synth.OutputFormat,
 			AlwaysWrite:  c.Synth.WriteAlways(),
@@ -95,15 +91,9 @@ func toConfig(c domain.Config) Config {
 func fromConfig(c Config) domain.Config {
 	always := c.Synth.AlwaysWrite
 	reuse := c.Synth.ReuseCache
-	interactive := c.CLI.DefaultInteractive
-	accessible := c.CLI.WithAccessibility
 	return domain.Config{
 		Characters: domain.CharacterConfig{InitDefaultVoice: c.Characters.InitDefaultVoice},
 		Paths:      domain.PathConfig{CharacterPath: c.Paths.CharacterPath, OutputPath: c.Paths.OutputPath},
-		CLI: domain.CLIConfig{
-			DefaultInteractive: &interactive,
-			WithAccessibility:  &accessible,
-		},
 		Synth: domain.SynthConfig{
 			OutputFormat: c.Synth.OutputFormat,
 			AlwaysWrite:  &always,

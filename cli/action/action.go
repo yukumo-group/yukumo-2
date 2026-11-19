@@ -1,5 +1,5 @@
 // Package action implements CLI use cases. It returns domain values and does
-// not write output, play audio, or depend on cobra/huh.
+// not write output, play audio, or depend on cobra.
 package action
 
 // EditResult is the user-facing result of a field edit. Warning is a

@@ -5,14 +5,15 @@ icon: gear
 
 # config
 
-Manage settings under `paths.*`, `characters.*`, `synth.*`, and `cli.*`.
+Manage settings under `paths.*`, `characters.*`, and `synth.*`. Every command is one-shot; `edit` requires both key and value.
 
 | Command | Behavior |
 | --- | --- |
 | `config list` | Print all keys and values |
-| `config get <key>` | Print one key (non-interactive) |
+| `config get <key>` | Print one key |
 | `config edit <key> <value>` | One-shot set |
-| `config edit` / `config edit <key>` | Interactive tree; bool toggles on select |
+
+A bare `config` prints help.
 
 {% stepper %}
 {% step %}
@@ -29,17 +30,7 @@ just run config get paths.character_path
 
 ```bash
 just run config edit characters.init_default_voice true
-just run config edit cli.default_interactive false
-```
-{% endstep %}
-
-{% step %}
-## Interactive tree
-
-```bash
-just run config edit
-# or start at a prefix:
-just run config edit synth
+just run config edit synth.reuse_cache false
 ```
 {% endstep %}
 {% endstepper %}

@@ -10,11 +10,13 @@ Characters are stored as YAML under `paths.character_path`. Filename is `{Saniti
 | Command | Behavior |
 | --- | --- |
 | `character list` | JSON list |
-| `character get [name]` | Print character; interactive pick if name omitted |
-| `character add [name] [description]` | Create; may honor `init_default_voice` |
-| `character edit [name] [field] [value]` | Edit `name`/`description`; interactive field menu includes `voices` |
-| `character delete [name]` | Delete |
+| `character get <name>` | Print character |
+| `character add <name> [description]` | Create; may honor `init_default_voice` |
+| `character edit <name> <field> <value>` | Edit `name` / `description` |
+| `character delete <name>` | Delete |
 | `character <name> voice <verb> …` | Voice subcommands — see [voice](voice.md) |
+
+Name (and field/value for `edit`) are required; missing arguments error out. A bare `character` prints help.
 
 {% hint style="warning" icon="clone" %}
 `characters.init_default_voice` auto-adds a `default` voice (v1) on `character add`. Use **either** that **or** a manual `voice add` for the same name — not both.

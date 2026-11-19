@@ -6,24 +6,17 @@ import (
 	"yukumo-script/cli/action"
 	"yukumo-script/cli/render"
 	"yukumo-script/cli/streams"
-	"yukumo-script/cli/ui"
 	"yukumo-script/core/api"
 )
 
-func runDuplicate(s streams.Streams, app *api.App, interactive bool, charName string, args []string) error {
-	src := ""
-	if len(args) >= 1 {
-		src = args[0]
+func runDuplicate(s streams.Streams, app *api.App, charName string, args []string) error {
+	if len(args) < 1 || args[0] == "" {
+		return fmt.Errorf("voice name is required")
 	}
+	src := args[0]
 	newName := ""
 	if len(args) >= 2 {
 		newName = args[1]
-	}
-	if interactive {
-		return ui.DuplicateVoice(s, app, charName, src, newName)
-	}
-	if src == "" {
-		return fmt.Errorf("voice name is required")
 	}
 	final, err := action.DuplicateVoice(s.Ctx, app, charName, src, newName)
 	if err != nil {

@@ -59,7 +59,6 @@ func BaseNames() []string
 type Config struct {
     Characters CharacterConfig `yaml:"characters"`
     Paths      PathConfig      `yaml:"paths"`
-    CLI        CLIConfig       `yaml:"cli"`
     Synth      SynthConfig     `yaml:"synth"`
 }
 
@@ -76,10 +75,6 @@ type CharacterConfig struct {
 type PathConfig struct {
     CharacterPath string `yaml:"character_path"`
     OutputPath    string `yaml:"output_path"`
-}
-type CLIConfig struct {
-    DefaultInteractive bool `yaml:"default_interactive"`
-    WithAccessibility  bool `yaml:"with_accessibility"`
 }
 type SynthConfig struct {
     OutputFormat string `yaml:"output_format"`

@@ -23,21 +23,6 @@ func SynthResultText(res api.SynthResult, elapsed time.Duration) string {
 	}
 }
 
-// SynthStatusText formats the interactive synth status label.
-func SynthStatusText(res api.SynthResult, elapsed time.Duration) string {
-	ms := ElapsedText(elapsed)
-	switch {
-	case res.Wrote && res.FromCache:
-		return res.Path + " (cached) " + ms
-	case res.Wrote:
-		return res.Path + " " + ms
-	case res.FromCache:
-		return "ok (cached, not written) " + ms
-	default:
-		return "ok (not written) " + ms
-	}
-}
-
 // SynthResult writes the one-shot synth result line when there is one.
 func SynthResult(w io.Writer, res api.SynthResult, elapsed time.Duration) error {
 	line := SynthResultText(res, elapsed)
