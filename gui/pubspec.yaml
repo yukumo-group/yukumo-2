@@ -40,7 +40,6 @@ dependencies:
   m3e_core: ^1.1.4
   flutter_floating_bottom_bar: ^3.0.1
   font_awesome_flutter: ^11.0.0
-  audioplayers: ^6.5.0
 
 dev_dependencies:
   flutter_test:

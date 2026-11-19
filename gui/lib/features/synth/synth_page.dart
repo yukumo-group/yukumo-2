@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_scope.dart';
 import '../../gen/rpc.dart';
 import '../shell/bar_padding.dart';
+import 'wav_preview.dart';
 
 class SynthPage extends StatefulWidget {
   const SynthPage({super.key});
@@ -21,7 +20,6 @@ class _SynthPageState extends State<SynthPage> {
   final _text = TextEditingController();
   final _characterDropdown = M3EDropdownController<String>();
   final _voiceDropdown = M3EDropdownController<String>();
-  final _player = AudioPlayer();
 
   List<Character> _characters = const [];
   String? _character;
@@ -43,7 +41,6 @@ class _SynthPageState extends State<SynthPage> {
     _text.dispose();
     _characterDropdown.dispose();
     _voiceDropdown.dispose();
-    _player.dispose();
     super.dispose();
   }
 
@@ -164,7 +161,7 @@ class _SynthPageState extends State<SynthPage> {
           setState(() => _status = '预览无音频数据');
           return;
         }
-        await _playWav(base64Decode(b64));
+        await playWavBytes(base64Decode(b64));
         setState(() => _status = '预览完成');
       } else {
         setState(() {
@@ -179,14 +176,6 @@ class _SynthPageState extends State<SynthPage> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  Future<void> _playWav(List<int> bytes) async {
-    final dir = await Directory.systemTemp.createTemp('yukumo_preview_');
-    final file = File('${dir.path}/preview.wav');
-    await file.writeAsBytes(bytes, flush: true);
-    await _player.stop();
-    await _player.play(DeviceFileSource(file.path));
   }
 
   @override
