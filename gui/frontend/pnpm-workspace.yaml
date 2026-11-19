@@ -1,9 +1,0 @@
-# Allow esbuild postinstall scripts (required by Vite).
-allowBuilds:
-  esbuild: true
-  vue-demi: true
-
-# Stay on TS 6 for vue-tsc (see AGENTS.md).
-peerDependencyRules:
-  allowedVersions:
-    typescript: '6'

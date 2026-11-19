@@ -1,4 +1,0 @@
-[submodule "gui/m3e"]
-	path = gui/m3e
-	url = https://github.com/yukumo-group/m3e.git
-	branch = yukumo
