@@ -25,7 +25,7 @@ func fromCharacter(c Character) domain.Character {
 }
 
 func toVoice(v domain.Voice) Voice {
-	out := Voice{Name: v.Name}
+	out := Voice{Name: v.Name, Speed: v.Speed}
 	if v.Params != nil {
 		out.Params = make([]SynthParam, len(v.Params))
 		for i, p := range v.Params {
@@ -36,7 +36,7 @@ func toVoice(v domain.Voice) Voice {
 }
 
 func fromVoice(v Voice) domain.Voice {
-	out := domain.Voice{Name: v.Name}
+	out := domain.Voice{Name: v.Name, Speed: v.Speed}
 	if v.Params != nil {
 		out.Params = make([]domain.SynthParam, len(v.Params))
 		for i, p := range v.Params {
@@ -50,14 +50,11 @@ func toParam(p domain.SynthParam) SynthParam {
 	return SynthParam{
 		Version:   p.Version,
 		Preset:    p.Preset,
-		Speed:     p.Speed,
 		PhontData: copyBytes(p.PhontData),
 		Base:      p.Base,
-		Volume:    p.Volume,
 		Pitch:     p.Pitch,
 		Accent:    p.Accent,
 		Lmd:       p.Lmd,
-		Fsc:       p.Fsc,
 	}
 }
 
@@ -65,14 +62,11 @@ func fromParam(p SynthParam) domain.SynthParam {
 	return domain.SynthParam{
 		Version:   p.Version,
 		Preset:    p.Preset,
-		Speed:     p.Speed,
 		PhontData: copyBytes(p.PhontData),
 		Base:      p.Base,
-		Volume:    p.Volume,
 		Pitch:     p.Pitch,
 		Accent:    p.Accent,
 		Lmd:       p.Lmd,
-		Fsc:       p.Fsc,
 	}
 }
 

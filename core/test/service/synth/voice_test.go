@@ -41,10 +41,11 @@ func TestLoadVoiceBytes(t *testing.T) {
 
 func TestSelectParam(t *testing.T) {
 	v := domain.Voice{
-		Name: "default",
+		Name:  "default",
+		Speed: 100,
 		Params: []domain.SynthParam{
-			{Version: domain.Version2, Preset: 1, Speed: 100},
-			{Version: domain.Version10, Preset: 0, Speed: 100},
+			{Version: domain.Version2, Preset: 1},
+			{Version: domain.Version10, Preset: 0},
 		},
 	}
 	p, err := synth.SelectParam(v, 0)

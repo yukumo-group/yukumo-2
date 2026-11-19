@@ -13,6 +13,9 @@
         "name": {
           "type": "string"
         },
+        "speed": {
+          "type": "integer"
+        },
         "params": {
           "items": {
             "properties": {
@@ -22,17 +25,11 @@
               "preset": {
                 "type": "integer"
               },
-              "speed": {
-                "type": "integer"
-              },
               "phontData": {
                 "type": "string",
                 "contentEncoding": "base64"
               },
               "base": {
-                "type": "integer"
-              },
-              "volume": {
                 "type": "integer"
               },
               "pitch": {
@@ -42,9 +39,6 @@
                 "type": "integer"
               },
               "lmd": {
-                "type": "integer"
-              },
-              "fsc": {
                 "type": "integer"
               }
             },

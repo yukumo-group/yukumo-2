@@ -14,7 +14,7 @@ import (
 )
 
 func TestTaskHashStableAndDistinct(t *testing.T) {
-	p := domain.SynthParam{Version: 1, Preset: 0, Speed: 100}
+	p := domain.SynthParam{Version: 1, Preset: 0}
 	a := synth.TaskHash("あ", 100, p, nil)
 	b := synth.TaskHash("あ", 100, p, nil)
 	if a != b || a == "" {
@@ -48,7 +48,8 @@ func TestReuseCacheWritesNewArtifact(t *testing.T) {
 	}
 	if err := voices.Add(ctx, "remilia", domain.Voice{
 		Name:   "default",
-		Params: []domain.SynthParam{{Version: domain.Version1, Preset: 0, Speed: 100}},
+		Speed:  100,
+		Params: []domain.SynthParam{{Version: domain.Version1, Preset: 0}},
 	}); err != nil {
 		t.Fatal(err)
 	}

@@ -90,14 +90,24 @@ func TestAddRequiresName(t *testing.T) {
 }
 
 func TestSynthParamNormalize(t *testing.T) {
-	p := domain.SynthParam{Version: domain.Version2, Speed: 999, Base: 9, PhontData: []byte{1}}
+	p := domain.SynthParam{Version: domain.Version2, Base: 9, PhontData: []byte{1}}
 	p.Normalize()
-	if p.Speed != 300 || p.Base != 0 || len(p.PhontData) != 1 {
+	if p.Base != 0 || len(p.PhontData) != 1 {
 		t.Fatalf("%+v", p)
 	}
-	p = domain.SynthParam{Version: domain.Version10, Speed: 10, Pitch: 5, PhontData: []byte{1}}
+	p = domain.SynthParam{Version: domain.Version10, Pitch: 5, PhontData: []byte{1}}
 	p.Normalize()
-	if p.Speed != 50 || p.Pitch != 20 || p.PhontData != nil {
+	if p.Pitch != 20 || p.PhontData != nil {
 		t.Fatalf("%+v", p)
+	}
+	v := domain.Voice{Name: "soft", Speed: 999}
+	v.Normalize()
+	if v.Speed != 300 {
+		t.Fatalf("voice speed = %d", v.Speed)
+	}
+	v = domain.Voice{Name: "soft", Speed: 10}
+	v.Normalize()
+	if v.Speed != 50 {
+		t.Fatalf("voice speed = %d", v.Speed)
 	}
 }

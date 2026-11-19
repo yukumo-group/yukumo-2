@@ -121,7 +121,7 @@ func (s *Service) Synthesize(ctx context.Context, req Request) (Result, error) {
 	if factor <= 0 {
 		factor = 1
 	}
-	speed := effectiveSpeed(p.Speed, factor)
+	speed := effectiveSpeed(voice.Speed, factor)
 	hash := TaskHash(text, speed, p, fileBytes)
 
 	var (
@@ -262,10 +262,10 @@ func toEngineParam(p domain.SynthParam, speed int) port.EngineParam {
 		Speed:   speed,
 		Phont:   p.PhontData,
 		Base:    p.Base,
-		Volume:  p.Volume,
+		Volume:  100,
 		Pitch:   p.Pitch,
 		Accent:  p.Accent,
 		Lmd:     p.Lmd,
-		Fsc:     p.Fsc,
+		Fsc:     100,
 	}
 }

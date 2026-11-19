@@ -12,21 +12,20 @@ type Character struct {
 // Voice is the UI-facing voice model.
 type Voice struct {
 	Name   string       `json:"name" yaml:"name"`
+	Speed  int          `json:"speed" yaml:"speed"`
 	Params []SynthParam `json:"params" yaml:"params,omitempty"`
 }
 
 // SynthParam is the UI-facing synthesis parameter model.
+// Volume and Fsc are not stored; synthesis always uses 100.
 type SynthParam struct {
 	Version   int    `json:"version" yaml:"version"`
 	Preset    int    `json:"preset" yaml:"preset"`
-	Speed     int    `json:"speed" yaml:"speed"`
 	PhontData []byte `json:"phontData,omitempty" yaml:"phont_data,omitempty"`
 	Base      int    `json:"base" yaml:"base,omitempty"`
-	Volume    int    `json:"volume" yaml:"volume,omitempty"`
 	Pitch     int    `json:"pitch" yaml:"pitch,omitempty"`
 	Accent    int    `json:"accent" yaml:"accent,omitempty"`
 	Lmd       int    `json:"lmd" yaml:"lmd,omitempty"`
-	Fsc       int    `json:"fsc" yaml:"fsc,omitempty"`
 }
 
 // Config is the UI-facing configuration model. Booleans are effective values;

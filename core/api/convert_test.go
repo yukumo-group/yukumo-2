@@ -12,11 +12,11 @@ func TestCharacterRoundTripDeepCopies(t *testing.T) {
 		Name:        "remilia",
 		Description: "vampire",
 		Voices: []domain.Voice{{
-			Name: "default",
+			Name:  "default",
+			Speed: 100,
 			Params: []domain.SynthParam{{
 				Version:   domain.Version2,
 				Preset:    1,
-				Speed:     100,
 				PhontData: []byte{1, 2, 3},
 			}},
 		}},
@@ -50,13 +50,18 @@ func TestConfigEffectiveBooleans(t *testing.T) {
 
 func TestDefaultSynthParamAndBaseNames(t *testing.T) {
 	p := DefaultSynthParam(Version10)
-	if p.Version != Version10 || p.Volume != 100 {
+	if p.Version != Version10 || p.Pitch != 100 {
 		t.Fatalf("unexpected default: %+v", p)
 	}
-	p.Speed = 999
 	p.Normalize()
-	if p.Speed != 300 {
-		t.Fatalf("normalize speed = %d", p.Speed)
+	if p.Pitch != 100 || p.Accent != 100 || p.Lmd != 100 {
+		t.Fatalf("normalize defaults = %+v", p)
+	}
+	v := Voice{Name: "soft", Speed: 999}
+	d := fromVoice(v)
+	d.Normalize()
+	if d.Speed != 300 {
+		t.Fatalf("normalize speed = %d", d.Speed)
 	}
 	names := BaseNames()
 	if len(names) == 0 || names[0] != "F1E" {

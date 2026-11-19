@@ -29,6 +29,7 @@ func runAdd(s streams.Streams, app *api.App, charName string, args []string) err
 	p := api.DefaultSynthParam(version)
 	created, err := action.AddVoice(s.Ctx, app, charName, api.Voice{
 		Name:   name,
+		Speed:  100,
 		Params: []api.SynthParam{p},
 	})
 	if err != nil {

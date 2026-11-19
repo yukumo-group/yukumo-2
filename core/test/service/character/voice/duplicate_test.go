@@ -18,10 +18,10 @@ func TestDuplicate(t *testing.T) {
 	}
 	ctx := context.Background()
 	if err := voices.Add(ctx, "A", domain.Voice{
-		Name: "main",
+		Name:  "main",
+		Speed: 100,
 		Params: []domain.SynthParam{{
 			Version:   domain.Version2,
-			Speed:     100,
 			PhontData: []byte{1, 2, 3},
 		}},
 	}); err != nil {

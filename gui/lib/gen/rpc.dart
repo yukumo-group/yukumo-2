@@ -196,49 +196,37 @@ class SynthConfig {
 class SynthParam {
   final int version;
   final int preset;
-  final int speed;
   final String? phontData;
   final int base;
-  final int volume;
   final int pitch;
   final int accent;
   final int lmd;
-  final int fsc;
   const SynthParam({
     required this.version,
     required this.preset,
-    required this.speed,
     this.phontData,
     required this.base,
-    required this.volume,
     required this.pitch,
     required this.accent,
     required this.lmd,
-    required this.fsc,
   });
   factory SynthParam.fromJson(Map<String, Object?> json) => SynthParam(
     version: (json['version'] as num).toInt(),
     preset: (json['preset'] as num).toInt(),
-    speed: (json['speed'] as num).toInt(),
     phontData: json['phontData'] as String?,
     base: (json['base'] as num).toInt(),
-    volume: (json['volume'] as num).toInt(),
     pitch: (json['pitch'] as num).toInt(),
     accent: (json['accent'] as num).toInt(),
     lmd: (json['lmd'] as num).toInt(),
-    fsc: (json['fsc'] as num).toInt(),
   );
   Map<String, Object?> toJson() => {
     'version': version,
     'preset': preset,
-    'speed': speed,
     'phontData': phontData,
     'base': base,
-    'volume': volume,
     'pitch': pitch,
     'accent': accent,
     'lmd': lmd,
-    'fsc': fsc,
   };
 }
 
@@ -326,17 +314,21 @@ class SynthResult {
 
 class Voice {
   final String name;
+  final int speed;
   final List<SynthParam>? params;
   const Voice({
     required this.name,
+    required this.speed,
     this.params,
   });
   factory Voice.fromJson(Map<String, Object?> json) => Voice(
     name: json['name'] as String,
+    speed: (json['speed'] as num).toInt(),
     params: (json['params'] as List<dynamic>?)?.map((e) => SynthParam.fromJson(Map<String, Object?>.from(e as Map))).toList(),
   );
   Map<String, Object?> toJson() => {
     'name': name,
+    'speed': speed,
     'params': params?.map((e) => e.toJson()).toList(),
   };
 }

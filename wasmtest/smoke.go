@@ -51,7 +51,8 @@ func fakeScenario(ctx context.Context, cfgStore, charsStore JSStore, artifacts J
 	}
 	if err := app.AddVoice(ctx, "smoke", api.Voice{
 		Name:   "default",
-		Params: []api.SynthParam{{Version: api.Version1, Preset: 0, Speed: 100}},
+		Speed:  100,
+		Params: []api.SynthParam{{Version: api.Version1, Preset: 0}},
 	}); err != nil {
 		return err
 	}
@@ -89,7 +90,8 @@ func realScenario(ctx context.Context, cfgStore, charsStore JSStore, artifacts J
 	}
 	if err := app.AddVoice(ctx, "aqsmoke", api.Voice{
 		Name:   "default",
-		Params: []api.SynthParam{{Version: api.Version1, Preset: 0, Speed: 100}},
+		Speed:  100,
+		Params: []api.SynthParam{{Version: api.Version1, Preset: 0}},
 	}); err != nil {
 		return err
 	}

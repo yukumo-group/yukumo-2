@@ -58,7 +58,8 @@ func TestCharacterJSONContract(t *testing.T) {
 		Description: "example",
 		Voices: []api.Voice{{
 			Name:   "default",
-			Params: []api.SynthParam{{Version: api.Version1, Preset: 0, Speed: 100}},
+			Speed:  100,
+			Params: []api.SynthParam{{Version: api.Version1, Preset: 0}},
 		}},
 	})
 	if err != nil {

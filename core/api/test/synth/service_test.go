@@ -43,7 +43,8 @@ func newSynthService(t *testing.T, alwaysWrite bool) (*synth.Service, *store.Mem
 	}
 	if err := voices.Add(ctx, "remilia", domain.Voice{
 		Name:   "default",
-		Params: []domain.SynthParam{{Version: domain.Version1, Preset: 0, Speed: 100}},
+		Speed:  100,
+		Params: []domain.SynthParam{{Version: domain.Version1, Preset: 0}},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +104,8 @@ func TestSynthesizeInlineVoiceNoWrite(t *testing.T) {
 	res, err := svc.Synthesize(ctx, synth.Request{
 		Voice: &domain.Voice{
 			Name:   "inline",
-			Params: []domain.SynthParam{{Version: domain.Version1, Preset: 0, Speed: 100}},
+			Speed:  100,
+			Params: []domain.SynthParam{{Version: domain.Version1, Preset: 0}},
 		},
 		Text:    "こんにちは",
 		NoWrite: true,

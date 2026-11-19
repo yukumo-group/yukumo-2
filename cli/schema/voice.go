@@ -24,18 +24,6 @@ func VoiceParamFields(version int) []Entry[api.SynthParam] {
 				return nil
 			},
 		},
-		{
-			Field: Field{Key: "speed", Title: "Speed", Description: "Speech rate %", Kind: KindInt, Min: 50, Max: 300},
-			Get:   func(p api.SynthParam) string { return strconv.Itoa(p.Speed) },
-			Set: func(p *api.SynthParam, v string) error {
-				n, _, err := parse.ParseRangedInt(v, 50, 300)
-				if err != nil {
-					return err
-				}
-				p.Speed = n
-				return nil
-			},
-		},
 	}
 	if version == api.Version2 {
 		entries = append(entries, Entry[api.SynthParam]{
@@ -86,11 +74,9 @@ func VoiceParamFields(version int) []Entry[api.SynthParam] {
 					return nil
 				},
 			},
-			intEntry("volume", "Volume", "0-300", 0, 300, func(p api.SynthParam) int { return p.Volume }, func(p *api.SynthParam, n int) { p.Volume = n }),
 			intEntry("pitch", "Pitch", "20-200", 20, 200, func(p api.SynthParam) int { return p.Pitch }, func(p *api.SynthParam, n int) { p.Pitch = n }),
 			intEntry("accent", "Accent", "0-200", 0, 200, func(p api.SynthParam) int { return p.Accent }, func(p *api.SynthParam, n int) { p.Accent = n }),
 			intEntry("lmd", "LMD", "Pitch1 0-200", 0, 200, func(p api.SynthParam) int { return p.Lmd }, func(p *api.SynthParam, n int) { p.Lmd = n }),
-			intEntry("fsc", "FSC", "Sample-rate scale 50-200", 50, 200, func(p api.SynthParam) int { return p.Fsc }, func(p *api.SynthParam, n int) { p.Fsc = n }),
 		)
 	}
 	return entries

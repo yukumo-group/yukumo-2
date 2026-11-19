@@ -68,7 +68,7 @@ CLI 为脚本化（仅 cobra）：无交互提示或菜单；缺少必需参数�
 
 动词必填；仅写 `character <name> voice` 会报错。
 
-Param 字段：`preset`, `speed`；v2 +`phont_data`（选文件嵌入）；v10 +`base`,`volume`,`pitch`,`accent`,`lmd`,`fsc`。preset 经 `PresetCatalog`（WASM）校验。
+Voice 字段：`speed`（50–300）。Param 字段：`preset`；v2 +`phont_data`（选文件嵌入）；v10 +`base`,`pitch`,`accent`,`lmd`（`volume`/`fsc` 固定 100）。preset 经 `PresetCatalog`（WASM）校验。
 
 ### `synth`
 

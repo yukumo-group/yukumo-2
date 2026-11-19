@@ -5,6 +5,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_scope.dart';
+import '../../bridge/client.dart';
 import '../../gen/rpc.dart';
 import '../../widgets/content_frame.dart';
 import '../../widgets/entity_context_menu.dart';
@@ -51,12 +52,14 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
   final _name = TextEditingController();
   final _description = TextEditingController();
   Timer? _saveTimer;
+  YukumoClient? _client;
   String _originalName = '';
   List<Voice> _voices = const [];
   bool _loading = true;
   bool _ready = false;
   bool _saving = false;
   bool _saveQueued = false;
+  bool _dirty = false;
   String? _error;
 
   @override
@@ -71,12 +74,16 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _client = AppScope.of(context);
+  }
+
+  @override
   void didUpdateWidget(covariant CharacterEditPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.characterName != widget.characterName) {
-      _flushSave();
-      _originalName = widget.characterName;
-      unawaited(_load());
+      unawaited(_switchTarget(widget.characterName));
     }
   }
 
@@ -85,6 +92,9 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
     _saveTimer?.cancel();
     _name.removeListener(_onMetaChanged);
     _description.removeListener(_onMetaChanged);
+    if (_dirty && _ready) {
+      unawaited(_persist(notify: false));
+    }
     _name.dispose();
     _description.dispose();
     super.dispose();
@@ -95,14 +105,22 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
     _scheduleSave();
   }
 
+  Future<void> _switchTarget(String characterName) async {
+    await _flushSave();
+    if (!mounted) return;
+    _originalName = characterName;
+    await _load();
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
       _ready = false;
+      _dirty = false;
       _error = null;
     });
     try {
-      final c = await AppScope.of(context).characters.get(
+      final c = await (_client ?? AppScope.of(context)).characters.get(
         CharacterGetReq(name: widget.characterName),
       );
       if (!mounted) return;
@@ -130,31 +148,35 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
 
   void _scheduleSave({Duration delay = const Duration(milliseconds: 450)}) {
     if (!_ready || _loading) return;
+    _dirty = true;
     _saveTimer?.cancel();
     _saveTimer = Timer(delay, () {
-      unawaited(_save());
+      unawaited(_persist());
     });
   }
 
-  void _flushSave() {
+  Future<void> _flushSave() async {
     _saveTimer?.cancel();
-    if (!_ready || _loading) return;
-    unawaited(_save());
+    if (!_dirty || !_ready) return;
+    await _persist();
   }
 
-  Future<void> _save() async {
-    if (!mounted || !_ready || _loading) return;
+  Future<void> _persist({bool notify = true}) async {
+    if (!_ready) return;
     final name = _name.text.trim();
     if (name.isEmpty) return;
     if (_saving) {
       _saveQueued = true;
       return;
     }
+    final client = _client;
+    if (client == null) return;
+
     _saving = true;
     final voices = List<Voice>.of(_voices);
     final description = _description.text.trim();
     final oldName = _originalName;
-    final client = AppScope.of(context);
+    final snapshotDirty = _dirty;
     try {
       await client.characters.update(
         CharacterUpdateReq(
@@ -166,12 +188,13 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
           ),
         ),
       );
-      if (!mounted) return;
-      final renamed = oldName != name;
+      _dirty = false;
       _originalName = name;
-      if (renamed) widget.onRenamed?.call(name);
-      widget.onUpdated?.call();
+      if (!mounted) return;
+      if (oldName != name) widget.onRenamed?.call(name);
+      if (notify) widget.onUpdated?.call();
     } catch (e) {
+      _dirty = snapshotDirty || _dirty;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('保存失败: $e')),
@@ -180,13 +203,14 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
       _saving = false;
       if (_saveQueued) {
         _saveQueued = false;
-        unawaited(_save());
+        await _persist(notify: notify);
       }
     }
   }
 
   Future<void> _openVoice(String voiceName) async {
-    _flushSave();
+    await _flushSave();
+    if (!mounted) return;
     final open = widget.onOpenVoice;
     if (open != null) {
       open(voiceName);
@@ -235,7 +259,7 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
     setState(() {
       _voices = [
         ..._voices,
-        Voice(name: name, params: [defaultSynthParam(1)]),
+        Voice(name: name, speed: 100, params: [defaultSynthParam(1)]),
       ];
     });
     _scheduleSave(delay: Duration.zero);
@@ -405,7 +429,7 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) _flushSave();
+        if (didPop) unawaited(_flushSave());
       },
       child: Scaffold(
         backgroundColor: cs.surface,

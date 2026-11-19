@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"yukumo-script/cli/parse"
@@ -41,6 +42,32 @@ func ApplyVoiceName(ctx context.Context, app *api.App, charName, oldName, newNam
 		return api.Voice{}, EditResult{}, err
 	}
 	return v, EditResult{Value: v.Name}, nil
+}
+
+func ApplyVoiceSpeed(ctx context.Context, app *api.App, charName, voiceName, raw string, normalize bool) (api.Voice, EditResult, error) {
+	v, err := app.GetVoice(charName, voiceName)
+	if err != nil {
+		return api.Voice{}, EditResult{}, err
+	}
+	value := raw
+	var warning string
+	if normalize {
+		value, warning, err = schema.Normalize(schema.Field{
+			Key: "speed", Title: "Speed", Description: "Speech rate %", Kind: schema.KindInt, Min: 50, Max: 300,
+		}, raw)
+		if err != nil {
+			return api.Voice{}, EditResult{}, err
+		}
+	}
+	n, _, err := parse.ParseRangedInt(value, 50, 300)
+	if err != nil {
+		return api.Voice{}, EditResult{}, err
+	}
+	v.Speed = n
+	if err := app.UpdateVoice(ctx, charName, voiceName, v); err != nil {
+		return api.Voice{}, EditResult{}, err
+	}
+	return v, EditResult{Value: strconv.Itoa(v.Speed), Warning: warning}, nil
 }
 
 func ApplyVoiceParam(

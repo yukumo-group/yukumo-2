@@ -14,19 +14,17 @@ String uniqueCopyName(String base, Iterable<String> existing) {
 Voice cloneVoice(Voice source, String newName) {
   return Voice(
     name: newName,
+    speed: source.speed,
     params: [
       for (final p in source.params ?? const <SynthParam>[])
         SynthParam(
           version: p.version,
           preset: p.preset,
-          speed: p.speed,
           phontData: p.phontData,
           base: p.base,
-          volume: p.volume,
           pitch: p.pitch,
           accent: p.accent,
           lmd: p.lmd,
-          fsc: p.fsc,
         ),
     ],
   );

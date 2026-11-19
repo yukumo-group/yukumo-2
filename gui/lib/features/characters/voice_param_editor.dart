@@ -17,37 +17,28 @@ SynthParam defaultSynthParam(int version) {
       return const SynthParam(
         version: 10,
         preset: 0,
-        speed: 100,
         base: 0,
-        volume: 100,
         pitch: 100,
         accent: 100,
         lmd: 100,
-        fsc: 100,
       );
     case 2:
       return const SynthParam(
         version: 2,
         preset: 0,
-        speed: 100,
         base: 0,
-        volume: 0,
         pitch: 0,
         accent: 0,
         lmd: 0,
-        fsc: 0,
       );
     default:
       return const SynthParam(
         version: 1,
         preset: 0,
-        speed: 100,
         base: 0,
-        volume: 0,
         pitch: 0,
         accent: 0,
         lmd: 0,
-        fsc: 0,
       );
   }
 }
@@ -57,10 +48,12 @@ class VoiceParamEditor extends StatefulWidget {
     super.key,
     required this.voice,
     required this.onChanged,
+    this.onSelectedVersionChanged,
   });
 
   final Voice voice;
   final ValueChanged<Voice> onChanged;
+  final ValueChanged<int>? onSelectedVersionChanged;
 
   @override
   State<VoiceParamEditor> createState() => _VoiceParamEditorState();
@@ -79,6 +72,7 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
     _name = TextEditingController(text: widget.voice.name);
     _tabIndex = _initialTab();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onSelectedVersionChanged?.call(_selectedVersion);
       unawaited(_loadPresets());
     });
   }
@@ -177,28 +171,34 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
 
   void _emit(Voice next) => widget.onChanged(next);
 
+  Voice _voiceWith({
+    String? name,
+    int? speed,
+    List<SynthParam>? params,
+  }) {
+    return Voice(
+      name: name ?? widget.voice.name,
+      speed: speed ?? widget.voice.speed,
+      params: params ?? widget.voice.params,
+    );
+  }
+
   SynthParam _copy(
     SynthParam p, {
     int? preset,
-    int? speed,
     int? base,
-    int? volume,
     int? pitch,
     int? accent,
     int? lmd,
-    int? fsc,
   }) {
     return SynthParam(
       version: p.version,
       preset: preset ?? p.preset,
-      speed: speed ?? p.speed,
       phontData: p.phontData,
       base: base ?? p.base,
-      volume: volume ?? p.volume,
       pitch: pitch ?? p.pitch,
       accent: accent ?? p.accent,
       lmd: lmd ?? p.lmd,
-      fsc: fsc ?? p.fsc,
     );
   }
 
@@ -211,7 +211,7 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
       params.add(next);
     }
     params.sort((a, b) => a.version.compareTo(b.version));
-    _emit(Voice(name: widget.voice.name, params: params));
+    _emit(_voiceWith(params: params));
   }
 
   void _setVersionEnabled(bool enabled) {
@@ -223,7 +223,7 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
     final params = List<SynthParam>.of(widget.voice.params ?? const []);
     if (params.length <= 1) return;
     params.removeWhere((p) => p.version == _selectedVersion);
-    _emit(Voice(name: widget.voice.name, params: params));
+    _emit(_voiceWith(params: params));
   }
 
   void _commitName() {
@@ -232,7 +232,7 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
       _name.text = widget.voice.name;
       return;
     }
-    _emit(Voice(name: name, params: widget.voice.params));
+    _emit(_voiceWith(name: name));
   }
 
   Widget _versionTabs() {
@@ -252,6 +252,7 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
           onSelectedIndexChanged: (idx) {
             if (idx == null) return;
             setState(() => _tabIndex = idx);
+            widget.onSelectedVersionChanged?.call(_kVersions[idx]);
             unawaited(_loadPresets());
           },
           actions: [
@@ -344,15 +345,7 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _presetDropdownField(p, cs),
-        const SizedBox(height: 16),
-        IntSliderField(
-          label: '语速',
-          value: p.speed.clamp(50, 300),
-          min: 50,
-          max: 300,
-          onChanged: (v) => _replaceParam(_copy(p, speed: v)),
-        ),
-        // AQ10_CUSTOM == 0; named presets ignore base/volume/pitch/accent/lmd/fsc.
+        // AQ10_CUSTOM == 0; named presets ignore base/pitch/accent/lmd.
         if (p.version == 10 && p.preset == 0) ...[
           const SizedBox(height: 16),
           Text('基本素片', style: Theme.of(context).textTheme.labelLarge),
@@ -377,18 +370,11 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
                   for (final name in _kBaseNames)
                     M3EToggleButtonGroupAction(
                       label: Text(name),
+                      width: width.isFinite ? width : null,
                     ),
                 ],
               );
             },
-          ),
-          const SizedBox(height: 16),
-          IntSliderField(
-            label: '音量',
-            value: p.volume.clamp(0, 300),
-            min: 0,
-            max: 300,
-            onChanged: (v) => _replaceParam(_copy(p, volume: v)),
           ),
           const SizedBox(height: 16),
           IntSliderField(
@@ -414,19 +400,11 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
             max: 200,
             onChanged: (v) => _replaceParam(_copy(p, lmd: v)),
           ),
-          const SizedBox(height: 16),
-          IntSliderField(
-            label: 'FSC',
-            value: p.fsc.clamp(50, 200),
-            min: 50,
-            max: 200,
-            onChanged: (v) => _replaceParam(_copy(p, fsc: v)),
-          ),
         ],
         if (p.version == 2) ...[
           const SizedBox(height: 12),
           Text(
-            'V2 phont 数据请在后续版本通过文件导入；当前可先调 preset / 语速。',
+            'V2 phont 数据请在后续版本通过文件导入；当前可先调 preset。',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: cs.onSurfaceVariant,
             ),
@@ -456,6 +434,14 @@ class _VoiceParamEditorState extends State<VoiceParamEditor> {
           ),
           onEditingComplete: _commitName,
           onSubmitted: (_) => _commitName(),
+        ),
+        const SizedBox(height: 16),
+        IntSliderField(
+          label: '语速',
+          value: widget.voice.speed.clamp(50, 300),
+          min: 50,
+          max: 300,
+          onChanged: (v) => _emit(_voiceWith(speed: v)),
         ),
         const SizedBox(height: 16),
         _versionTabs(),

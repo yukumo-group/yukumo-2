@@ -32,6 +32,15 @@ func runOneShotVoiceEdit(s streams.Streams, app *api.App, charName, voiceName st
 			return err
 		}
 		return render.Line(s.Out, "name: %s\n", result.Value)
+	case "speed":
+		_, result, err := action.ApplyVoiceSpeed(s.Ctx, app, charName, voiceName, raw, true)
+		if err != nil {
+			return err
+		}
+		if result.Warning != "" {
+			_ = render.Warning(s.Err, result.Warning)
+		}
+		return render.Line(s.Out, "speed: %s\n", result.Value)
 	case "param", "version":
 		return fmt.Errorf("use: edit <voice> <version> <field> <value>")
 	default:
@@ -44,6 +53,6 @@ func runOneShotVoiceEdit(s streams.Streams, app *api.App, charName, voiceName st
 			}
 			return render.Line(s.Out, "v%d.%s updated\n", ver, args[1])
 		}
-		return fmt.Errorf("unknown field %q (want name, or <version> <field> <value>)", field)
+		return fmt.Errorf("unknown field %q (want name, speed, or <version> <field> <value>)", field)
 	}
 }

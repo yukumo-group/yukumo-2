@@ -27,6 +27,7 @@ func (s *Service) Add(c domain.Character) error {
 	if len(c.Voices) == 0 && s.initDefaultVoice() {
 		c.Voices = []domain.Voice{{
 			Name:   "default",
+			Speed:  100,
 			Params: []domain.SynthParam{domain.DefaultSynthParam(domain.Version1)},
 		}}
 	}

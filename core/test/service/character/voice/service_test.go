@@ -28,9 +28,10 @@ func TestVoiceCRUD(t *testing.T) {
 	}
 	ctx := context.Background()
 	v := domain.Voice{
-		Name: "default",
+		Name:  "default",
+		Speed: 100,
 		Params: []domain.SynthParam{
-			{Version: domain.Version1, Preset: 0, Speed: 100, Volume: 999, PhontData: []byte("x")},
+			{Version: domain.Version1, Preset: 0, Pitch: 999, PhontData: []byte("x")},
 		},
 	}
 	if err := voices.Add(ctx, "Alice", v); err != nil {
@@ -40,12 +41,12 @@ func TestVoiceCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Params) != 1 || got.Params[0].Volume != 0 || got.Params[0].PhontData != nil {
+	if len(got.Params) != 1 || got.Params[0].Pitch != 0 || got.Params[0].PhontData != nil {
 		t.Fatalf("normalize v1 = %+v", got.Params[0])
 	}
 
 	got.Params = append(got.Params, domain.SynthParam{
-		Version: domain.Version10, Preset: 1, Speed: 100, Volume: 100, Pitch: 100, Accent: 100, Lmd: 100, Fsc: 100,
+		Version: domain.Version10, Preset: 1, Pitch: 100, Accent: 100, Lmd: 100,
 		PhontData: []byte("nope"),
 	})
 	if err := voices.Update(ctx, "Alice", "default", got); err != nil {

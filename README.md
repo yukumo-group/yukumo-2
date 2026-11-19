@@ -68,7 +68,7 @@ The CLI is scripted (cobra-only): there are no interactive prompts or menus. Mis
 
 The verb is required; `character <name> voice` without one errors.
 
-Param fields: `preset`, `speed`; v2 +`phont_data` (file → embed); v10 +`base`,`volume`,`pitch`,`accent`,`lmd`,`fsc`. Presets validated via `PresetCatalog` (WASM).
+Voice fields: `speed` (50–300). Param fields: `preset`; v2 +`phont_data` (file → embed); v10 +`base`,`pitch`,`accent`,`lmd` (`volume`/`fsc` fixed at 100). Presets validated via `PresetCatalog` (WASM).
 
 ### `synth`
 
