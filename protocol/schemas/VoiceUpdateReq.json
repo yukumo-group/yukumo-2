@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "character": {
+      "type": "string",
+      "minLength": 1
+    },
+    "oldName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "voice": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "params": {
+          "items": {
+            "properties": {
+              "version": {
+                "type": "integer"
+              },
+              "preset": {
+                "type": "integer"
+              },
+              "speed": {
+                "type": "integer"
+              },
+              "phontData": {
+                "type": "string",
+                "contentEncoding": "base64"
+              },
+              "base": {
+                "type": "integer"
+              },
+              "volume": {
+                "type": "integer"
+              },
+              "pitch": {
+                "type": "integer"
+              },
+              "accent": {
+                "type": "integer"
+              },
+              "lmd": {
+                "type": "integer"
+              },
+              "fsc": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "character",
+    "oldName",
+    "voice"
+  ],
+  "title": "VoiceUpdateReq"
+}

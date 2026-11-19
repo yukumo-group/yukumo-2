@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "character": {
+      "type": "string",
+      "minLength": 1
+    },
+    "srcName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "newName": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "character",
+    "srcName",
+    "newName"
+  ],
+  "title": "VoiceDuplicateReq"
+}

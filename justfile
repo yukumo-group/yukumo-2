@@ -8,7 +8,13 @@ default: check
 check: check-replaces check-cli-imports lint build-modules vet test
 
 # CI entry point: replace check, then lint before build, then tests/vet.
-ci: check-replaces check-cli-imports build build-modules test vet
+ci: check-replaces check-cli-imports check-protocol build build-modules test vet
+
+gen-protocol:
+    go -C core/api run ./cmd/gen
+
+check-protocol: gen-protocol
+    git diff --exit-code -- protocol/ gui/lib/gen/
 
 # Build runs depguard + staticcheck first.
 build: lint

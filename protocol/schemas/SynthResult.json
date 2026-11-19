@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "wav": {
+      "type": "string",
+      "contentEncoding": "base64"
+    },
+    "path": {
+      "type": "string"
+    },
+    "wrote": {
+      "type": "boolean"
+    },
+    "fromCache": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "title": "SynthResult"
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "characters": {
+      "properties": {
+        "initDefaultVoice": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "paths": {
+      "properties": {
+        "characterPath": {
+          "type": "string"
+        },
+        "outputPath": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "synth": {
+      "properties": {
+        "outputFormat": {
+          "type": "string"
+        },
+        "alwaysWrite": {
+          "type": "boolean"
+        },
+        "reuseCache": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "title": "Config"
+}

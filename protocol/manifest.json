@@ -1,0 +1,187 @@
+{
+  "version": "1",
+  "errorKinds": [
+    "invalid",
+    "not_found",
+    "exists",
+    "internal"
+  ],
+  "methods": [
+    {
+      "name": "character.list",
+      "paramsSchema": "schemas/EmptyReq.json",
+      "resultSchema": "schemas/CharacterListRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "character.get",
+      "paramsSchema": "schemas/CharacterGetReq.json",
+      "resultSchema": "schemas/Character.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "character.add",
+      "paramsSchema": "schemas/CharacterAddReq.json",
+      "resultSchema": "schemas/EmptyRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "character.update",
+      "paramsSchema": "schemas/CharacterUpdateReq.json",
+      "resultSchema": "schemas/EmptyRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "character.delete",
+      "paramsSchema": "schemas/CharacterDeleteReq.json",
+      "resultSchema": "schemas/EmptyRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "voice.list",
+      "paramsSchema": "schemas/VoiceListReq.json",
+      "resultSchema": "schemas/VoiceListRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "voice.get",
+      "paramsSchema": "schemas/VoiceGetReq.json",
+      "resultSchema": "schemas/Voice.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "voice.add",
+      "paramsSchema": "schemas/VoiceAddReq.json",
+      "resultSchema": "schemas/EmptyRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "voice.update",
+      "paramsSchema": "schemas/VoiceUpdateReq.json",
+      "resultSchema": "schemas/EmptyRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "voice.delete",
+      "paramsSchema": "schemas/VoiceDeleteReq.json",
+      "resultSchema": "schemas/EmptyRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "voice.duplicate",
+      "paramsSchema": "schemas/VoiceDuplicateReq.json",
+      "resultSchema": "schemas/VoiceDuplicateRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "voice.presets",
+      "paramsSchema": "schemas/VoicePresetsReq.json",
+      "resultSchema": "schemas/VoicePresetsRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "voice.hasPreset",
+      "paramsSchema": "schemas/VoiceHasPresetReq.json",
+      "resultSchema": "schemas/VoiceHasPresetRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "config.get",
+      "paramsSchema": "schemas/EmptyReq.json",
+      "resultSchema": "schemas/Config.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "config.save",
+      "paramsSchema": "schemas/ConfigSaveReq.json",
+      "resultSchema": "schemas/EmptyRes.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    },
+    {
+      "name": "synth.render",
+      "paramsSchema": "schemas/SynthRequest.json",
+      "resultSchema": "schemas/SynthResult.json",
+      "errorKinds": [
+        "invalid",
+        "not_found",
+        "exists",
+        "internal"
+      ]
+    }
+  ]
+}
