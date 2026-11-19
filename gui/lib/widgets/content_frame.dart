@@ -47,3 +47,43 @@ class ContentFrame extends StatelessWidget {
 bool isWideLayout(BuildContext context, {double breakpoint = kPageBreakpoint}) {
   return MediaQuery.sizeOf(context).width >= breakpoint;
 }
+
+/// Space between [PageCardTitle] and the card body beneath it.
+const double kPageCardTitleGap = 24;
+
+/// Left-aligned page title for root tab content (replaces large AppBar title).
+class PageCardTitle extends StatelessWidget {
+  const PageCardTitle(
+    this.title, {
+    super.key,
+    this.trailing,
+    this.bottomGap = kPageCardTitleGap,
+  });
+
+  final String title;
+  final Widget? trailing;
+
+  /// Gap below the title row before card content. Use `0` when spacing is
+  /// applied by the parent instead.
+  final double bottomGap;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.headlineMedium?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: Text(title, style: style)),
+            if (trailing != null) trailing!,
+          ],
+        ),
+        if (bottomGap > 0) SizedBox(height: bottomGap),
+      ],
+    );
+  }
+}
