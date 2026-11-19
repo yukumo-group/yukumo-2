@@ -7,6 +7,7 @@ Flutter app. Talks to core only through JSON-RPC 2 (generated `lib/gen/` + `lib/
 - Transport: `StdioRpcTransport` → spawn `yukumo-script serve` (NDJSON).
 - Binary: `YUKUMO_RPC_BIN`, else `../yukumo-script` / `yukumo-script` on PATH.
 - Smoke: `YUKUMO_RPC_BIN=../yukumo-script dart run tool/smoke_stdio.dart`
+- UI: `features/shell` floating bottom bar; `features/synth` home; `features/characters` list (M3E dismissible + context menu).
 
 ## Mobile / Web (deferred)
 
