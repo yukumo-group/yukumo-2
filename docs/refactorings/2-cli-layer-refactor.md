@@ -1222,9 +1222,10 @@ grep -n 'attachBrowse\|enableInteractiveBrowse\|browseCommands\|menuCommands' cl
 <a id="sec-16"></a>
 ## 16. Serve（stdin/stdout）addendum
 
-> 状态：评估与后续增量设计，不属于当前 Phase 0–7 的实现范围。  
+> **实现以 [`4-flutter-gui.md`](./4-flutter-gui.md) 为准。** 本节 length-prefixed 帧草图作废；产品协议为 NDJSON JSON-RPC 2（`yukumo-script serve`）。  
+> 状态：评估与后续增量设计，不属于当时 Phase 0–7 的实现范围（历史记录保留）。  
 > 目的：确认「其他应用通过 stdin/stdout 持续交互」是否被本计划的 shell / action / ui 分层允许，并记下落点与约束，便于以后立项引用。  
-> 相关：[`1-layer-refactor.md`](./1-layer-refactor.md) 的 `api.App.Synthesize`（返回 `WAV []byte`）；Web/WASM 是另一条 transport，见该文档 §16。
+> 相关：[`1-layer-refactor.md`](./1-layer-refactor.md) 的 `api.App.Synthesize`（返回 `WAV []byte`）；Web/WASM 是另一条 transport；GUI 桥梁见 [`4-flutter-gui.md`](./4-flutter-gui.md)。
 
 <a id="sec-16-1"></a>
 ### 16.1 结论
