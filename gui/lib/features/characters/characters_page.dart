@@ -1,16 +1,19 @@
 import 'dart:async';
 
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_scope.dart';
 import '../../gen/rpc.dart';
 import '../../widgets/content_frame.dart';
+import '../../widgets/entity_context_menu.dart';
+import '../../widgets/entity_list.dart';
+import '../../widgets/multi_column_view.dart';
 import '../shell/bar_padding.dart';
 import 'character_edit_page.dart';
 import 'name_util.dart';
 import 'swipe_actions.dart';
+import 'voice_edit_page.dart';
 
 class CharactersPage extends StatefulWidget {
   const CharactersPage({super.key});
@@ -20,11 +23,11 @@ class CharactersPage extends StatefulWidget {
 }
 
 class _CharactersPageState extends State<CharactersPage> {
-  final _menuController = M3EMenuController();
   List<Character> _items = const [];
   bool _loading = true;
   String? _error;
-  int? _menuIndex;
+  String? _selectedCharacter;
+  String? _selectedVoice;
 
   @override
   void initState() {
@@ -34,13 +37,7 @@ class _CharactersPageState extends State<CharactersPage> {
     });
   }
 
-  @override
-  void dispose() {
-    _menuController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _reload() async {
+  Future<void> _reload({bool keepSelection = true}) async {
     setState(() {
       _loading = true;
       _error = null;
@@ -48,8 +45,30 @@ class _CharactersPageState extends State<CharactersPage> {
     try {
       final res = await AppScope.of(context).characters.list();
       if (!mounted) return;
+      final list = List.of(res.characters ?? const <Character>[]);
+      String? selected = keepSelection ? _selectedCharacter : null;
+      if (selected != null && !list.any((c) => c.name == selected)) {
+        selected = null;
+      }
+      selected ??= list.isNotEmpty ? list.first.name : null;
+      String? voice = keepSelection ? _selectedVoice : null;
+      if (selected == null) {
+        voice = null;
+      } else if (voice != null) {
+        Character? match;
+        for (final c in list) {
+          if (c.name == selected) {
+            match = c;
+            break;
+          }
+        }
+        final voices = match?.voices ?? const <Voice>[];
+        if (!voices.any((v) => v.name == voice)) voice = null;
+      }
       setState(() {
-        _items = List.of(res.characters ?? const <Character>[]);
+        _items = list;
+        _selectedCharacter = selected;
+        _selectedVoice = voice;
         _loading = false;
       });
     } catch (e) {
@@ -61,13 +80,24 @@ class _CharactersPageState extends State<CharactersPage> {
     }
   }
 
-  Future<void> _openEdit(String name) async {
+  Future<void> _openEditMobile(String name) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CharacterEditPage(characterName: name),
       ),
     );
     if (mounted) await _reload();
+  }
+
+  void _selectCharacter(String name, {required bool dual}) {
+    if (dual) {
+      setState(() {
+        _selectedCharacter = name;
+        _selectedVoice = null;
+      });
+      return;
+    }
+    unawaited(_openEditMobile(name));
   }
 
   Future<bool> _cloneAt(int index) async {
@@ -81,6 +111,10 @@ class _CharactersPageState extends State<CharactersPage> {
       if (!mounted) return false;
       await _reload();
       if (mounted) {
+        setState(() {
+          _selectedCharacter = newName;
+          _selectedVoice = null;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('已克隆为「$newName」')),
         );
@@ -96,33 +130,32 @@ class _CharactersPageState extends State<CharactersPage> {
   }
 
   Future<bool> _deleteAt(int index) async {
+    if (index < 0 || index >= _items.length) return false;
     final c = _items[index];
     final client = AppScope.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除角色'),
-        content: Text('确定删除「${c.name}」？'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('删除')),
-        ],
-      ),
-    );
-    if (ok != true) return false;
     try {
       await client.characters.delete(CharacterDeleteReq(name: c.name));
       if (!mounted) return false;
-      setState(() => _items = List.of(_items)..removeAt(index));
+      final removingSelected = _selectedCharacter == c.name;
+      setState(() {
+        _items = List.of(_items)..removeAt(index);
+        if (removingSelected) {
+          // Close the detail pane / page for the deleted character.
+          _selectedCharacter = null;
+          _selectedVoice = null;
+        }
+      });
       return true;
     } catch (e) {
       if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('删除失败: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('删除失败: $e')),
+      );
       return false;
     }
   }
 
-  Future<void> _showAddDialog() async {
+  Future<void> _showAddDialog({required bool dual}) async {
     final client = AppScope.of(context);
     final nameCtrl = TextEditingController();
     final descCtrl = TextEditingController();
@@ -161,194 +194,263 @@ class _CharactersPageState extends State<CharactersPage> {
         ),
       );
       if (!mounted) return;
-      await _openEdit(name);
+      await _reload();
+      if (!mounted) return;
+      _selectCharacter(name, dual: dual);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('创建失败: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('创建失败: $e')),
+      );
     }
   }
 
-  void _openContextMenu(Offset globalPosition, int index) {
-    setState(() => _menuIndex = index);
-    _menuController.open(position: globalPosition);
+  String _characterMeta(Character c) {
+    final voiceCount = c.voices?.length ?? 0;
+    final desc = c.description.trim();
+    return desc.isEmpty ? '$voiceCount' : '$voiceCount · $desc';
   }
 
-  List<Widget> _menuChildren(ColorScheme cs) {
-    final index = _menuIndex;
-    final name = (index != null && index >= 0 && index < _items.length)
-        ? _items[index].name
-        : '';
-    return [
-      M3EMenuGroup(
-        shapes: MenuGroupShapes.leading(),
+  Widget _listPane({
+    required ColorScheme cs,
+    required bool dual,
+  }) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 48),
+        child: Center(child: M3ELoadingIndicator()),
+      );
+    }
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Center(child: Text(_error!)),
+      );
+    }
+    return EntityDismissibleList(
+      itemCount: _items.length,
+      style: entitySwipeStyle(cs),
+      emptyBuilder: (_) => Padding(
+        padding: const EdgeInsets.all(32),
+        child: Text(
+          '暂无角色',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+      ),
+      onDismiss: (index, direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          return _cloneAt(index);
+        }
+        if (direction == DismissDirection.endToStart) {
+          return _deleteAt(index);
+        }
+        return false;
+      },
+      onTap: (index) =>
+          _selectCharacter(_items[index].name, dual: dual),
+      menuChildren: (context, menuIndex, close) {
+        final name =
+            (menuIndex != null &&
+                menuIndex >= 0 &&
+                menuIndex < _items.length)
+            ? _items[menuIndex].name
+            : null;
+        return buildEntityContextMenu(
+          groupLabel: '角色',
+          name: name,
+          close: close,
+          onEdit: () {
+            if (menuIndex != null) {
+              _selectCharacter(_items[menuIndex].name, dual: dual);
+            }
+          },
+          onClone: () {
+            if (menuIndex != null) unawaited(_cloneAt(menuIndex));
+          },
+          onDelete: () {
+            if (menuIndex != null) unawaited(_deleteAt(menuIndex));
+          },
+        );
+      },
+      itemBuilder: (context, index) {
+        final c = _items[index];
+        return EntityListRow(
+          leading: const EntityListAvatar(Icons.person_rounded),
+          title: c.name,
+          subtitle: EntityListMeta(_characterMeta(c)),
+          selected: dual && _selectedCharacter == c.name,
+        );
+      },
+    );
+  }
+
+  Widget _emptyDetail(String message, ColorScheme cs) {
+    return Center(
+      child: Text(
+        message,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: cs.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  Widget _characterPane({required bool triple}) {
+    final cs = Theme.of(context).colorScheme;
+    final name = _selectedCharacter;
+    if (name == null) {
+      return _emptyDetail('选择一个角色开始编辑', cs);
+    }
+    return CharacterEditPage(
+      key: ValueKey('char-$name'),
+      characterName: name,
+      embedded: true,
+      selectedVoiceName: triple ? _selectedVoice : null,
+      onOpenVoice: triple
+          ? (voice) => setState(() => _selectedVoice = voice)
+          : null,
+      onDeselectVoice: () => setState(() => _selectedVoice = null),
+      onRenamed: (next) {
+        setState(() => _selectedCharacter = next);
+        unawaited(_reload());
+      },
+      onUpdated: () => unawaited(_reload()),
+    );
+  }
+
+  Widget _voicePane() {
+    final cs = Theme.of(context).colorScheme;
+    final character = _selectedCharacter;
+    final voice = _selectedVoice;
+    if (character == null || voice == null) {
+      return _emptyDetail('选择一个音色进行调参', cs);
+    }
+    return VoiceEditPage(
+      key: ValueKey('voice-$character-$voice'),
+      characterName: character,
+      voiceName: voice,
+      embedded: true,
+      onVoiceRenamed: (next) => setState(() => _selectedVoice = next),
+      onUpdated: () => unawaited(_reload()),
+    );
+  }
+
+  Widget _listTitleActions() {
+    return M3EToggleButtonGroup(
+      type: M3EButtonGroupType.connected,
+      style: M3EButtonStyle.tonal,
+      size: M3EButtonSize.xs,
+      shape: M3EButtonShape.round,
+      density: M3EButtonGroupDensity.compact,
+      overflow: M3EButtonGroupOverflow.none,
+      selectedIndex: null,
+      onSelectedIndexChanged: (idx) {
+        if (idx == 0) unawaited(_reload());
+        if (idx == 1) unawaited(_showAddDialog(dual: true));
+      },
+      actions: const [
+        M3EToggleButtonGroupAction(
+          icon: Icon(Icons.refresh_rounded, size: 18),
+          tooltip: '刷新',
+        ),
+        M3EToggleButtonGroupAction(
+          icon: Icon(Icons.person_add_alt_1_rounded, size: 18),
+          tooltip: '添加角色',
+        ),
+      ],
+    );
+  }
+
+  Widget _wideLayout({
+    required ColorScheme cs,
+    required bool triple,
+    required double bottom,
+  }) {
+    return MultiColumnView(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, bottom + 16),
+      master: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const M3EMenuGroupLabel(child: Text('角色')),
-          M3EMenuItemButton(
-            onPressed: () {
-              _menuController.close();
-              if (index != null) unawaited(_openEdit(_items[index].name));
-            },
-            leadingIcon: const Icon(Icons.edit_rounded),
-            child: Text(name.isEmpty ? '编辑' : '编辑「$name」'),
-          ),
-          M3EMenuItemButton(
-            onPressed: () {
-              _menuController.close();
-              if (index != null) unawaited(_cloneAt(index));
-            },
-            leadingIcon: const Icon(Icons.copy_rounded),
-            child: const Text('克隆'),
-          ),
-          M3EMenuItemButton(
-            onPressed: () {
-              _menuController.close();
-              unawaited(_reload());
-            },
-            leadingIcon: const Icon(Icons.refresh_rounded),
-            child: const Text('刷新列表'),
+          PageCardTitle('角色', trailing: _listTitleActions()),
+          Expanded(
+            child: SingleChildScrollView(
+              child: _listPane(cs: cs, dual: true),
+            ),
           ),
         ],
       ),
-      M3EMenuGroup(
-        shapes: MenuGroupShapes.trailing(),
-        children: [
-          const M3EMenuGroupLabel(child: Text('危险操作')),
-          M3EMenuItemButton(
-            onPressed: () {
-              _menuController.close();
-              if (index != null) unawaited(_deleteAt(index));
-            },
-            leadingIcon: Icon(Icons.delete_forever_rounded, color: cs.error),
-            itemStyle: M3EMenuItemStyle(foregroundColor: cs.error),
-            child: const Text('删除'),
+      detail: _characterPane(triple: triple),
+      secondary: triple ? _voicePane() : null,
+    );
+  }
+
+  Widget _narrowLayout({
+    required ColorScheme cs,
+    required double top,
+    required double bottom,
+  }) {
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(20, top + 12, 20, bottom + 88),
+          sliver: SliverToBoxAdapter(
+            child: MultiColumnPane(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const PageCardTitle('角色'),
+                  _listPane(cs: cs, dual: false),
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
-    ];
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final top = MediaQuery.paddingOf(context).top;
+    final mode = multiColumnModeOf(context);
+    final dual = mode != MultiColumnMode.narrow;
+    final triple = mode == MultiColumnMode.triple;
+
     return withBarBottomPadding(context, (bottom) {
-      return CustomScrollView(
-        slivers: [
-          SliverAppBar.large(
-            title: const Text('角色'),
-            backgroundColor: cs.surface,
-            actions: [
-              IconButton(
-                tooltip: '新建',
-                onPressed: _showAddDialog,
-                icon: const FaIcon(FontAwesomeIcons.plus, size: 18),
-              ),
-              IconButton(
-                tooltip: '刷新',
-                onPressed: _reload,
-                icon: const FaIcon(FontAwesomeIcons.arrowsRotate, size: 18),
-              ),
-            ],
+      if (dual) {
+        return _wideLayout(cs: cs, triple: triple, bottom: bottom);
+      }
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: _narrowLayout(cs: cs, top: top, bottom: bottom),
           ),
-          if (_loading)
-            const SliverFillRemaining(
-              child: Center(child: M3ELoadingIndicator()),
-            )
-          else if (_error != null)
-            SliverFillRemaining(
-              child: Center(child: Text(_error!)),
-            )
-          else
-            SliverPadding(
-              padding: EdgeInsets.only(bottom: bottom),
-              sliver: SliverToBoxAdapter(
-                child: ContentFrame(
-                  child: M3EMenuAnchor(
-                    controller: _menuController,
-                    colorSchemeVariant: M3EMenuColorSchemeVariant.standard,
-                    consumeOutsideTaps: true,
-                    anchorTapClosesMenu: true,
-                    style: const M3EMenuStyle(
-                      minWidth: 180,
-                      maxWidth: 300,
-                      elevation: 3,
-                      spatialMotion: M3EMotion.expressiveSpatialFast,
-                      animationStyle: M3EMenuAnimationStyle.popup,
-                    ),
-                    menuChildren: _menuChildren(cs),
-                    builder: (context, controller, child) => child!,
-                    child: M3EDismissibleCardColumn(
-                      itemCount: _items.length,
-                      emptyBuilder: (_) => Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Text(
-                          '暂无角色',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      style: characterSwipeStyle(cs),
-                      onDismiss: (index, direction) async {
-                        if (direction == DismissDirection.startToEnd) {
-                          return _cloneAt(index);
-                        }
-                        if (direction == DismissDirection.endToStart) {
-                          return _deleteAt(index);
-                        }
-                        return false;
-                      },
-                      onTap: (index) => unawaited(_openEdit(_items[index].name)),
-                      itemBuilder: (context, index) {
-                        final c = _items[index];
-                        final voiceCount = c.voices?.length ?? 0;
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onSecondaryTapDown: (details) {
-                            _openContextMenu(details.globalPosition, index);
-                          },
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      c.name,
-                                      style: Theme.of(context).textTheme.titleMedium,
-                                    ),
-                                    if (c.description.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        c.description,
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          color: cs.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    ],
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '$voiceCount 个音色',
-                                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                        color: cs.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                Icons.chevron_right_rounded,
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+          Positioned(
+            right: 20,
+            bottom: bottom + 8,
+            child: M3EFabMenu(
+              position: M3EFabMenuPosition.right,
+              color: M3EFabColor.primary,
+              size: M3EFabSize.medium,
+              decoration: const M3EFabMenuDecoration(),
+              items: [
+                M3EFabMenuItem(
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: '刷新',
+                  onPressed: () => unawaited(_reload()),
                 ),
-              ),
+                M3EFabMenuItem(
+                  icon: const Icon(Icons.person_add_alt_1_rounded),
+                  label: '添加角色',
+                  onPressed: () => unawaited(_showAddDialog(dual: false)),
+                ),
+              ],
             ),
+          ),
         ],
       );
     });
